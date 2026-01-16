@@ -10,8 +10,8 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
-import { users, sessions } from '../schema.js';
-import { eq } from 'drizzle-orm';
+import { users, sessions, accounts } from '../schema.js';
+import { eq, and } from 'drizzle-orm';
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.js';
 
 const router = Router();
@@ -70,7 +70,7 @@ router.post('/auth/login', async (req: Request, res: Response) => {
 
     // Find user by email
     const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -78,8 +78,16 @@ router.post('/auth/login', async (req: Request, res: Response) => {
       });
     }
 
-    // Check if user has a password (might be OAuth-only user)
-    if (!user.password) {
+    // Find credential account (password is stored in accounts table per better-auth)
+    const [credentialAccount] = await db.select().from(accounts)
+      .where(and(
+        eq(accounts.userId, user.id),
+        eq(accounts.providerId, 'credential')
+      ))
+      .limit(1);
+
+    // Check if user has a credential account with a password (might be OAuth-only user)
+    if (!credentialAccount || !credentialAccount.password) {
       return res.status(401).json({
         success: false,
         error: 'This account uses social login. Please sign in with Google or GitHub.',
@@ -87,7 +95,7 @@ router.post('/auth/login', async (req: Request, res: Response) => {
     }
 
     // Verify password
-    const isValid = await bcrypt.compare(password, user.password);
+    const isValid = await bcrypt.compare(password, credentialAccount.password);
     if (!isValid) {
       return res.status(401).json({
         success: false,
@@ -166,18 +174,24 @@ router.post('/auth/signup', async (req: Request, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Create user (id and timestamps have defaults in schema)
     const userId = crypto.randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     await db.insert(users).values({
       id: userId,
       email: email.toLowerCase(),
       name: name || email.split('@')[0],
-      password: hashedPassword,
       emailVerified: false,
-      createdAt: now,
-      updatedAt: now,
+    });
+
+    // Create credential account for password auth (per better-auth convention)
+    await db.insert(accounts).values({
+      id: crypto.randomUUID(),
+      accountId: userId,
+      providerId: 'credential',
+      userId: userId,
+      password: hashedPassword,
     });
 
     // Generate tokens
@@ -201,7 +215,7 @@ router.post('/auth/signup', async (req: Request, res: Response) => {
         id: userId,
         email: email.toLowerCase(),
         name: name || email.split('@')[0],
-        createdAt: now.toISOString(),
+        createdAt: now,
       },
       accessToken,
       refreshToken,
@@ -582,7 +596,7 @@ router.post('/auth/github/device/poll', async (req: Request, res: Response) => {
 
       if (!existingUser) {
         const userId = crypto.randomUUID();
-        const now = new Date();
+        const now = new Date().toISOString();
 
         await db.insert(users).values({
           id: userId,
@@ -590,8 +604,15 @@ router.post('/auth/github/device/poll', async (req: Request, res: Response) => {
           name: githubUser.name || githubUser.login,
           image: githubUser.avatar_url,
           emailVerified: true,
-          createdAt: now,
-          updatedAt: now,
+        });
+
+        // Create GitHub account link
+        await db.insert(accounts).values({
+          id: crypto.randomUUID(),
+          accountId: String(githubUser.id),
+          providerId: 'github',
+          userId: userId,
+          accessToken: data.access_token,
         });
 
         existingUser = {
@@ -602,7 +623,9 @@ router.post('/auth/github/device/poll', async (req: Request, res: Response) => {
           emailVerified: true,
           createdAt: now,
           updatedAt: now,
-          password: null,
+          credits: 500,
+          tier: 'free',
+          creditCeiling: null,
         };
       }
 
@@ -797,7 +820,7 @@ router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
     if (!existingUser) {
       // Create new user
       const userId = crypto.randomUUID();
-      const now = new Date();
+      const now = new Date().toISOString();
 
       await db.insert(users).values({
         id: userId,
@@ -805,8 +828,17 @@ router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
         name: googleUser.name || googleUser.email.split('@')[0],
         image: googleUser.picture,
         emailVerified: true,
-        createdAt: now,
-        updatedAt: now,
+      });
+
+      // Create Google account link
+      await db.insert(accounts).values({
+        id: crypto.randomUUID(),
+        accountId: googleUser.id,
+        providerId: 'google',
+        userId: userId,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        idToken: tokens.id_token,
       });
 
       existingUser = {
@@ -817,7 +849,9 @@ router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
         emailVerified: true,
         createdAt: now,
         updatedAt: now,
-        password: null,
+        credits: 500,
+        tier: 'free',
+        creditCeiling: null,
       };
     }
 

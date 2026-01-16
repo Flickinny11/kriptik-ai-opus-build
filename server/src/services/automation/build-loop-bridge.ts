@@ -446,7 +446,61 @@ export class BuildLoopBridge extends EventEmitter {
     getState(): BridgeState {
         return { ...this.state };
     }
-    
+
+    /**
+     * Receive credentials for a running build and forward to the main loop.
+     * This is used when credentials_required event is emitted during Phase 2.
+     *
+     * @param credentials - Key-value pairs of credential values (e.g., { STRIPE_SECRET_KEY: 'sk_...' })
+     * @returns Result indicating success and any errors
+     */
+    async receiveCredentials(credentials: Record<string, string>): Promise<{ success: boolean; errors: string[] }> {
+        if (!this.mainLoop) {
+            return {
+                success: false,
+                errors: ['Main build loop not connected - cannot receive credentials'],
+            };
+        }
+
+        // Check if the main loop is actually waiting for credentials
+        const mainState = this.mainLoop.getState();
+        if (mainState.status !== 'waiting_credentials') {
+            console.warn(`[BuildLoopBridge] receiveCredentials called but build status is ${mainState.status}, not waiting_credentials`);
+        }
+
+        console.log(`[BuildLoopBridge] Forwarding ${Object.keys(credentials).length} credentials to main loop for build ${this.state.buildId}`);
+
+        try {
+            const result = await this.mainLoop.receiveCredentials(credentials);
+
+            if (result.success) {
+                this.emitBridgeEvent('auto-fix-applied', {
+                    type: 'credentials-received',
+                    count: Object.keys(credentials).length,
+                });
+            }
+
+            return result;
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error receiving credentials';
+            console.error(`[BuildLoopBridge] Error forwarding credentials:`, error);
+            return {
+                success: false,
+                errors: [errorMsg],
+            };
+        }
+    }
+
+    /**
+     * Check if the build is waiting for credentials
+     */
+    isWaitingForCredentials(): boolean {
+        if (!this.mainLoop) {
+            return false;
+        }
+        return this.mainLoop.getState().status === 'waiting_credentials';
+    }
+
     /**
      * Clean up the bridge
      */

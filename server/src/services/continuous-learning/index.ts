@@ -72,5 +72,25 @@ export {
   resetProductionHealthMonitor,
 } from './production-health-monitor.js';
 
+// Speed Optimizer - Makes the system get FASTER over time
+export {
+  SpeedOptimizer,
+  getSpeedOptimizer,
+  createSpeedOptimizer,
+  type LatencyData,
+  type SpeedRecommendation,
+  type SpeedMetrics,
+} from './speed-optimizer.js';
+
+// VL-JEPA Feedback Loop - Makes the system get HIGHER QUALITY over time
+export {
+  VLJEPAFeedbackLoop,
+  getVLJEPAFeedbackLoop,
+  createVLJEPAFeedbackLoop,
+  type BuildOutcomeData,
+  type SatisfactionPrediction,
+  type OptimizedConfig,
+} from './vl-jepa-feedback.js';
+
 // Types
 export * from './types.js';

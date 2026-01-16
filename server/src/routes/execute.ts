@@ -25,6 +25,11 @@ import {
     type ExecutionContext,
 } from '../services/core/index.js';
 import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
+import {
+    executeSpeculative,
+    getOptimalSpeculativeConfig,
+    type SpeculativeChunk,
+} from '../services/automation/speculative-executor.js';
 import { AgentOrchestrator } from '../services/agents/orchestrator.js';
 import { getDeveloperModeOrchestrator } from '../services/developer-mode/orchestrator.js';
 import { getKripToeNite } from '../services/ai/krip-toe-nite/index.js';
@@ -38,6 +43,7 @@ import {
 // Build Loop Bridge for bi-directional integration
 import {
     getOrCreateBridge,
+    getBridge,
     cleanupBridge,
     type BuildLoopBridge,
 } from '../services/automation/build-loop-bridge.js';
@@ -2109,12 +2115,10 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
             phase: 'initialization',
         });
 
-        console.log(`[Execute:Plan:Stream] Starting REAL AI plan generation for session ${sessionId}`);
+        console.log(`[Execute:Plan:Stream] Starting SPECULATIVE plan generation for session ${sessionId}`);
 
-        // Create Claude service for plan generation
-        const claude = createClaudeService({
-            agentType: 'planning',
-            systemPrompt: `You are KripTik AI's planning architect. Generate a detailed implementation plan for the user's app.
+        // System prompt for planning
+        const planningSystemPrompt = `You are KripTik AI's planning architect. Generate a detailed implementation plan for the user's app.
 
 CRITICAL: Stream your thinking process - the user sees your reasoning in real-time.
 
@@ -2149,19 +2153,9 @@ Output format (JSON):
   "parallelFrontendBackend": true
 }
 
-Be specific about technology choices. The user will approve or modify each phase.`,
-            projectId,
-            userId,
-        });
+Be specific about technology choices. The user will approve or modify each phase.`;
 
-        let fullThinking = '';
-        let fullContent = '';
-
-        // STREAM REAL AI THINKING - this is what users see in real-time
-        // Uses Opus 4.5 for planning - best model for critical thinking/planning
-        // This is the foundation of the entire build - must be highest quality
-        await claude.generateStream(
-            `Create an implementation plan for this app:
+        const planPrompt = `Create an implementation plan for this app:
 
 "${prompt}"
 
@@ -2172,36 +2166,73 @@ Think through the requirements carefully. Stream your reasoning about:
 4. What integrations are required?
 5. What's the optimal build sequence?
 
-Then output the JSON plan.`,
-            {
-                onThinking: (thinking: string) => {
-                    // Stream thinking tokens directly to frontend - REAL AI reasoning
-                    fullThinking += thinking;
-                    sendEvent('thinking', {
-                        content: thinking,
-                        phase: 'reasoning',
-                    });
-                },
-                onText: (text: string) => {
-                    // Accumulate the response text (JSON plan)
-                    fullContent += text;
-                    // Don't stream raw JSON to user - it's not readable
-                },
-                onError: (error: Error) => {
-                    console.error('[Execute:Plan:Stream] AI error:', error);
-                    sendEvent('error', { content: error.message });
-                },
-            },
-            {
-                // CRITICAL: Use Opus 4.5 for planning - this is the foundation
-                // Best model for the job philosophy - planning must be highest quality
-                model: CLAUDE_MODELS.OPUS_4_5,
-                maxTokens: 64000, // Full capacity for comprehensive plans
-                useExtendedThinking: true,
-                thinkingBudgetTokens: 16000, // High thinking budget for deep planning
-                effort: 'high', // Maximum effort for best quality plans
+Then output the JSON plan.`;
+
+        let fullThinking = '';
+        let fullContent = '';
+
+        // SPECULATIVE EXECUTION: ~125ms TTFT with dual-stream strategy
+        // Fast model (Haiku) streams immediately for user feedback
+        // Smart model (Opus 4.5) validates in parallel for quality assurance
+        // This provides the BEST of both worlds: speed AND quality
+        const speculativeConfig = getOptimalSpeculativeConfig(0.8, false, prompt.length);
+
+        try {
+            for await (const chunk of executeSpeculative(planPrompt, planningSystemPrompt, speculativeConfig)) {
+                switch (chunk.type) {
+                    case 'status':
+                        // Log TTFT for performance monitoring
+                        if (chunk.ttftMs) {
+                            console.log(`[Execute:Plan:Stream] TTFT: ${chunk.ttftMs}ms (target: ~125ms)`);
+                            sendEvent('thinking', {
+                                content: `Analyzing your request (${chunk.ttftMs}ms response time)...`,
+                                phase: 'reasoning',
+                            });
+                        }
+                        break;
+
+                    case 'text':
+                        if (chunk.isEnhancement) {
+                            // Enhanced content from smart model - this is the high-quality plan
+                            fullContent += chunk.content;
+                        } else {
+                            // Fast model content - stream as thinking for immediate feedback
+                            fullThinking += chunk.content;
+                            sendEvent('thinking', {
+                                content: chunk.content,
+                                phase: 'reasoning',
+                            });
+                        }
+                        break;
+
+                    case 'enhancement_start':
+                        // Smart model validation complete, switching to enhanced response
+                        sendEvent('thinking', {
+                            content: 'Validating and enhancing plan with advanced reasoning...',
+                            phase: 'reasoning',
+                        });
+                        break;
+
+                    case 'error':
+                        console.error('[Execute:Plan:Stream] Speculative execution error:', chunk.content);
+                        sendEvent('error', { content: chunk.content });
+                        break;
+
+                    case 'done':
+                        console.log(`[Execute:Plan:Stream] Speculative execution complete`);
+                        break;
+                }
             }
-        );
+
+            // If no enhancement was provided, use fast model response as content
+            if (!fullContent) {
+                fullContent = fullThinking;
+            }
+        } catch (speculativeError) {
+            console.error('[Execute:Plan:Stream] Speculative execution failed:', speculativeError);
+            sendEvent('error', { content: speculativeError instanceof Error ? speculativeError.message : 'Plan generation failed' });
+            throw speculativeError;
+        }
 
         // Phase 2: Parse the AI-generated plan
         sendEvent('phase', {
@@ -3114,6 +3145,80 @@ router.get('/plan/:sessionId', (req: Request, res: Response) => {
         requiredCredentials: pendingBuild.requiredCredentials,
         createdAt: pendingBuild.createdAt,
     });
+});
+
+/**
+ * POST /api/execute/build/:buildId/credentials
+ *
+ * Submit credentials for an active/running build.
+ * This is used when the build emits 'credentials_required' during Phase 2 (parallel build).
+ * The buildId is typically the projectId used when creating the build.
+ *
+ * Request body:
+ * {
+ *   credentials: { STRIPE_SECRET_KEY: 'sk_...', OPENAI_API_KEY: 'sk-...' }
+ * }
+ *
+ * Response:
+ * {
+ *   success: boolean,
+ *   message?: string,
+ *   errors?: string[]
+ * }
+ */
+router.post('/build/:buildId/credentials', async (req: Request, res: Response) => {
+    try {
+        const { buildId } = req.params;
+        const { credentials } = req.body as { credentials: Record<string, string> };
+
+        if (!buildId) {
+            return res.status(400).json({
+                success: false,
+                error: 'buildId parameter required',
+            });
+        }
+
+        if (!credentials || typeof credentials !== 'object' || Object.keys(credentials).length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'credentials object required with at least one credential',
+            });
+        }
+
+        // Get the bridge for this build
+        const bridge = getBridge(buildId);
+        if (!bridge) {
+            return res.status(404).json({
+                success: false,
+                error: `No active build found with id ${buildId}`,
+            });
+        }
+
+        console.log(`[Execute:BuildCredentials] Receiving ${Object.keys(credentials).length} credentials for build ${buildId}`);
+
+        // Forward credentials to the build loop via the bridge
+        const result = await bridge.receiveCredentials(credentials);
+
+        if (result.success) {
+            console.log(`[Execute:BuildCredentials] Successfully received credentials for build ${buildId}`);
+            return res.json({
+                success: true,
+                message: `Successfully received ${Object.keys(credentials).length} credentials. Build will resume.`,
+            });
+        } else {
+            console.warn(`[Execute:BuildCredentials] Errors receiving credentials for build ${buildId}:`, result.errors);
+            return res.status(400).json({
+                success: false,
+                errors: result.errors,
+            });
+        }
+    } catch (error) {
+        console.error('[Execute:BuildCredentials] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
 });
 
 export default router;

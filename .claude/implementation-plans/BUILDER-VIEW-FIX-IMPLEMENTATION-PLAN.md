@@ -26,6 +26,17 @@ This implementation plan addresses all critical issues in the Builder View:
 4. All Connected → Build Starts with Streaming Tokens
 ```
 
+**No placeholders shall be used in any implementation
+**No mock data shall be used in any implementation
+**No todos can be used in any implementation
+*All implementations must be for production only
+
+**Upon completing each phase, the build must compile without errors. Then, the phase should be pushed to gh and verified that there are no conflicts to merge. Once merged without conflicts and errors, you must monitor that the build deploys successfully to vercel for production without errors.
+
+**Auth must be analyzed prior to beginning and must be kept in-tact. Auth must be validated to still be working and in-tact upon completion of each phase.
+
+**If errors are found during build, they must be resolved without removing any feature, capability or enhancement. Resolving errors means FIXING the error, not removing capability, design, feature, or enhancement. To fix errors, ultrathinking should be used to determine the best way to make the fix, and then after the fix, it must be verified to be resolved for production.
+
 ---
 
 ## PHASE 1: DATABASE MIGRATION FIX (2 Prompts)

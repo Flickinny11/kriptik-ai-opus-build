@@ -1411,6 +1411,249 @@ export default function ChatInterface({
                 }
                 break;
             }
+
+            // Phase 5: Handle phase_start event to show phase starting
+            case 'phase_start': {
+                const phaseData = wsData.data as { phase?: string; subPhase?: string; stage?: string } | undefined;
+                if (phaseData?.phase) {
+                    const phaseMap: Record<string, BuildPhase> = {
+                        'intent_lock': 'intent_lock',
+                        'initialization': 'initialization',
+                        'parallel_build': 'parallel_build',
+                        'integration': 'integration',
+                        'testing': 'testing',
+                        'intent_satisfaction': 'intent_satisfaction',
+                        'demo': 'demo',
+                        'browser_demo': 'demo',
+                    };
+                    const mappedPhase = phaseMap[phaseData.phase];
+                    if (mappedPhase) {
+                        setCurrentBuildPhase(mappedPhase);
+                        onPhaseChange?.(mappedPhase);
+                    }
+
+                    // Add activity event for phase start
+                    setBuildActivityEvents(prev => [...prev.slice(-99), {
+                        id: `phase-${Date.now()}`,
+                        type: 'status',
+                        content: `Starting phase: ${phaseData.phase}${phaseData.subPhase ? ` (${phaseData.subPhase})` : ''}`,
+                        timestamp: Date.now(),
+                    }]);
+                }
+                break;
+            }
+
+            // Phase 5: Handle thinking events for AI reasoning visualization
+            case 'thinking': {
+                const thinkingData = wsData.data as { content?: string; thinking?: string; agentId?: string } | undefined;
+                const content = thinkingData?.content || thinkingData?.thinking || (wsData.thinking as string) || '';
+                if (content) {
+                    setBuildActivityEvents(prev => [...prev.slice(-99), {
+                        id: `thinking-${Date.now()}`,
+                        type: 'thinking',
+                        content,
+                        agentId: thinkingData?.agentId,
+                        timestamp: Date.now(),
+                    }]);
+                }
+                break;
+            }
+
+            // Phase 5: Handle file_write and file_edit events
+            case 'file_write':
+            case 'file_edit': {
+                const fileData = wsData.data as { filePath?: string; path?: string; content?: string; agentId?: string } | undefined;
+                const filePath = fileData?.filePath || fileData?.path || (wsData.filePath as string) || '';
+                if (filePath) {
+                    setLastModifiedFile(filePath);
+                    setTimeout(() => setLastModifiedFile(undefined), 2000);
+
+                    setBuildActivityEvents(prev => [...prev.slice(-99), {
+                        id: `file-${Date.now()}`,
+                        type: wsData.type === 'file_write' ? 'file_write' : 'file_edit',
+                        content: `${wsData.type === 'file_write' ? 'Writing' : 'Editing'}: ${filePath.split('/').pop() || filePath}`,
+                        metadata: { filePath },
+                        agentId: fileData?.agentId,
+                        timestamp: Date.now(),
+                    }]);
+
+                    // Trigger HMR for live preview refresh
+                    window.dispatchEvent(new CustomEvent('hmr-trigger', {
+                        detail: { filePath, timestamp: Date.now() }
+                    }));
+                }
+                break;
+            }
+
+            // Phase 5: Handle error events with recovery context
+            case 'error': {
+                const errorData = wsData.data as {
+                    error?: string;
+                    message?: string;
+                    phase?: string;
+                    recoverable?: boolean;
+                    escalationLevel?: number;
+                } | undefined;
+                const errorMessage = errorData?.error || errorData?.message || (wsData.error as string) || 'Unknown error';
+
+                setBuildActivityEvents(prev => [...prev.slice(-99), {
+                    id: `error-${Date.now()}`,
+                    type: 'error',
+                    content: `Error in ${errorData?.phase || 'build'}: ${errorMessage}`,
+                    metadata: {
+                        phase: errorData?.phase as 'thinking' | 'planning' | 'coding' | 'testing' | 'verifying' | 'integrating' | 'deploying' | undefined,
+                        result: errorData?.recoverable ? 'pending' : 'failure',
+                    },
+                    timestamp: Date.now(),
+                }]);
+
+                // If not recoverable, show error message to user
+                if (errorData?.recoverable === false) {
+                    setMessages(prev => [...prev, {
+                        id: `msg-${Date.now()}`,
+                        role: 'system',
+                        content: `Build error: ${errorMessage}. ${errorData.escalationLevel ? `Escalation level: ${errorData.escalationLevel}` : ''}`,
+                        timestamp: new Date(),
+                        agentType: 'orchestrator',
+                    }]);
+                }
+                break;
+            }
+
+            // Phase 5: Handle ttft (time-to-first-token) metrics
+            case 'ttft': {
+                const ttftData = wsData.data as { ttftMs?: number; model?: string } | undefined;
+                const ttftMs = ttftData?.ttftMs || (wsData.ttftMs as number);
+                if (ttftMs) {
+                    setKtnStats(prev => ({
+                        ...prev,
+                        ttftMs,
+                        model: ttftData?.model || prev?.model,
+                    }));
+                }
+                break;
+            }
+
+            // Phase 5: Handle credentials_required event to show credential input modal
+            case 'credentials_required': {
+                const credsData = wsData.data as {
+                    credentials?: Array<{
+                        id: string;
+                        name: string;
+                        description?: string;
+                        envVariableName: string;
+                        platformName?: string;
+                        platformUrl?: string;
+                        required?: boolean;
+                    }>;
+                } | undefined;
+
+                if (credsData?.credentials && credsData.credentials.length > 0) {
+                    setRequiredCredentials(credsData.credentials.map(cred => ({
+                        id: cred.id,
+                        name: cred.name,
+                        description: cred.description || `Required for ${cred.platformName || 'integration'}`,
+                        envVariableName: cred.envVariableName,
+                        platformName: cred.platformName || 'Integration',
+                        platformUrl: cred.platformUrl || '',
+                        required: cred.required !== false,
+                        value: null,
+                    })));
+                    setBuildWorkflowPhase('awaiting_credentials');
+
+                    setMessages(prev => [...prev, {
+                        id: `msg-${Date.now()}`,
+                        role: 'system',
+                        content: 'Build paused: Additional credentials required. Please provide the requested API keys to continue.',
+                        timestamp: new Date(),
+                        agentType: 'orchestrator',
+                    }]);
+                }
+                break;
+            }
+
+            // Phase 5: Handle build_complete event (alternate name for builder-completed)
+            case 'build_complete': {
+                const completeData = wsData.data as {
+                    success?: boolean;
+                    url?: string;
+                    metrics?: { duration?: number; tokensUsed?: number; cost?: number };
+                } | undefined;
+
+                setGlobalStatus('completed');
+                setBuildWorkflowPhase('complete');
+                setIsTyping(false);
+                onBuildComplete?.();
+
+                if (completeData?.url) {
+                    setDemoUrl(completeData.url);
+                    setSandboxUrl(completeData.url);
+                }
+
+                setMessages(prev => [...prev, {
+                    id: `msg-${Date.now()}`,
+                    role: 'system',
+                    content: `Build complete!${completeData?.url ? ` App available at ${completeData.url}` : ''}${completeData?.metrics?.duration ? ` Duration: ${Math.round(completeData.metrics.duration / 1000)}s` : ''}`,
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                }]);
+
+                ws.close();
+                activityWsRef.current = null;
+                break;
+            }
+
+            // Phase 5: Handle verification_result events
+            case 'verification_result': {
+                const verifyData = wsData.data as {
+                    agentType?: string;
+                    passed?: boolean;
+                    score?: number;
+                    issues?: string[];
+                    blockers?: string[];
+                } | undefined;
+
+                if (verifyData) {
+                    setBuildActivityEvents(prev => [...prev.slice(-99), {
+                        id: `verify-${Date.now()}`,
+                        type: 'verification',
+                        content: `Verification (${verifyData.agentType || 'check'}): ${verifyData.passed ? 'Passed' : 'Failed'} (${verifyData.score || 0}/100)`,
+                        metadata: {
+                            result: verifyData.passed ? 'success' : 'failure',
+                        },
+                        timestamp: Date.now(),
+                    }]);
+
+                    // Update visual verification state if it's a visual check
+                    if (verifyData.agentType === 'visual' || verifyData.agentType === 'design') {
+                        setVisualVerification({
+                            passed: verifyData.passed || false,
+                            score: verifyData.score || 0,
+                            issues: verifyData.issues || verifyData.blockers || [],
+                        });
+                        setVisualScore(verifyData.score || null);
+                    }
+                }
+                break;
+            }
+
+            // Handle status events for general progress updates
+            case 'status': {
+                const statusData = wsData.data as { phase?: string; status?: string; message?: string; reason?: string } | undefined;
+                const statusMessage = statusData?.message || statusData?.status || statusData?.reason;
+                if (statusMessage) {
+                    setBuildActivityEvents(prev => [...prev.slice(-99), {
+                        id: `status-${Date.now()}`,
+                        type: 'status',
+                        content: statusMessage,
+                        metadata: {
+                            phase: statusData?.phase as 'thinking' | 'planning' | 'coding' | 'testing' | 'verifying' | 'integrating' | 'deploying' | undefined,
+                        },
+                        timestamp: Date.now(),
+                    }]);
+                }
+                break;
+            }
         }
     };
 
