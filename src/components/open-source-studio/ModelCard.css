@@ -1,130 +1,482 @@
 /**
- * Model Card - Individual Model Display Styles
+ * Model Card - Premium 3D Photorealistic Liquid Glass Design
+ * 
+ * Features:
+ * - 3D perspective and depth with visible edges
+ * - Layered shadows for realistic depth
+ * - GPU-accelerated 60fps animations
+ * - Photorealistic glass texture with gradients
+ * - Premium hover states with lift and glow
+ * - HuggingFace amber/gold accent theming
  */
+
+/* =============================================================================
+   WRAPPER - Preserve 3D context
+   ============================================================================= */
+
+.model-card-wrapper {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+/* =============================================================================
+   BASE CARD - 3D Liquid Glass Surface
+   ============================================================================= */
 
 .model-card {
   position: relative;
-  padding: 16px;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.06),
-    rgba(255, 255, 255, 0.02)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
+  
+  /* 3D depth with visible edge */
+  border-radius: 18px;
+  
+  /* Multi-layer photorealistic glass gradient */
+  background: 
+    /* Top highlight layer */
+    linear-gradient(
+      175deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.04) 20%,
+      transparent 40%
+    ),
+    /* Main glass body */
+    linear-gradient(
+      165deg,
+      rgba(60, 60, 75, 0.95) 0%,
+      rgba(45, 45, 58, 0.92) 30%,
+      rgba(35, 35, 48, 0.90) 70%,
+      rgba(30, 30, 42, 0.95) 100%
+    );
+  
+  /* Photorealistic glass border with refraction effect */
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  
+  /* 3D layered shadows for depth */
+  box-shadow:
+    /* Inner glow - top edge light */
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    /* Left edge highlight */
+    inset 1px 0 0 rgba(255, 255, 255, 0.06),
+    /* Right edge shadow */
+    inset -1px 0 0 rgba(0, 0, 0, 0.15),
+    /* Primary drop shadow */
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    /* Secondary larger shadow for depth */
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    /* Ambient shadow */
+    0 16px 48px rgba(0, 0, 0, 0.15);
+  
+  /* GPU-accelerated transitions */
+  transition: 
+    transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+    background 0.3s ease;
 }
+
+/* Outer border ring effect */
+.model-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 19px;
+  padding: 1px;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.08) 30%,
+    rgba(255, 255, 255, 0.03) 70%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   REFLECTION LAYER - Dynamic ambient light
+   ============================================================================= */
+
+.model-card-reflection {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.model-card:hover .model-card-reflection {
+  opacity: 1;
+}
+
+/* =============================================================================
+   EDGE HIGHLIGHT - 3D visible edge
+   ============================================================================= */
+
+.model-card-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  
+  /* 3D edge effect */
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.25),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.4);
+}
+
+/* =============================================================================
+   TOP SHIMMER - Premium metallic highlight
+   ============================================================================= */
+
+.model-card-shimmer {
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 210, 30, 0.4) 20%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 210, 30, 0.4) 80%,
+    transparent 100%
+  );
+  opacity: 0.6;
+  border-radius: 1px;
+}
+
+/* =============================================================================
+   HOVER STATE - Premium 3D lift effect
+   ============================================================================= */
 
 .model-card:hover {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.08),
-    rgba(255, 255, 255, 0.04)
-  );
-  border-color: rgba(255, 255, 255, 0.12);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: perspective(1000px) translateY(-8px) translateZ(20px) rotateX(2deg);
+  
+  /* Enhanced shadows on hover */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    inset 1px 0 0 rgba(255, 255, 255, 0.08),
+    inset -1px 0 0 rgba(0, 0, 0, 0.1),
+    /* Lifted shadows */
+    0 12px 24px rgba(0, 0, 0, 0.25),
+    0 24px 48px rgba(0, 0, 0, 0.2),
+    0 32px 64px rgba(0, 0, 0, 0.15),
+    /* HuggingFace gold ambient glow */
+    0 0 40px rgba(255, 210, 30, 0.08);
 }
+
+.model-card:hover .model-card-shimmer {
+  opacity: 1;
+  animation: shimmer-slide 2s ease-in-out infinite;
+}
+
+@keyframes shimmer-slide {
+  0%, 100% { transform: translateX(0); opacity: 0.6; }
+  50% { transform: translateX(10px); opacity: 1; }
+}
+
+/* =============================================================================
+   SELECTED STATE - HuggingFace Gold Accent
+   ============================================================================= */
 
 .model-card--selected {
-  border-color: rgba(245, 168, 108, 0.5);
-  background: linear-gradient(
-    145deg,
-    rgba(245, 168, 108, 0.1),
-    rgba(245, 168, 108, 0.05)
-  );
-  box-shadow: 0 0 20px rgba(245, 168, 108, 0.15);
+  background: 
+    linear-gradient(
+      175deg,
+      rgba(255, 210, 30, 0.15) 0%,
+      rgba(255, 210, 30, 0.05) 20%,
+      transparent 40%
+    ),
+    linear-gradient(
+      165deg,
+      rgba(70, 65, 55, 0.95) 0%,
+      rgba(55, 50, 45, 0.92) 30%,
+      rgba(45, 40, 38, 0.90) 70%,
+      rgba(40, 35, 32, 0.95) 100%
+    );
+  
+  box-shadow:
+    inset 0 1px 0 rgba(255, 210, 30, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 0 0 2px rgba(255, 210, 30, 0.4),
+    0 8px 24px rgba(255, 210, 30, 0.15),
+    0 16px 48px rgba(0, 0, 0, 0.25);
 }
 
+.model-card--selected::before {
+  background: linear-gradient(
+    165deg,
+    rgba(255, 210, 30, 0.5) 0%,
+    rgba(255, 210, 30, 0.2) 30%,
+    rgba(245, 168, 108, 0.1) 70%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+}
+
+/* Selection ring animation */
+.model-card-selection-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 22px;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, rgba(255, 210, 30, 0.6), rgba(245, 168, 108, 0.4)) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: selection-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes selection-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.01); }
+}
+
+/* =============================================================================
+   DOCKED STATE
+   ============================================================================= */
+
 .model-card--docked {
-  padding: 12px;
+  padding: 14px;
   cursor: grab;
 }
 
 .model-card--docked:active {
   cursor: grabbing;
+  transform: scale(0.98);
 }
+
+/* =============================================================================
+   DRAGGING STATE
+   ============================================================================= */
 
 .model-card--dragging {
-  opacity: 0.5;
-  transform: scale(0.95);
+  opacity: 0.6;
+  transform: scale(0.95) rotateZ(3deg) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(255, 210, 30, 0.2);
 }
 
-/* Header */
+/* =============================================================================
+   EXPANDED STATE
+   ============================================================================= */
+
+.model-card--expanded {
+  transform: translateY(-4px);
+}
+
+/* =============================================================================
+   HEADER - Author Info
+   ============================================================================= */
+
 .model-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
 }
 
-.model-card-author {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+.model-card-author-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.model-card-warning {
-  width: 24px;
-  height: 24px;
+.model-card-avatar {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 180, 0, 0.15);
-  border-radius: 6px;
-  color: #ffb400;
+  border-radius: 10px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  
+  /* 3D avatar button */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.25) 0%,
+    rgba(245, 168, 108, 0.15) 100%
+  );
+  color: #FFD21E;
+  border: 1px solid rgba(255, 210, 30, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Name */
-.model-card-name {
+.model-card-author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-card-author {
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.model-card-updated {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.model-card-warning {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  
+  /* 3D warning badge */
+  background: linear-gradient(145deg, rgba(255, 180, 0, 0.2), rgba(255, 140, 0, 0.15));
+  color: #ffb400;
+  border: 1px solid rgba(255, 180, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(255, 180, 0, 0.15);
+}
+
+/* =============================================================================
+   NAME - Model Title
+   ============================================================================= */
+
+.model-card-name {
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
   color: #fff;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.02em;
+  
+  /* Subtle text shadow for depth */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Task */
+/* =============================================================================
+   TASK BADGE - Pipeline Tag
+   ============================================================================= */
+
+.model-card-task-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .model-card-task {
-  display: inline-block;
-  padding: 4px 8px;
-  background: rgba(245, 168, 108, 0.15);
-  border-radius: 6px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   font-size: 0.6875rem;
-  font-weight: 500;
-  color: #F5A86C;
+  font-weight: 600;
   text-transform: capitalize;
-  width: fit-content;
+  letter-spacing: 0.02em;
+  
+  /* 3D pill effect */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.2) 0%,
+    rgba(245, 168, 108, 0.12) 100%
+  );
+  color: #FFD21E;
+  border: 1px solid rgba(255, 210, 30, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Stats */
+/* =============================================================================
+   STATS - 3D Stat Pills
+   ============================================================================= */
+
 .model-card-stats {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .model-card-stat {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-family: 'Space Mono', 'DM Sans', monospace;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  
+  /* 3D inset stat pill */
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+  
+  transition: all 0.2s ease;
 }
 
 .model-card-stat svg {
   opacity: 0.7;
 }
 
-/* Meta */
+.model-card:hover .model-card-stat {
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+}
+
+.model-card-stat--downloads:hover {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.model-card-stat--likes:hover {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.model-card-stat--vram:hover {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+/* =============================================================================
+   META - Size & License Badges
+   ============================================================================= */
+
 .model-card-meta {
   display: flex;
   align-items: center;
@@ -132,89 +484,282 @@
   flex-wrap: wrap;
 }
 
-.model-card-size {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-}
-
+.model-card-size,
 .model-card-license {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
   font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .model-card-license.restrictive {
-  background: rgba(255, 180, 0, 0.1);
+  background: rgba(255, 180, 0, 0.12);
   color: #ffb400;
+  border-color: rgba(255, 180, 0, 0.2);
 }
 
-/* Actions */
+/* =============================================================================
+   TAGS PREVIEW
+   ============================================================================= */
+
+.model-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.model-card-tag {
+  padding: 3px 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.model-card-tag-more {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.625rem;
+  color: rgba(255, 210, 30, 0.7);
+}
+
+/* =============================================================================
+   EXPANDABLE DETAILS
+   ============================================================================= */
+
+.model-card-details {
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.model-card-details-inner {
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.model-card-description h4,
+.model-card-all-tags h4 {
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.model-card-description p {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+}
+
+/* Info Grid */
+.model-card-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.model-card-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.model-card-info-label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.model-card-info-value {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  word-break: break-all;
+}
+
+/* All Tags */
+.model-card-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.model-card-tag-full {
+  padding: 4px 10px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* HuggingFace Link */
+.model-card-hf-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  
+  background: linear-gradient(145deg, rgba(255, 210, 30, 0.15), rgba(245, 168, 108, 0.1));
+  color: #FFD21E;
+  border: 1px solid rgba(255, 210, 30, 0.25);
+  
+  transition: all 0.2s ease;
+}
+
+.model-card-hf-link:hover {
+  background: linear-gradient(145deg, rgba(255, 210, 30, 0.25), rgba(245, 168, 108, 0.15));
+  box-shadow: 0 4px 12px rgba(255, 210, 30, 0.2);
+  transform: translateY(-1px);
+}
+
+/* =============================================================================
+   ACTIONS ROW
+   ============================================================================= */
+
 .model-card-actions {
+  display: flex;
+  gap: 8px;
   margin-top: auto;
-  padding-top: 10px;
+  padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.model-card-expand-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  
+  transition: all 0.2s ease;
+}
+
+.model-card-expand-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .model-card-btn {
-  width: 100%;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px;
-  border-radius: 8px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
   border: none;
+  
+  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .model-card-btn--add {
-  background: rgba(245, 168, 108, 0.15);
-  color: #F5A86C;
+  /* 3D gold button */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.2) 0%,
+    rgba(245, 168, 108, 0.15) 100%
+  );
+  color: #FFD21E;
+  border: 1px solid rgba(255, 210, 30, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 8px rgba(255, 210, 30, 0.15);
 }
 
 .model-card-btn--add:hover:not(:disabled) {
-  background: rgba(245, 168, 108, 0.25);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.3) 0%,
+    rgba(245, 168, 108, 0.2) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 16px rgba(255, 210, 30, 0.25);
+  transform: translateY(-2px);
 }
 
 .model-card-btn--add:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .model-card-btn--added {
-  background: rgba(100, 200, 100, 0.15);
-  color: #64c864;
+  background: linear-gradient(
+    145deg,
+    rgba(74, 222, 128, 0.2) 0%,
+    rgba(34, 197, 94, 0.15) 100%
+  );
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
   cursor: default;
 }
 
-/* Remove button for docked cards */
+/* =============================================================================
+   REMOVE BUTTON (Docked Cards)
+   ============================================================================= */
+
 .model-card-remove {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 100, 100, 0.1);
-  border: 1px solid rgba(255, 100, 100, 0.2);
-  border-radius: 6px;
-  color: #ff6b6b;
-  font-size: 16px;
+  border-radius: 8px;
   cursor: pointer;
   opacity: 0;
+  
+  background: linear-gradient(145deg, rgba(255, 100, 100, 0.15), rgba(200, 50, 50, 0.1));
+  border: 1px solid rgba(255, 100, 100, 0.25);
+  color: #ff6b6b;
+  
   transition: all 0.2s ease;
 }
 
@@ -223,6 +768,34 @@
 }
 
 .model-card-remove:hover {
-  background: rgba(255, 100, 100, 0.2);
+  background: linear-gradient(145deg, rgba(255, 100, 100, 0.25), rgba(200, 50, 50, 0.2));
   color: #ff4444;
+  transform: scale(1.1);
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================= */
+
+@media (max-width: 600px) {
+  .model-card {
+    padding: 14px;
+  }
+  
+  .model-card-name {
+    font-size: 1rem;
+  }
+  
+  .model-card-stats {
+    gap: 6px;
+  }
+  
+  .model-card-stat {
+    padding: 5px 8px;
+    font-size: 0.6875rem;
+  }
+  
+  .model-card-info-grid {
+    grid-template-columns: 1fr;
+  }
 }

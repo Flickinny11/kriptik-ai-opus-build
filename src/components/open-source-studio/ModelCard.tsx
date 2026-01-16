@@ -1,12 +1,13 @@
 /**
- * Model Card - Individual HuggingFace Model Display
+ * Model Card - Premium 3D HuggingFace Model Display
  * 
- * Draggable card showing model info, downloads, likes, VRAM estimate.
- * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 2).
+ * Photorealistic 3D glass cards with depth, perspective, layered shadows.
+ * High frame-rate hover animations, expandable details.
+ * Part of KripTik AI's Open Source Studio.
  */
 
-import { useCallback, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useCallback, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useOpenSourceStudioStore, type ModelWithRequirements } from '@/store/useOpenSourceStudioStore';
 import './ModelCard.css';
 
@@ -38,8 +39,23 @@ function isRestrictiveLicense(license?: string): boolean {
   return restrictive.some(r => license.toLowerCase().includes(r));
 }
 
+function formatDate(dateString?: string): string {
+  if (!dateString) return 'Unknown';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+  return `${Math.floor(diffDays / 365)} years ago`;
+}
+
 // =============================================================================
-// ICONS
+// ICONS - Custom SVG (No Lucide)
 // =============================================================================
 
 const DownloadIcon = () => (
@@ -86,14 +102,40 @@ const WarningIcon = () => (
 );
 
 const PlusIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
   </svg>
 );
 
 const CheckIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+    <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const ExpandIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ExternalLinkIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const TagIcon = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="7" cy="7" r="1.5" fill="currentColor" />
   </svg>
 );
 
@@ -112,10 +154,37 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
   const { selectModel, selectedModel, addToDock, dock } = useOpenSourceStudioStore();
   const [isDragging, setIsDragging] = useState(false);
   const [showAdded, setShowAdded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const isSelected = selectedModel?.modelId === model.modelId;
   const isInDock = dock.some(item => item.model.modelId === model.modelId);
   const hasRestrictiveLicense = isRestrictiveLicense(model.cardData?.license);
+
+  // Calculate estimated size from siblings
+  const estimatedSize = model.siblings
+    ?.filter(f =>
+      f.rfilename.endsWith('.bin') ||
+      f.rfilename.endsWith('.safetensors') ||
+      f.rfilename.endsWith('.pt')
+    )
+    .reduce((sum, f) => sum + (f.size || 0), 0) || 0;
+
+  const estimatedVRAM = model.estimatedVRAM || Math.ceil((estimatedSize / (1024 * 1024 * 1024)) * 2.5);
+
+  // 3D tilt effect on mouse move
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current || isDocked) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setMousePos({ x, y });
+  }, [isDocked]);
+
+  const handleMouseLeave = useCallback(() => {
+    setMousePos({ x: 0.5, y: 0.5 });
+  }, []);
 
   const handleClick = useCallback(() => {
     selectModel(isSelected ? null : model);
@@ -130,6 +199,16 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
     }
   }, [model, addToDock]);
 
+  const handleExpandToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(prev => !prev);
+  }, []);
+
+  const handleViewOnHuggingFace = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(`https://huggingface.co/${model.modelId}`, '_blank', 'noopener,noreferrer');
+  }, [model.modelId]);
+
   const handleNativeDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     setIsDragging(true);
     e.dataTransfer.setData('application/json', JSON.stringify(model));
@@ -140,105 +219,231 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
     setIsDragging(false);
   }, []);
 
-  // Calculate estimated size from siblings
-  const estimatedSize = model.siblings
-    ?.filter(f =>
-      f.rfilename.endsWith('.bin') ||
-      f.rfilename.endsWith('.safetensors') ||
-      f.rfilename.endsWith('.pt')
-    )
-    .reduce((sum, f) => sum + (f.size || 0), 0) || 0;
-
-  const estimatedVRAM = Math.ceil((estimatedSize / (1024 * 1024 * 1024)) * 2.5);
+  // Calculate 3D transform based on mouse position
+  const rotateX = (mousePos.y - 0.5) * -12;
+  const rotateY = (mousePos.x - 0.5) * 12;
 
   return (
     <div
       draggable={!isDocked}
       onDragStart={handleNativeDragStart}
       onDragEnd={handleNativeDragEnd}
+      className="model-card-wrapper"
     >
       <motion.div
-        className={`model-card ${isSelected ? 'model-card--selected' : ''} ${isDocked ? 'model-card--docked' : ''} ${isDragging ? 'model-card--dragging' : ''}`}
+        ref={cardRef}
+        className={`model-card ${isSelected ? 'model-card--selected' : ''} ${isDocked ? 'model-card--docked' : ''} ${isDragging ? 'model-card--dragging' : ''} ${isExpanded ? 'model-card--expanded' : ''}`}
         onClick={handleClick}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        transition={{ delay: index * 0.03, duration: 0.3 }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        initial={{ opacity: 0, y: 30, rotateX: -10 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0, 
+          rotateX: 0,
+        }}
+        exit={{ opacity: 0, scale: 0.9, rotateX: 10 }}
+        transition={{ 
+          delay: index * 0.04, 
+          duration: 0.5,
+          ease: [0.23, 1, 0.32, 1]
+        }}
+        style={{
+          transform: !isDocked ? `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)` : undefined,
+        }}
         layout
       >
-      {/* Card Header */}
-      <div className="model-card-header">
-        <div className="model-card-author">{model.author}</div>
-        {hasRestrictiveLicense && (
-          <div className="model-card-warning" title="Restrictive license - may not allow modifications">
-            <WarningIcon />
+        {/* Ambient light reflection layer */}
+        <div 
+          className="model-card-reflection"
+          style={{
+            background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(255,210,30,0.08) 0%, transparent 60%)`,
+          }}
+        />
+        
+        {/* Glass edge highlight */}
+        <div className="model-card-edge" />
+        
+        {/* Top shimmer line */}
+        <div className="model-card-shimmer" />
+
+        {/* Card Header */}
+        <div className="model-card-header">
+          <div className="model-card-author-row">
+            <div className="model-card-avatar">
+              {model.author?.charAt(0).toUpperCase() || 'M'}
+            </div>
+            <div className="model-card-author-info">
+              <span className="model-card-author">{model.author}</span>
+              <span className="model-card-updated">
+                <ClockIcon />
+                {formatDate(model.lastModified)}
+              </span>
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* Model Name */}
-      <h3 className="model-card-name">{model.modelId.split('/').pop()}</h3>
-
-      {/* Task Badge */}
-      {model.pipeline_tag && (
-        <span className="model-card-task">{model.pipeline_tag.replace(/-/g, ' ')}</span>
-      )}
-
-      {/* Stats */}
-      <div className="model-card-stats">
-        <div className="model-card-stat" title="Downloads">
-          <DownloadIcon />
-          <span>{formatNumber(model.downloads)}</span>
-        </div>
-        <div className="model-card-stat" title="Likes">
-          <HeartIcon />
-          <span>{formatNumber(model.likes)}</span>
-        </div>
-        {estimatedVRAM > 0 && (
-          <div className="model-card-stat" title="Estimated VRAM">
-            <GpuIcon />
-            <span>{estimatedVRAM}GB</span>
-          </div>
-        )}
-      </div>
-
-      {/* Size & License */}
-      <div className="model-card-meta">
-        <span className="model-card-size">{formatSize(estimatedSize)}</span>
-        {model.cardData?.license && (
-          <span className={`model-card-license ${hasRestrictiveLicense ? 'restrictive' : ''}`}>
-            {model.cardData.license}
-          </span>
-        )}
-      </div>
-
-      {/* Actions */}
-      {!isDocked && (
-        <div className="model-card-actions">
-          {isInDock || showAdded ? (
-            <button className="model-card-btn model-card-btn--added" disabled>
-              <CheckIcon />
-              <span>In Dock</span>
-            </button>
-          ) : (
-            <button
-              className="model-card-btn model-card-btn--add"
-              onClick={handleAddToDock}
-              disabled={dock.length >= 5}
-            >
-              <PlusIcon />
-              <span>Add to Dock</span>
-            </button>
+          {hasRestrictiveLicense && (
+            <div className="model-card-warning" title="Restrictive license - may not allow modifications">
+              <WarningIcon />
+            </div>
           )}
         </div>
-      )}
 
-      {/* Remove Button (for docked cards) */}
-      {isDocked && onRemove && (
-        <button className="model-card-remove" onClick={onRemove} title="Remove from dock">
-          ×
-        </button>
-      )}
+        {/* Model Name */}
+        <h3 className="model-card-name">{model.modelId.split('/').pop()}</h3>
+
+        {/* Task Badge */}
+        {model.pipeline_tag && (
+          <div className="model-card-task-row">
+            <span className="model-card-task">{model.pipeline_tag.replace(/-/g, ' ')}</span>
+          </div>
+        )}
+
+        {/* Stats Row - Premium 3D Stat Pills */}
+        <div className="model-card-stats">
+          <div className="model-card-stat model-card-stat--downloads" title="Downloads">
+            <DownloadIcon />
+            <span>{formatNumber(model.downloads)}</span>
+          </div>
+          <div className="model-card-stat model-card-stat--likes" title="Likes">
+            <HeartIcon />
+            <span>{formatNumber(model.likes)}</span>
+          </div>
+          {estimatedVRAM > 0 && (
+            <div className="model-card-stat model-card-stat--vram" title="Estimated VRAM">
+              <GpuIcon />
+              <span>{estimatedVRAM}GB</span>
+            </div>
+          )}
+        </div>
+
+        {/* Size & License - Premium Badges */}
+        <div className="model-card-meta">
+          <span className="model-card-size">{formatSize(estimatedSize)}</span>
+          {model.cardData?.license && (
+            <span className={`model-card-license ${hasRestrictiveLicense ? 'restrictive' : ''}`}>
+              {model.cardData.license}
+            </span>
+          )}
+        </div>
+
+        {/* Tags Preview */}
+        {model.tags && model.tags.length > 0 && (
+          <div className="model-card-tags">
+            <TagIcon />
+            {model.tags.slice(0, 3).map(tag => (
+              <span key={tag} className="model-card-tag">{tag}</span>
+            ))}
+            {model.tags.length > 3 && (
+              <span className="model-card-tag-more">+{model.tags.length - 3}</span>
+            )}
+          </div>
+        )}
+
+        {/* Expandable Details */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              className="model-card-details"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            >
+              <div className="model-card-details-inner">
+                {/* Model Info Grid */}
+                <div className="model-card-info-grid">
+                  <div className="model-card-info-item">
+                    <span className="model-card-info-label">Model ID</span>
+                    <span className="model-card-info-value">{model.modelId}</span>
+                  </div>
+                  {model.pipeline_tag && (
+                    <div className="model-card-info-item">
+                      <span className="model-card-info-label">Pipeline</span>
+                      <span className="model-card-info-value">{model.pipeline_tag}</span>
+                    </div>
+                  )}
+                  {model.cardData?.license && (
+                    <div className="model-card-info-item">
+                      <span className="model-card-info-label">License</span>
+                      <span className="model-card-info-value">{model.cardData.license}</span>
+                    </div>
+                  )}
+                  {estimatedVRAM > 0 && (
+                    <div className="model-card-info-item">
+                      <span className="model-card-info-label">Est. VRAM</span>
+                      <span className="model-card-info-value">{estimatedVRAM} GB</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* All Tags */}
+                {model.tags && model.tags.length > 0 && (
+                  <div className="model-card-all-tags">
+                    <h4>Tags</h4>
+                    <div className="model-card-tags-list">
+                      {model.tags.map(tag => (
+                        <span key={tag} className="model-card-tag-full">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* View on HuggingFace */}
+                <button className="model-card-hf-link" onClick={handleViewOnHuggingFace}>
+                  <span>View on HuggingFace</span>
+                  <ExternalLinkIcon />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Actions */}
+        {!isDocked && (
+          <div className="model-card-actions">
+            <button
+              className="model-card-expand-btn"
+              onClick={handleExpandToggle}
+              title={isExpanded ? 'Show less' : 'Show more details'}
+            >
+              <motion.span
+                animate={{ rotate: isExpanded ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ExpandIcon />
+              </motion.span>
+              <span>{isExpanded ? 'Less' : 'More'}</span>
+            </button>
+            
+            {isInDock || showAdded ? (
+              <button className="model-card-btn model-card-btn--added" disabled>
+                <CheckIcon />
+                <span>In Dock</span>
+              </button>
+            ) : (
+              <button
+                className="model-card-btn model-card-btn--add"
+                onClick={handleAddToDock}
+                disabled={dock.length >= 5}
+              >
+                <PlusIcon />
+                <span>Add to Dock</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Remove Button (for docked cards) */}
+        {isDocked && onRemove && (
+          <button className="model-card-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Remove from dock">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+
+        {/* Selection indicator glow ring */}
+        {isSelected && <div className="model-card-selection-ring" />}
       </motion.div>
     </div>
   );

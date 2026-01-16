@@ -1,44 +1,100 @@
 /**
- * Model Browser - Search & Filter Styles
+ * Model Browser - Premium 3D Liquid Glass Design
+ * 
+ * Features:
+ * - Photorealistic glass search bar with 3D depth
+ * - Premium filter dropdowns with hover effects
+ * - High-performance scrolling with GPU acceleration
+ * - HuggingFace amber/gold accent theming
  */
+
+/* =============================================================================
+   CONTAINER
+   ============================================================================= */
 
 .model-browser {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  
+  /* Glass panel background */
+  background: linear-gradient(
+    170deg,
+    rgba(35, 35, 48, 0.6) 0%,
+    rgba(25, 25, 38, 0.8) 100%
+  );
 }
 
-/* Header */
+/* =============================================================================
+   HEADER - Premium Search Bar
+   ============================================================================= */
+
 .model-browser-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
+  gap: 10px;
+  padding: 16px 18px;
+  
+  /* Glass header with depth */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
+
+/* =============================================================================
+   SEARCH INPUT - 3D Glass Input
+   ============================================================================= */
 
 .model-browser-search {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  
+  /* 3D inset glass effect */
+  background: linear-gradient(
+    165deg,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.03);
+  
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .model-browser-search:focus-within {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(245, 168, 108, 0.4);
-  box-shadow: 0 0 0 3px rgba(245, 168, 108, 0.1);
+  background: linear-gradient(
+    165deg,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+  border-color: rgba(255, 210, 30, 0.4);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 3px rgba(255, 210, 30, 0.1),
+    0 0 20px rgba(255, 210, 30, 0.08);
 }
 
 .model-browser-search svg {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.35);
   flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.model-browser-search:focus-within svg {
+  color: rgba(255, 210, 30, 0.7);
 }
 
 .model-browser-input {
@@ -46,117 +102,242 @@
   background: none;
   border: none;
   outline: none;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   font-size: 0.9375rem;
+  font-weight: 500;
   color: #fff;
+  letter-spacing: -0.01em;
 }
 
 .model-browser-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 400;
 }
 
 .model-browser-clear {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
+  border-radius: 6px;
   cursor: pointer;
+  border: none;
+  
+  /* 3D mini button */
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  font-weight: 600;
+  
   transition: all 0.2s ease;
 }
 
 .model-browser-clear:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: linear-gradient(145deg, rgba(255, 100, 100, 0.2), rgba(255, 100, 100, 0.1));
+  color: #ff6b6b;
+  transform: scale(1.1);
 }
+
+/* =============================================================================
+   FILTER TOGGLE - 3D Button
+   ============================================================================= */
 
 .model-browser-filter-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  
+  /* 3D glass button */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.model-browser-filter-toggle:hover,
+.model-browser-filter-toggle:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.12) 0%,
+    rgba(255, 210, 30, 0.06) 100%
+  );
+  border-color: rgba(255, 210, 30, 0.25);
+  color: #FFD21E;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 4px 12px rgba(255, 210, 30, 0.15);
+}
+
 .model-browser-filter-toggle.active {
-  background: rgba(245, 168, 108, 0.1);
-  border-color: rgba(245, 168, 108, 0.3);
-  color: #F5A86C;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.2) 0%,
+    rgba(245, 168, 108, 0.12) 100%
+  );
+  border-color: rgba(255, 210, 30, 0.35);
+  color: #FFD21E;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 20px rgba(255, 210, 30, 0.15);
 }
 
-/* Filters */
+/* =============================================================================
+   FILTERS PANEL - Sliding Glass Panel
+   ============================================================================= */
+
 .model-browser-filters {
   display: flex;
-  gap: 16px;
-  padding: 16px 20px;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 14px;
+  padding: 16px 18px;
   overflow: hidden;
+  
+  /* Inset glass panel */
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .model-browser-filter-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 1;
+  min-width: 140px;
 }
 
 .model-browser-filter-group label {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .model-browser-filter-group select {
-  min-width: 160px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
   font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.875rem;
-  color: #fff;
+  font-size: 0.8125rem;
   cursor: pointer;
   outline: none;
+  appearance: none;
+  
+  /* 3D dropdown */
+  background: 
+    url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,255,255,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center,
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  
   transition: all 0.2s ease;
 }
 
 .model-browser-filter-group select:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: 
+    url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,210,30,0.8)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center,
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.04) 100%
+    );
+  border-color: rgba(255, 210, 30, 0.25);
 }
 
 .model-browser-filter-group select:focus {
-  border-color: rgba(245, 168, 108, 0.4);
+  border-color: rgba(255, 210, 30, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 3px rgba(255, 210, 30, 0.1);
 }
 
-/* Results */
+.model-browser-filter-group select option {
+  background: #1a1a24;
+  color: #fff;
+  padding: 10px;
+}
+
+/* =============================================================================
+   RESULTS CONTAINER - GPU Accelerated Scrolling
+   ============================================================================= */
+
 .model-browser-results {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  overflow-x: hidden;
+  padding: 18px;
+  
+  /* GPU acceleration */
+  will-change: scroll-position;
+  -webkit-overflow-scrolling: touch;
 }
+
+/* Premium Scrollbar */
+.model-browser-results::-webkit-scrollbar {
+  width: 8px;
+}
+
+.model-browser-results::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.model-browser-results::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.model-browser-results::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(255, 210, 30, 0.4), rgba(255, 210, 30, 0.2));
+  background-clip: padding-box;
+}
+
+/* =============================================================================
+   RESULTS GRID - Responsive Masonry-like Grid
+   ============================================================================= */
 
 .model-browser-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+  
+  /* Preserve 3D for cards */
+  perspective: 1200px;
+  transform-style: preserve-3d;
 }
 
-/* States */
+/* =============================================================================
+   STATE DISPLAYS - Loading, Empty, Error, Initial
+   ============================================================================= */
+
 .model-browser-loading,
 .model-browser-error,
 .model-browser-empty,
@@ -165,65 +346,153 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 60px 20px;
+  gap: 16px;
+  padding: 80px 24px;
   text-align: center;
 }
 
 .model-browser-loading span,
-.model-browser-error span,
 .model-browser-empty span,
 .model-browser-initial span {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 1rem;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 600;
   color: rgba(255, 255, 255, 0.8);
 }
 
 .model-browser-loading p,
-.model-browser-error p,
 .model-browser-empty p,
 .model-browser-initial p {
   font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.45);
   margin: 0;
+  max-width: 320px;
+  line-height: 1.5;
 }
 
-.model-browser-error {
+.model-browser-error span {
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 1rem;
   color: #ff6b6b;
 }
 
 .model-browser-error button {
-  margin-top: 8px;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  margin-top: 12px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   font-size: 0.875rem;
-  color: #fff;
+  font-weight: 500;
   cursor: pointer;
+  
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  
   transition: all 0.2s ease;
 }
 
 .model-browser-error button:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(145deg, rgba(255, 210, 30, 0.15), rgba(255, 210, 30, 0.08));
+  border-color: rgba(255, 210, 30, 0.3);
+  color: #FFD21E;
+  transform: translateY(-2px);
 }
+
+/* =============================================================================
+   LOADING SPINNER - Premium Animated
+   ============================================================================= */
+
+.oss-spinner {
+  animation: premium-spin 1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+@keyframes premium-spin {
+  0% { 
+    transform: rotate(0deg);
+    filter: drop-shadow(0 0 8px rgba(255, 210, 30, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(255, 210, 30, 0.5));
+  }
+  100% { 
+    transform: rotate(360deg);
+    filter: drop-shadow(0 0 8px rgba(255, 210, 30, 0.3));
+  }
+}
+
+.model-browser-loading .oss-spinner,
+.model-browser-loading-more .oss-spinner {
+  color: #FFD21E;
+}
+
+/* =============================================================================
+   LOADING MORE - Bottom Loader
+   ============================================================================= */
 
 .model-browser-loading-more {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 20px;
-  color: rgba(255, 255, 255, 0.6);
+  gap: 12px;
+  padding: 24px;
+  margin-top: 8px;
+  
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+  
+  /* Glass loading bar */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 210, 30, 0.05) 0%,
+    transparent 100%
+  );
+  border-radius: 12px;
 }
 
-.oss-spinner {
-  animation: spin 1s linear infinite;
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 900px) {
+  .model-browser-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@media (max-width: 600px) {
+  .model-browser-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+  
+  .model-browser-search {
+    width: 100%;
+  }
+  
+  .model-browser-filter-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .model-browser-filters {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .model-browser-filter-group {
+    min-width: auto;
+  }
+  
+  .model-browser-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .model-browser-results {
+    padding: 14px;
+  }
 }

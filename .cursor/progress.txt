@@ -992,3 +992,32 @@ FIX APPLIED:
 5. Added detailed error logging for debugging
 
 NEXT: Monitor production for successful token validation after Vercel redeploys
+
+═══ 2026-01-16T02:45:00Z ═══
+COMPLETED: Critical Server Crash Fix - path-to-regexp Syntax Error
+FILES MODIFIED: server/src/routes/model-library.ts
+CURRENT STATE: Build successful, pushed to main (commit fb65287)
+
+ROOT CAUSE ANALYSIS:
+The server was crashing on every request due to invalid Express route syntax:
+- PathError: Missing parameter name at index 21: /favorites/:modelId(*)
+
+The (*) suffix syntax is NOT valid in newer versions of path-to-regexp
+used by Express. This caused the ENTIRE server to crash on startup,
+resulting in 500 errors on ALL API endpoints including:
+- /api/auth/get-session
+- /api/huggingface/validate-token
+- /api/huggingface/status
+- /api/projects
+- And all other endpoints
+
+FIX APPLIED:
+Removed (*) suffix from 3 route definitions:
+1. /favorites/:modelId(*) -> /favorites/:modelId
+2. /favorites/check/:modelId(*) -> /favorites/check/:modelId  
+3. /collections/:collectionId/items/:modelId(*) -> /collections/:collectionId/items/:modelId
+
+Model IDs like "meta-llama/Llama-3.3-70B" should be URL-encoded by the client
+(as "meta-llama%2FLlama-3.3-70B") and decoded server-side with decodeURIComponent.
+
+NEXT: Vercel will auto-redeploy. Server should now start successfully.
