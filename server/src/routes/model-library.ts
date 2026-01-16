@@ -186,7 +186,7 @@ router.post('/favorites', authMiddleware, async (req: Request, res: Response): P
  * DELETE /api/model-library/favorites/:modelId
  * Remove a model from favorites
  */
-router.delete('/favorites/:modelId(*)', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.delete('/favorites/:modelId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
@@ -218,7 +218,7 @@ router.delete('/favorites/:modelId(*)', authMiddleware, async (req: Request, res
  * GET /api/model-library/favorites/check/:modelId
  * Check if a model is favorited
  */
-router.get('/favorites/check/:modelId(*)', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.get('/favorites/check/:modelId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
@@ -675,7 +675,7 @@ router.post('/collections/:collectionId/items', authMiddleware, async (req: Requ
  * DELETE /api/model-library/collections/:collectionId/items/:modelId
  * Remove a model from a collection
  */
-router.delete('/collections/:collectionId/items/:modelId(*)', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.delete('/collections/:collectionId/items/:modelId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {

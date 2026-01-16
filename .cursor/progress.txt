@@ -963,3 +963,32 @@ Ready for Vercel production deployment
 CONTEXT: These features complete the Open Source Studio module for production use,
 enabling users to deploy HuggingFace models, train/fine-tune, and integrate
 into their apps built with KripTik AI's Builder View.
+
+═══ 2026-01-16T01:00:00Z ═══
+COMPLETED: HuggingFace Token Validation 500 Error Fix
+FILES MODIFIED: server/src/routes/huggingface-auth.ts
+CURRENT STATE: Build successful, pushed to main (commit 90ada03)
+
+ROOT CAUSE ANALYSIS:
+The 500 error on /api/huggingface/validate-token was caused by:
+
+1. ENCRYPTION KEY MISMATCH:
+   - huggingface-auth.ts used `new CredentialVault()` (creates new instance)
+   - Used `CREDENTIAL_ENCRYPTION_KEY` with scryptSync for legacy fallback
+   - Other services use `getCredentialVault()` singleton
+   - The vault uses `VAULT_ENCRYPTION_KEY` or `BETTER_AUTH_SECRET` with SHA-256
+   - Data encrypted with one method cannot be decrypted with the other
+
+2. INCOMPATIBLE FALLBACK:
+   - When vault.storeCredential failed, the code fell back to legacy encryptToken
+   - This stored data with a different encryption method
+   - When vault.getCredential tried to decrypt, it failed with 500
+
+FIX APPLIED:
+1. Changed from `new CredentialVault()` to `getCredentialVault()` singleton
+2. Removed the incompatible legacy encryption fallback for storage
+3. Kept legacy decryption fallback for backward compatibility (existing tokens)
+4. Improved error handling - validation succeeds even if storage fails
+5. Added detailed error logging for debugging
+
+NEXT: Monitor production for successful token validation after Vercel redeploys
