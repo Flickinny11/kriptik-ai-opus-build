@@ -16,10 +16,10 @@ import type {
   MobileBuildConfig,
   MobileBuildEvent,
   BuildStatus,
-} from './types';
-import { ExpoProjectGenerator } from './expo-project-generator';
-import { EASBuildService } from './eas-build-service';
-import { BuildArtifactManager } from './build-artifact-manager';
+} from './types.js';
+import { ExpoProjectGenerator } from './expo-project-generator.js';
+import { EASBuildService } from './eas-build-service.js';
+import { BuildArtifactManager } from './build-artifact-manager.js';
 import { v4 as uuid } from 'uuid';
 
 export class MobileBuildOrchestrator extends EventEmitter {

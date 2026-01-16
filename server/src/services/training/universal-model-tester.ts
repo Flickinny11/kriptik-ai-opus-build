@@ -371,7 +371,7 @@ export class UniversalModelTesterService extends EventEmitter {
             minReplicas: 1,
             maxReplicas: 1,
           },
-          env: {
+          environmentVariables: {
             MODEL_ID: modelId,
             MODALITY: modality,
           },

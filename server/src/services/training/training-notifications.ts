@@ -443,13 +443,20 @@ export class TrainingNotificationService extends EventEmitter {
     const [job] = await db
       .select({
         userId: trainingJobs.userId,
-        name: trainingJobs.name,
+        modality: trainingJobs.modality,
+        id: trainingJobs.id,
       })
       .from(trainingJobs)
       .where(eq(trainingJobs.id, jobId))
       .limit(1);
 
-    return job || null;
+    if (!job) return null;
+
+    // Generate a name from modality and ID since name column doesn't exist
+    return {
+      userId: job.userId,
+      name: `${job.modality || 'training'}-${job.id.slice(0, 8)}`,
+    };
   }
 
   /**

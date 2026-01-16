@@ -4,7 +4,7 @@
  * Interfaces with Expo Application Services (EAS) for cloud builds
  */
 
-import type { EASBuildInfo, BuildStatus, Distribution } from './types';
+import type { EASBuildInfo, BuildStatus, Distribution } from './types.js';
 
 const EAS_API_BASE = 'https://api.expo.dev';
 

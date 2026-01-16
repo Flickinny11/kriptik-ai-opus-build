@@ -313,9 +313,9 @@ export class TrainingMonitorService extends EventEmitter {
 
     if (!job || !job.config) return null;
 
-    // Parse config and progress
+    // Parse config and metrics (progress is stored in metrics)
     const config = typeof job.config === 'string' ? JSON.parse(job.config) : job.config;
-    const progress = typeof job.progress === 'string' ? JSON.parse(job.progress) : job.progress;
+    const progress = typeof job.metrics === 'string' ? JSON.parse(job.metrics) : job.metrics;
 
     const stages = config.stages || [];
     const currentStage = progress?.currentStage || 0;
@@ -515,9 +515,9 @@ export class TrainingMonitorService extends EventEmitter {
         return;
       }
 
-      // Parse progress from database
-      if (job.progress) {
-        const progress = typeof job.progress === 'string' ? JSON.parse(job.progress) : job.progress;
+      // Parse progress from database (stored in metrics)
+      if (job.metrics) {
+        const progress = typeof job.metrics === 'string' ? JSON.parse(job.metrics) : job.metrics;
 
         this.updateMetrics(jobId, {
           currentStep: progress.currentStep || 0,

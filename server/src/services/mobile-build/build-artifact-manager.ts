@@ -6,7 +6,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import type { MobileBuild, EASBuildInfo } from './types';
+import type { MobileBuild, EASBuildInfo } from './types.js';
 
 const ARTIFACT_STORAGE_PATH = process.env.ARTIFACT_STORAGE_PATH || '/tmp/kriptik-artifacts';
 const ARTIFACT_BASE_URL = process.env.ARTIFACT_BASE_URL || 'https://artifacts.kriptik.ai';

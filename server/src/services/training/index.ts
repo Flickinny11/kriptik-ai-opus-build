@@ -311,11 +311,11 @@ export {
   createUniversalModelTesterService,
   type ExtendedModality,
   type TestRequest,
-  type TestResult,
+  type TestResult as TesterTestResult,
   type ComparisonResult as TesterComparisonResult,
   type ComparisonMetrics as TesterComparisonMetrics,
   type InferenceEndpoint,
-  type TestSession,
+  type TestSession as TesterTestSession,
   type DeployConfig,
 } from './universal-model-tester.js';
 

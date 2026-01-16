@@ -86,6 +86,7 @@ export interface CheckpointInfo {
   path: string;
   sizeBytes: number;
   createdAt: string;
+  metrics: Record<string, number>;
 }
 
 export interface ResumeResult {
@@ -353,6 +354,11 @@ export class BudgetManagerService extends EventEmitter {
       path: `/checkpoints/${jobId}/freeze-${Date.now()}`,
       sizeBytes: 0,
       createdAt: new Date().toISOString(),
+      metrics: {
+        loss: metrics?.loss || 0,
+        learningRate: metrics?.learningRate || 0,
+        gpuUtilization: metrics?.gpuUtilization?.[0] || 0,
+      },
     };
 
     // In production, this would trigger actual checkpoint save on GPU pod
@@ -584,16 +590,20 @@ export class BudgetManagerService extends EventEmitter {
 
     // Create notification in database
     await db.insert(notifications).values({
-      id: randomUUID(),
       userId: state.userId,
       type: `training_${type}`,
       title: titles[type],
       message: messages[type],
-      priority: type === 'freeze' ? 'high' : 'medium',
       actionUrl: type === 'freeze' ? resumeUrl : `/training/jobs/${state.jobId}`,
-      actionLabel: type === 'freeze' ? 'Adjust Budget & Resume' : 'View Training',
+      metadata: JSON.stringify({
+        jobId: state.jobId,
+        priority: type === 'freeze' ? 'high' : 'medium',
+        actionLabel: type === 'freeze' ? 'Adjust Budget & Resume' : 'View Training',
+        percentUsed,
+        currentSpend: state.currentSpend,
+        maxBudget: state.maxBudget,
+      }),
       read: false,
-      createdAt: new Date().toISOString(),
     });
 
     this.emit('inAppNotificationSent', state.jobId, { type, userId: state.userId });

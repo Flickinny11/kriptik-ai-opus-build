@@ -43,6 +43,8 @@ export const mobileAuthMiddleware = async (req: Request, res: Response, next: Fu
       id: user.id,
       email: user.email,
       name: user.name || undefined,
+      createdAt: new Date(user.createdAt),
+      updatedAt: new Date(user.updatedAt),
     };
     next();
   } catch (error) {

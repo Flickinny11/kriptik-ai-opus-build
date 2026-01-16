@@ -4,8 +4,8 @@
  * Exports all mobile build components
  */
 
-export * from './types';
-export { MobileBuildOrchestrator, mobileBuildOrchestrator } from './mobile-build-orchestrator';
-export { ExpoProjectGenerator } from './expo-project-generator';
-export { EASBuildService } from './eas-build-service';
-export { BuildArtifactManager } from './build-artifact-manager';
+export * from './types.js';
+export { MobileBuildOrchestrator, mobileBuildOrchestrator } from './mobile-build-orchestrator.js';
+export { ExpoProjectGenerator } from './expo-project-generator.js';
+export { EASBuildService } from './eas-build-service.js';
+export { BuildArtifactManager } from './build-artifact-manager.js';

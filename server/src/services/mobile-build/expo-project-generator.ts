@@ -6,7 +6,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import type { ExpoProjectTemplate } from './types';
+import type { ExpoProjectTemplate } from './types.js';
 
 const SANDBOX_BASE = process.env.SANDBOX_PATH || '/tmp/kriptik-sandboxes';
 
