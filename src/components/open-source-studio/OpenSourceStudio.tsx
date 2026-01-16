@@ -183,30 +183,64 @@ function IntegrationPromptBar({
   };
 
   return (
-    <div className="oss-prompt-bar">
-      <div className="oss-prompt-context">
+    <div 
+      className="oss-prompt-bar"
+      style={{
+        padding: '6px 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        flexShrink: 0,
+        background: 'rgba(25, 25, 35, 0.95)',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+      }}
+    >
+      <div 
+        className="oss-prompt-context"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          overflow: 'hidden',
+          flexWrap: 'wrap',
+        }}
+      >
         {models.length > 0 ? (
-          <div className="oss-prompt-models">
-            <span className="oss-prompt-label">Models in dock:</span>
-            {models.slice(0, 3).map(m => (
-              <span key={m.id} className="oss-prompt-model-tag">{m.modelId.split('/').pop()}</span>
+          <div className="oss-prompt-models" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', overflow: 'hidden' }}>
+            <span className="oss-prompt-label" style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>Models in dock:</span>
+            {models.slice(0, 2).map(m => (
+              <span key={m.id} className="oss-prompt-model-tag" style={{ fontSize: '0.6rem', padding: '2px 6px', background: 'rgba(255,210,30,0.15)', borderRadius: '4px', color: '#FFD21E', whiteSpace: 'nowrap', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.modelId.split('/').pop()}</span>
             ))}
-            {models.length > 3 && <span className="oss-prompt-more">+{models.length - 3} more</span>}
+            {models.length > 2 && <span className="oss-prompt-more" style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)' }}>+{models.length - 2}</span>}
           </div>
         ) : (
-          <span className="oss-prompt-hint">Drag models to dock, then describe your integration workflow</span>
+          <span className="oss-prompt-hint" style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)' }}>Drag models to dock, then describe your integration</span>
         )}
       </div>
 
-      <div className="oss-prompt-input-container">
+      <div className="oss-prompt-input-container" style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' }}>
         <textarea
           ref={textareaRef}
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Describe how to integrate these models... e.g., 'Create an image generation pipeline with upscaling and face restoration'"
+          placeholder="Describe integration... e.g., 'Image generation with upscaling'"
           className="oss-prompt-input"
-          rows={2}
+          rows={1}
+          style={{
+            flex: 1,
+            minHeight: '28px',
+            maxHeight: '50px',
+            padding: '5px 8px',
+            fontSize: '0.7rem',
+            background: 'rgba(0,0,0,0.3)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '6px',
+            color: 'rgba(255,255,255,0.9)',
+            resize: 'none',
+            outline: 'none',
+          }}
         />
 
         <button
@@ -214,11 +248,20 @@ function IntegrationPromptBar({
           onClick={handleSubmit}
           disabled={!prompt.trim() || isProcessing || models.length === 0}
           style={{
+            width: '28px',
+            height: '28px',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '6px',
+            border: 'none',
+            cursor: 'pointer',
             background: prompt.trim() && models.length > 0
               ? 'linear-gradient(145deg, #f59e0b 0%, #d97706 100%)'
-              : 'rgba(0,0,0,0.1)',
+              : 'rgba(255,255,255,0.1)',
             boxShadow: prompt.trim() && models.length > 0
-              ? '0 4px 12px rgba(245,158,11,0.3), inset 0 1px 2px rgba(255,255,255,0.3)'
+              ? '0 2px 8px rgba(245,158,11,0.3)'
               : 'none',
           }}
         >

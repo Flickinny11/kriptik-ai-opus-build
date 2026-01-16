@@ -11,8 +11,8 @@
  */
 
 import { useCallback, useState } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { useOpenSourceStudioStore, type ModelWithRequirements, type ModelDockItem } from '@/store/useOpenSourceStudioStore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useOpenSourceStudioStore, type ModelWithRequirements } from '@/store/useOpenSourceStudioStore';
 import { authenticatedFetch, API_URL } from '@/lib/api-config';
 import { ModelCard } from './ModelCard';
 import './ModelDock.css';
@@ -134,7 +134,7 @@ interface ModelDockProps {
 }
 
 export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
-  const { dock, addToDock, removeFromDock, reorderDock, clearDock } = useOpenSourceStudioStore();
+  const { dock, addToDock, removeFromDock, clearDock } = useOpenSourceStudioStore();
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedMode, setSelectedMode] = useState<DockMode>('deploy');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -167,15 +167,6 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
       console.error('[ModelDock] Drop error:', error);
     }
   }, [addToDock]);
-
-  const handleReorder = useCallback((newOrder: ModelDockItem[]) => {
-    newOrder.forEach((item, newIndex) => {
-      const oldIndex = dock.findIndex(d => d.model.modelId === item.model.modelId);
-      if (oldIndex !== newIndex) {
-        reorderDock(oldIndex, newIndex);
-      }
-    });
-  }, [dock, reorderDock]);
 
   const handleAction = async () => {
     if (dock.length === 0) return;
@@ -320,30 +311,31 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
             </p>
           </div>
         ) : (
-          <Reorder.Group
-            axis="y"
-            values={dock}
-            onReorder={handleReorder}
-            className="model-dock__list"
-            style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: 0, margin: 0 }}
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: 0, margin: 0 }}>
             <AnimatePresence>
               {dock.map((item) => (
-                <Reorder.Item
+                <motion.div
                   key={item.model.modelId}
-                  value={item}
                   className="model-dock__item"
+                  style={{ position: 'relative' }}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
                 >
                   <ModelCard
                     model={item.model}
                     index={item.position}
                     isDocked
-                    onRemove={() => removeFromDock(item.model.modelId)}
+                    onRemove={() => {
+                      console.log('[ModelDock] Removing model:', item.model.modelId);
+                      removeFromDock(item.model.modelId);
+                    }}
                   />
-                </Reorder.Item>
+                </motion.div>
               ))}
             </AnimatePresence>
-          </Reorder.Group>
+          </div>
         )}
       </div>
 

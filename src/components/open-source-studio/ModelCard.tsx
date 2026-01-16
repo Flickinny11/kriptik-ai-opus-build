@@ -446,22 +446,30 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
         {isDocked && onRemove && (
           <button
             className="model-card-remove"
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            onClick={(e) => { 
+              e.preventDefault();
+              e.stopPropagation(); 
+              console.log('[ModelCard] Remove clicked for:', model.modelId);
+              onRemove(); 
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
             title="Remove from dock"
             style={{
               position: 'absolute',
-              top: '3px',
-              right: '3px',
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              background: 'rgba(255, 80, 80, 0.2)',
-              border: '1px solid rgba(255, 80, 80, 0.4)',
+              top: '4px',
+              right: '4px',
+              width: '20px',
+              height: '20px',
+              borderRadius: '5px',
+              background: 'rgba(255, 80, 80, 0.3)',
+              border: '1px solid rgba(255, 80, 80, 0.5)',
               color: '#ff6b6b',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
+              zIndex: 100,
+              pointerEvents: 'auto',
             }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
