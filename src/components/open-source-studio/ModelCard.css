@@ -1,6 +1,6 @@
 /**
  * Model Card - Premium 3D Photorealistic Liquid Glass Design
- * 
+ *
  * Features:
  * - 3D perspective and depth with visible edges
  * - Layered shadows for realistic depth
@@ -25,19 +25,19 @@
 
 .model-card {
   position: relative;
-  padding: 18px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   cursor: pointer;
   transform-style: preserve-3d;
   will-change: transform, box-shadow;
-  
+
   /* 3D depth with visible edge */
-  border-radius: 18px;
-  
+  border-radius: 10px;
+
   /* Multi-layer photorealistic glass gradient */
-  background: 
+  background:
     /* Top highlight layer */
     linear-gradient(
       175deg,
@@ -53,11 +53,11 @@
       rgba(35, 35, 48, 0.90) 70%,
       rgba(30, 30, 42, 0.95) 100%
     );
-  
+
   /* Photorealistic glass border with refraction effect */
   border: 1px solid transparent;
   background-clip: padding-box;
-  
+
   /* 3D layered shadows for depth */
   box-shadow:
     /* Inner glow - top edge light */
@@ -73,9 +73,9 @@
     0 8px 24px rgba(0, 0, 0, 0.2),
     /* Ambient shadow */
     0 16px 48px rgba(0, 0, 0, 0.15);
-  
+
   /* GPU-accelerated transitions */
-  transition: 
+  transition:
     transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
     box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1),
     background 0.3s ease;
@@ -128,7 +128,7 @@
   inset: 0;
   border-radius: 18px;
   pointer-events: none;
-  
+
   /* 3D edge effect */
   box-shadow:
     inset 0 1px 2px rgba(255, 255, 255, 0.25),
@@ -163,7 +163,7 @@
 
 .model-card:hover {
   transform: perspective(1000px) translateY(-8px) translateZ(20px) rotateX(2deg);
-  
+
   /* Enhanced shadows on hover */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
@@ -193,7 +193,7 @@
    ============================================================================= */
 
 .model-card--selected {
-  background: 
+  background:
     linear-gradient(
       175deg,
       rgba(255, 210, 30, 0.15) 0%,
@@ -207,7 +207,7 @@
       rgba(45, 40, 38, 0.90) 70%,
       rgba(40, 35, 32, 0.95) 100%
     );
-  
+
   box-shadow:
     inset 0 1px 0 rgba(255, 210, 30, 0.3),
     inset 0 -1px 0 rgba(0, 0, 0, 0.2),
@@ -251,8 +251,9 @@
    ============================================================================= */
 
 .model-card--docked {
-  padding: 14px;
+  padding: 6px;
   cursor: grab;
+  gap: 4px;
 }
 
 .model-card--docked:active {
@@ -293,21 +294,21 @@
 .model-card-author-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .model-card-avatar {
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 6px;
   font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
-  font-size: 0.875rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  
+
   /* 3D avatar button */
   background: linear-gradient(
     145deg,
@@ -329,7 +330,7 @@
 
 .model-card-author {
   font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
-  font-size: 0.8125rem;
+  font-size: 0.65rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.8);
 }
@@ -337,9 +338,9 @@
 .model-card-updated {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.6875rem;
+  font-size: 0.55rem;
   color: rgba(255, 255, 255, 0.4);
 }
 
@@ -350,7 +351,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  
+
   /* 3D warning badge */
   background: linear-gradient(145deg, rgba(255, 180, 0, 0.2), rgba(255, 140, 0, 0.15));
   color: #ffb400;
@@ -364,17 +365,14 @@
 
 .model-card-name {
   font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
-  font-size: 1.125rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #fff;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.02em;
-  
-  /* Subtle text shadow for depth */
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.01em;
 }
 
 /* =============================================================================
@@ -390,14 +388,14 @@
 .model-card-task {
   display: inline-flex;
   align-items: center;
-  padding: 5px 10px;
-  border-radius: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
   font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
-  font-size: 0.6875rem;
+  font-size: 0.55rem;
   font-weight: 600;
   text-transform: capitalize;
-  letter-spacing: 0.02em;
-  
+  letter-spacing: 0.01em;
+
   /* 3D pill effect */
   background: linear-gradient(
     145deg,
@@ -417,20 +415,20 @@
 
 .model-card-stats {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
 .model-card-stat {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 10px;
-  border-radius: 8px;
+  gap: 3px;
+  padding: 3px 6px;
+  border-radius: 4px;
   font-family: 'Space Mono', 'DM Sans', monospace;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   font-weight: 500;
-  
+
   /* 3D inset stat pill */
   background: linear-gradient(
     165deg,
@@ -442,7 +440,7 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 -1px 2px rgba(0, 0, 0, 0.1);
-  
+
   transition: all 0.2s ease;
 }
 
@@ -490,7 +488,7 @@
   border-radius: 6px;
   font-family: 'Space Mono', monospace;
   font-size: 0.6875rem;
-  
+
   background: rgba(0, 0, 0, 0.25);
   color: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -630,11 +628,11 @@
   font-weight: 500;
   cursor: pointer;
   border: none;
-  
+
   background: linear-gradient(145deg, rgba(255, 210, 30, 0.15), rgba(245, 168, 108, 0.1));
   color: #FFD21E;
   border: 1px solid rgba(255, 210, 30, 0.25);
-  
+
   transition: all 0.2s ease;
 }
 
@@ -667,11 +665,11 @@
   font-weight: 500;
   cursor: pointer;
   border: none;
-  
+
   background: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  
+
   transition: all 0.2s ease;
 }
 
@@ -693,7 +691,7 @@
   font-weight: 600;
   cursor: pointer;
   border: none;
-  
+
   transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -740,26 +738,31 @@
 }
 
 /* =============================================================================
-   REMOVE BUTTON (Docked Cards)
+   REMOVE BUTTON (Docked Cards) - Always visible for clarity
    ============================================================================= */
 
 .model-card-remove {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
   cursor: pointer;
-  opacity: 0;
-  
-  background: linear-gradient(145deg, rgba(255, 100, 100, 0.15), rgba(200, 50, 50, 0.1));
-  border: 1px solid rgba(255, 100, 100, 0.25);
+  opacity: 0.7;
+  z-index: 10;
+
+  /* 3D remove button - always visible */
+  background: linear-gradient(145deg, rgba(255, 100, 100, 0.2), rgba(200, 50, 50, 0.15));
+  border: 1px solid rgba(255, 100, 100, 0.35);
   color: #ff6b6b;
-  
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.2);
+
   transition: all 0.2s ease;
 }
 
@@ -768,9 +771,17 @@
 }
 
 .model-card-remove:hover {
-  background: linear-gradient(145deg, rgba(255, 100, 100, 0.25), rgba(200, 50, 50, 0.2));
+  background: linear-gradient(145deg, rgba(255, 80, 80, 0.35), rgba(220, 50, 50, 0.25));
+  border-color: rgba(255, 100, 100, 0.5);
   color: #ff4444;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 4px 12px rgba(255, 80, 80, 0.3);
+}
+
+.model-card-remove:active {
+  transform: scale(0.95);
 }
 
 /* =============================================================================
@@ -781,20 +792,20 @@
   .model-card {
     padding: 14px;
   }
-  
+
   .model-card-name {
     font-size: 1rem;
   }
-  
+
   .model-card-stats {
     gap: 6px;
   }
-  
+
   .model-card-stat {
     padding: 5px 8px;
     font-size: 0.6875rem;
   }
-  
+
   .model-card-info-grid {
     grid-template-columns: 1fr;
   }

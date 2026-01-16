@@ -179,7 +179,7 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
 
   const handleAction = async () => {
     if (dock.length === 0) return;
-    
+
     setIsProcessing(true);
     const models = dock.map(d => d.model);
 
@@ -235,37 +235,43 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
     >
       {/* Glass effect layers */}
       <div className="model-dock__glass-layer model-dock__glass-layer--1" />
       <div className="model-dock__glass-layer model-dock__glass-layer--2" />
 
       {/* Header */}
-      <div className="model-dock__header">
-        <div className="model-dock__title-section">
+      <div className="model-dock__header" style={{ padding: '4px 6px', flexShrink: 0 }}>
+        <div className="model-dock__title-section" style={{ gap: '6px' }}>
           <DockIcon />
-          <div>
-            <span className="model-dock__title">Model Dock</span>
-            <span className="model-dock__count">{dock.length}/5</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+            <span className="model-dock__title" style={{ fontSize: '0.7rem' }}>Model Dock</span>
+            <span className="model-dock__count" style={{ fontSize: '0.6rem', padding: '1px 4px' }}>{dock.length}/5</span>
           </div>
         </div>
 
         {dock.length > 0 && (
-          <button className="model-dock__clear" onClick={clearDock} title="Clear all models">
+          <button className="model-dock__clear" onClick={clearDock} title="Clear all models" style={{ width: '20px', height: '20px' }}>
             <TrashIcon />
           </button>
         )}
       </div>
 
       {/* Mode Selector */}
-      <div className="model-dock__mode-selector">
+      <div className="model-dock__mode-selector" style={{ padding: '3px 6px', flexShrink: 0 }}>
         <button
           className="model-dock__mode-button"
           onClick={() => setShowModeSelector(!showModeSelector)}
-          style={{ '--mode-color': currentMode.color } as React.CSSProperties}
+          style={{ '--mode-color': currentMode.color, padding: '3px 6px', gap: '4px' } as React.CSSProperties}
         >
           <currentMode.icon />
-          <span>{currentMode.label}</span>
+          <span style={{ fontSize: '0.65rem' }}>{currentMode.label}</span>
           <ChevronDownIcon />
         </button>
 
@@ -300,16 +306,16 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
       </div>
 
       {/* Dock Content */}
-      <div className="model-dock__content">
+      <div className="model-dock__content" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '4px' }}>
         {dock.length === 0 ? (
-          <div className="model-dock__empty">
-            <div className="model-dock__empty-icon">
+          <div className="model-dock__empty" style={{ padding: '12px 8px' }}>
+            <div className="model-dock__empty-icon" style={{ width: '28px', height: '28px', marginBottom: '6px' }}>
               <DockIcon />
             </div>
-            <p className="model-dock__empty-text">
+            <p className="model-dock__empty-text" style={{ fontSize: '0.65rem', margin: '0 0 2px' }}>
               Drag models here to collect them
             </p>
-            <p className="model-dock__empty-hint">
+            <p className="model-dock__empty-hint" style={{ fontSize: '0.55rem', margin: 0 }}>
               You can add up to 5 models
             </p>
           </div>
@@ -319,6 +325,7 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
             values={dock}
             onReorder={handleReorder}
             className="model-dock__list"
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: 0, margin: 0 }}
           >
             <AnimatePresence>
               {dock.map((item) => (
@@ -342,8 +349,8 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
 
       {/* NLP Prompt Input */}
       {dock.length > 0 && (
-        <div className="model-dock__nlp-section">
-          <div className="model-dock__nlp-header">
+        <div className="model-dock__nlp-section" style={{ padding: '3px 5px', flexShrink: 0 }}>
+          <div className="model-dock__nlp-header" style={{ fontSize: '0.55rem', marginBottom: '2px', gap: '3px' }}>
             <SparklesIcon />
             <span>Describe your workflow (optional)</span>
           </div>
@@ -358,28 +365,29 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
                 ? 'e.g., "Fine-tune for anime-style images with my dataset..."'
                 : 'e.g., "Train a custom model for lip-sync video generation..."'
             }
-            rows={2}
+            rows={1}
+            style={{ fontSize: '0.6rem', padding: '3px 5px', minHeight: '24px' }}
           />
         </div>
       )}
 
       {/* Footer Stats & Action */}
       {dock.length > 0 && (
-        <div className="model-dock__footer">
-          <div className="model-dock__stats">
-            <div className="model-dock__stat">
-              <span className="model-dock__stat-label">Est. VRAM</span>
-              <span className="model-dock__stat-value">{totalEstimatedVRAM || '?'} GB</span>
+        <div className="model-dock__footer" style={{ padding: '4px 5px', flexShrink: 0 }}>
+          <div className="model-dock__stats" style={{ gap: '3px', marginBottom: '3px' }}>
+            <div className="model-dock__stat" style={{ padding: '2px 4px' }}>
+              <span className="model-dock__stat-label" style={{ fontSize: '0.45rem' }}>Est. VRAM</span>
+              <span className="model-dock__stat-value" style={{ fontSize: '0.6rem' }}>{totalEstimatedVRAM || '?'} GB</span>
             </div>
-            <div className="model-dock__stat">
-              <span className="model-dock__stat-label">Est. Cost</span>
-              <span className="model-dock__stat-value">${estimateCostPerHour().toFixed(2)}/hr</span>
+            <div className="model-dock__stat" style={{ padding: '2px 4px' }}>
+              <span className="model-dock__stat-label" style={{ fontSize: '0.45rem' }}>Est. Cost</span>
+              <span className="model-dock__stat-value" style={{ fontSize: '0.6rem' }}>${estimateCostPerHour().toFixed(2)}/hr</span>
             </div>
           </div>
 
           <motion.button
             className="model-dock__action-btn"
-            style={{ '--mode-color': currentMode.color } as React.CSSProperties}
+            style={{ '--mode-color': currentMode.color, padding: '5px 8px', fontSize: '0.65rem' } as React.CSSProperties}
             onClick={handleAction}
             disabled={isProcessing}
             whileHover={{ scale: 1.02 }}

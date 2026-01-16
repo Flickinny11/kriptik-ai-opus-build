@@ -17,23 +17,18 @@ import { useAILabStore } from '@/store/useAILabStore';
 import { useHuggingFace } from '@/hooks/useHuggingFace';
 import { authenticatedFetch, API_URL } from '@/lib/api-config';
 
-// Existing comprehensive components
+// Core UI components
 import { HuggingFaceConnect } from './HuggingFaceConnect';
 import { HuggingFaceStatus } from './HuggingFaceStatus';
 import { ModelBrowser } from './ModelBrowser';
 import { ModelDock } from './ModelDock';
 import { ModelDetails } from './ModelDetails';
-// TrainingModule imported but managed via TrainingWizard now
-import { TrainingConfig, type TrainingParams } from './TrainingConfig';
-import { DatasetSelector, type HuggingFaceDataset } from './DatasetSelector';
-import { TrainingProgress } from './TrainingProgress';
-import { TrainingCostEstimator } from './TrainingCostEstimator';
-import { DeploymentConfig, type DeploymentOptions } from './DeploymentConfig';
-import { EndpointManagement, type DeployedEndpoint } from './EndpointManagement';
-import { EndpointTest } from './EndpointTest';
-import { AILab } from '../ai-lab/AILab';
-import { TrainingWizard } from '../training/TrainingWizard';
 import { ModelLibrary } from './ModelLibrary';
+
+// Tab panels
+import { AILab } from '../ai-lab/AILab';
+import { TrainingPanel } from './TrainingPanel';
+import { DeployPanel } from './DeployPanel';
 
 import './OpenSourceStudio.css';
 import './ModelLibrary.css';
@@ -43,9 +38,6 @@ import './ModelLibrary.css';
 // =============================================================================
 
 type StudioTab = 'open-source' | 'ai-lab' | 'training' | 'deploy';
-
-type TrainingSubView = 'overview' | 'wizard' | 'configure' | 'dataset' | 'progress' | 'cost';
-type DeploySubView = 'overview' | 'configure' | 'endpoints' | 'test';
 
 // =============================================================================
 // ICONS
@@ -105,98 +97,7 @@ const SendIcon = () => (
   </svg>
 );
 
-const BackIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-    <path d="M19 12H5M5 12l7-7M5 12l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-// =============================================================================
-// TRAINING PROGRESS WRAPPER (fetches job data and renders TrainingProgress)
-// =============================================================================
-
-// Type import for TrainingMetrics
-import type { TrainingMetrics, TrainingStatus } from './TrainingProgress';
-
-function TrainingProgressWrapper({
-  jobId,
-  onComplete
-}: {
-  jobId: string;
-  onComplete: () => void;
-}) {
-  const [status, setStatus] = useState<TrainingStatus>('queued');
-  const [metrics, setMetrics] = useState<TrainingMetrics | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
-  const [hubUrl, setHubUrl] = useState<string | undefined>();
-
-  useEffect(() => {
-    // Set up SSE connection to stream training progress with credentials
-    const baseUrl = import.meta.env.VITE_API_URL || '';
-    const eventSource = new EventSource(`${baseUrl}/api/training/jobs/${jobId}/stream`, {
-      withCredentials: true
-    });
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.status) setStatus(data.status);
-        if (data.metrics) setMetrics(data.metrics as TrainingMetrics);
-        if (data.log) setLogs(prev => [...prev.slice(-100), data.log]);
-        if (data.hubUrl) setHubUrl(data.hubUrl);
-        if (data.status === 'completed' || data.status === 'failed') {
-          eventSource.close();
-          if (data.status === 'completed') {
-            setTimeout(onComplete, 2000);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse training event:', e);
-      }
-    };
-
-    eventSource.onerror = () => {
-      eventSource.close();
-    };
-
-    return () => eventSource.close();
-  }, [jobId, onComplete]);
-
-  const handleStop = async () => {
-    try {
-      const baseUrl = import.meta.env.VITE_API_URL || '';
-      await fetch(`${baseUrl}/api/training/jobs/${jobId}/stop`, { 
-        method: 'POST',
-        credentials: 'include'
-      });
-      setStatus('stopped');
-    } catch (e) {
-      console.error('Failed to stop job:', e);
-    }
-  };
-
-  const handleViewOnHub = () => {
-    if (hubUrl) window.open(hubUrl, '_blank');
-  };
-
-  return (
-    <TrainingProgress
-      jobId={jobId}
-      status={status}
-      metrics={metrics}
-      logs={logs}
-      onStop={handleStop}
-      onViewOnHub={hubUrl ? handleViewOnHub : undefined}
-      hubUrl={hubUrl}
-    />
-  );
-}
+// NOTE: TrainingPanel and DeployPanel now handle their own logic internally
 
 // =============================================================================
 // SUB COMPONENTS
@@ -336,299 +237,7 @@ function IntegrationPromptBar({
   );
 }
 
-// Training Tab Overview with sub-navigation
-function TrainingTabContent({
-  models,
-  onStartTraining
-}: {
-  models: ModelWithRequirements[];
-  onStartTraining: (modelId: string, params: TrainingParams) => void;
-}) {
-  const [subView, setSubView] = useState<TrainingSubView>('overview');
-  const [selectedModel, setSelectedModel] = useState<ModelWithRequirements | null>(null);
-  const [selectedDataset, setSelectedDataset] = useState<HuggingFaceDataset | null>(null);
-  const [showWizard, setShowWizard] = useState(false);
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-
-  const handleModelSelect = (model: ModelWithRequirements) => {
-    setSelectedModel(model);
-    setSubView('dataset');
-  };
-
-  const handleDatasetSelect = (dataset: HuggingFaceDataset) => {
-    setSelectedDataset(dataset);
-    setSubView('configure');
-  };
-
-  const handleStartTraining = (params: TrainingParams) => {
-    if (selectedModel) {
-      onStartTraining(selectedModel.modelId, params);
-      setSubView('progress');
-    }
-  };
-
-  // Overview with action cards
-  if (subView === 'overview') {
-    return (
-      <div className="oss-training-overview">
-        <div className="oss-training-header">
-          <h3>Training &amp; Fine-Tuning</h3>
-          <p>Train LLM, Image, Video, and Audio models with full parameter control</p>
-        </div>
-
-        <div className="oss-training-actions">
-          {/* New Training Job */}
-          <button className="oss-training-action-card" onClick={() => setShowWizard(true)}>
-            <div className="oss-action-icon">
-              <PlusIcon />
-            </div>
-            <div className="oss-action-content">
-              <h4>New Training Job</h4>
-              <p>Start a new multi-modal training with the wizard</p>
-            </div>
-          </button>
-
-          {/* Quick Train from Dock */}
-          {models.length > 0 && (
-            <div className="oss-training-dock-models">
-              <h4>Train from Dock ({models.length} models)</h4>
-              <div className="oss-training-model-grid">
-                {models.map(model => (
-                  <button
-                    key={model.id}
-                    className="oss-training-model-card"
-                    onClick={() => handleModelSelect(model)}
-                  >
-                    <span className="oss-training-model-name">{model.modelId.split('/').pop()}</span>
-                    <span className="oss-training-model-task">{model.pipeline_tag || 'Unknown'}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Training Wizard Modal */}
-        <TrainingWizard
-          isOpen={showWizard}
-          onClose={() => setShowWizard(false)}
-          onComplete={(jobId) => {
-            setActiveJobId(jobId);
-            setSubView('progress');
-            setShowWizard(false);
-          }}
-        />
-      </div>
-    );
-  }
-
-  // Dataset Selection
-  if (subView === 'dataset' && selectedModel) {
-    return (
-      <div className="oss-training-subview">
-        <button className="oss-back-btn" onClick={() => setSubView('overview')}>
-          <BackIcon /> Back
-        </button>
-        <DatasetSelector
-          modelTask={selectedModel.pipeline_tag || 'text-generation'}
-          onSelect={handleDatasetSelect}
-          selectedDataset={selectedDataset}
-        />
-      </div>
-    );
-  }
-
-  // Training Configuration
-  if (subView === 'configure' && selectedModel) {
-    return (
-      <div className="oss-training-subview">
-        <button className="oss-back-btn" onClick={() => setSubView('dataset')}>
-          <BackIcon /> Back to Dataset
-        </button>
-        <div className="oss-training-config-layout">
-          <div className="oss-training-config-main">
-            <TrainingConfig
-              model={selectedModel}
-              onStartTraining={handleStartTraining}
-              isLoading={false}
-            />
-          </div>
-          <div className="oss-training-config-sidebar">
-            <TrainingCostEstimator
-              vramRequired={selectedModel.estimatedVRAM || 8}
-              trainingType="qlora"
-              epochs={3}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Training Progress
-  if (subView === 'progress' && activeJobId) {
-    return (
-      <div className="oss-training-subview">
-        <button className="oss-back-btn" onClick={() => setSubView('overview')}>
-          <BackIcon /> Back to Overview
-        </button>
-        <TrainingProgressWrapper
-          jobId={activeJobId}
-          onComplete={() => {
-            setSubView('overview');
-            setActiveJobId(null);
-          }}
-        />
-      </div>
-    );
-  }
-
-  return null;
-}
-
-// Deploy Tab Content with sub-navigation
-function DeployTabContent({
-  models
-}: {
-  models: ModelWithRequirements[];
-}) {
-  const [subView, setSubView] = useState<DeploySubView>('overview');
-  const [selectedModel, setSelectedModel] = useState<ModelWithRequirements | null>(null);
-  const [selectedEndpoint, setSelectedEndpoint] = useState<DeployedEndpoint | null>(null);
-  const [isDeploying, setIsDeploying] = useState(false);
-
-  const handleDeploy = async (options: DeploymentOptions) => {
-    if (!selectedModel) return;
-    setIsDeploying(true);
-
-    try {
-      const response = await authenticatedFetch(`${API_URL}/api/open-source-studio/deploy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          modelId: selectedModel.modelId,
-          modelName: selectedModel.modelId.split('/').pop(),
-          customConfig: options,
-        }),
-      });
-
-      if (response.ok) {
-        setSubView('endpoints');
-      }
-    } catch (err) {
-      console.error('[Deploy] Error:', err);
-    } finally {
-      setIsDeploying(false);
-    }
-  };
-
-  // Overview
-  if (subView === 'overview') {
-    return (
-      <div className="oss-deploy-overview">
-        <div className="oss-deploy-header">
-          <h3>Deploy to Serverless Endpoints</h3>
-          <p>Deploy models as private inference endpoints on RunPod or Modal</p>
-        </div>
-
-        <div className="oss-deploy-actions">
-          <button
-            className="oss-deploy-action-card"
-            onClick={() => setSubView('endpoints')}
-          >
-            <div className="oss-action-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="3" width="20" height="8" rx="2" stroke="currentColor" strokeWidth="2"/>
-                <rect x="2" y="13" width="20" height="8" rx="2" stroke="currentColor" strokeWidth="2"/>
-                <circle cx="6" cy="7" r="1" fill="currentColor"/>
-                <circle cx="6" cy="17" r="1" fill="currentColor"/>
-              </svg>
-            </div>
-            <div className="oss-action-content">
-              <h4>Manage Endpoints</h4>
-              <p>View and manage deployed inference endpoints</p>
-            </div>
-          </button>
-
-          {models.length > 0 && (
-            <div className="oss-deploy-dock-models">
-              <h4>Deploy from Dock ({models.length} models)</h4>
-              <div className="oss-deploy-model-grid">
-                {models.map(model => (
-                  <button
-                    key={model.id}
-                    className="oss-deploy-model-card"
-                    onClick={() => {
-                      setSelectedModel(model);
-                      setSubView('configure');
-                    }}
-                  >
-                    <span className="oss-deploy-model-name">{model.modelId.split('/').pop()}</span>
-                    <span className="oss-deploy-model-vram">{model.estimatedVRAM || '?'} GB VRAM</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Deployment Configuration
-  if (subView === 'configure' && selectedModel) {
-    return (
-      <DeploymentConfig
-        modelId={selectedModel.modelId}
-        modelName={selectedModel.modelId.split('/').pop() || 'model'}
-        estimatedVRAM={selectedModel.estimatedVRAM || 8}
-        onDeploy={handleDeploy}
-        onCancel={() => setSubView('overview')}
-        isDeploying={isDeploying}
-      />
-    );
-  }
-
-  // Endpoint Management
-  if (subView === 'endpoints') {
-    return (
-      <div className="oss-deploy-subview">
-        <button className="oss-back-btn" onClick={() => setSubView('overview')}>
-          <BackIcon /> Back
-        </button>
-        <EndpointManagement
-          onDeploy={() => setSubView('overview')}
-          onSelectEndpoint={(endpoint) => {
-            setSelectedEndpoint(endpoint);
-            setSubView('test');
-          }}
-        />
-      </div>
-    );
-  }
-
-  // Endpoint Testing
-  if (subView === 'test' && selectedEndpoint) {
-    return (
-      <div className="oss-deploy-subview">
-        <button className="oss-back-btn" onClick={() => setSubView('endpoints')}>
-          <BackIcon /> Back to Endpoints
-        </button>
-        <EndpointTest
-          endpointId={selectedEndpoint.id}
-          endpointUrl={selectedEndpoint.endpointUrl}
-          modelId={selectedEndpoint.modelId}
-          testWindowMinutes={10}
-          testWindowStartedAt={new Date().toISOString()}
-          onConfirm={() => setSubView('endpoints')}
-          onCancel={() => setSubView('endpoints')}
-        />
-      </div>
-    );
-  }
-
-  return null;
-}
+// NOTE: Old TrainingTabContent and DeployTabContent removed - now using TrainingPanel and DeployPanel components
 
 // =============================================================================
 // MAIN COMPONENT
@@ -731,38 +340,6 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
     }
   };
 
-  // Handle training start
-  const handleStartTraining = async (modelId: string, params: TrainingParams) => {
-    try {
-      const response = await authenticatedFetch(`${API_URL}/api/training/jobs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          modelId,
-          trainingType: params.type,
-          epochs: params.epochs,
-          learningRate: params.learningRate,
-          batchSize: params.batchSize,
-          loraRank: params.loraRank,
-          loraAlpha: params.loraAlpha,
-          loraDropout: params.loraDropout,
-          targetModules: params.targetModules,
-          datasetId: params.datasetId,
-          budgetLimit: params.budgetLimit,
-          autoSaveToHub: params.autoSaveToHub,
-          outputRepoName: params.modelName,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[OpenSourceStudio] Training job created:', data.job.id);
-      }
-    } catch (err) {
-      console.error('[OpenSourceStudio] Training error:', err);
-    }
-  };
-
   // If not connected to HuggingFace, show connection modal
   const showConnectModal = !hfConnected && !hfLoading;
   const dockModels = dock.map(d => d.model);
@@ -815,9 +392,19 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
               transition={{ duration: 0.2 }}
               className="oss-tab-content"
             >
-              <div className="oss-main-layout">
-                <div className="oss-panel oss-panel--library">
-                  <ModelLibrary 
+              <div
+                className="oss-main-layout"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '160px 1fr 220px',
+                  gap: '8px',
+                  flex: 1,
+                  minHeight: 0,
+                  padding: '8px',
+                }}
+              >
+                <div className="oss-panel oss-panel--library" style={{ overflow: 'hidden', minHeight: 0 }}>
+                  <ModelLibrary
                     onSelectModel={(modelId, _modelName, author) => {
                       selectModel({
                         modelId,
@@ -836,10 +423,10 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
                     }}
                   />
                 </div>
-                <div className="oss-panel oss-panel--browser">
+                <div className="oss-panel oss-panel--browser" style={{ overflow: 'hidden', minHeight: 0 }}>
                   <ModelBrowser />
                 </div>
-                <div className="oss-panel oss-panel--dock">
+                <div className="oss-panel oss-panel--dock" style={{ overflow: 'hidden', minHeight: 0 }}>
                   <ModelDock />
                 </div>
               </div>
@@ -889,12 +476,9 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
-              className="oss-tab-content"
+              className="oss-tab-content oss-tab-content--full"
             >
-              <TrainingTabContent
-                models={dockModels}
-                onStartTraining={handleStartTraining}
-              />
+              <TrainingPanel />
             </motion.div>
           )}
 
@@ -906,9 +490,9 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
-              className="oss-tab-content"
+              className="oss-tab-content oss-tab-content--full"
             >
-              <DeployTabContent models={dockModels} />
+              <DeployPanel />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1062,6 +646,14 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
         >
           <motion.div
             className="oss-container oss-container--4tab"
+            style={{
+              width: '92vw',
+              height: '88vh',
+              maxWidth: '1100px',
+              maxHeight: '650px',
+              minWidth: '700px',
+              minHeight: '480px',
+            }}
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}

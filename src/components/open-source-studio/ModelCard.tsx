@@ -1,6 +1,6 @@
 /**
  * Model Card - Premium 3D HuggingFace Model Display
- * 
+ *
  * Photorealistic 3D glass cards with depth, perspective, layered shadows.
  * High frame-rate hover animations, expandable details.
  * Part of KripTik AI's Open Source Studio.
@@ -45,7 +45,7 @@ function formatDate(dateString?: string): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;
@@ -237,97 +237,104 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         initial={{ opacity: 0, y: 30, rotateX: -10 }}
-        animate={{ 
-          opacity: 1, 
-          y: 0, 
+        animate={{
+          opacity: 1,
+          y: 0,
           rotateX: 0,
         }}
         exit={{ opacity: 0, scale: 0.9, rotateX: 10 }}
-        transition={{ 
-          delay: index * 0.04, 
+        transition={{
+          delay: index * 0.04,
           duration: 0.5,
           ease: [0.23, 1, 0.32, 1]
         }}
         style={{
           transform: !isDocked ? `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)` : undefined,
+          ...(isDocked ? { padding: '5px', gap: '3px' } : {}),
         }}
         layout
       >
         {/* Ambient light reflection layer */}
-        <div 
+        <div
           className="model-card-reflection"
           style={{
             background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(255,210,30,0.08) 0%, transparent 60%)`,
           }}
         />
-        
+
         {/* Glass edge highlight */}
         <div className="model-card-edge" />
-        
+
         {/* Top shimmer line */}
         <div className="model-card-shimmer" />
 
         {/* Card Header */}
-        <div className="model-card-header">
-          <div className="model-card-author-row">
-            <div className="model-card-avatar">
-              {model.author?.charAt(0).toUpperCase() || 'M'}
+        {!isDocked && (
+          <div className="model-card-header">
+            <div className="model-card-author-row">
+              <div className="model-card-avatar">
+                {model.author?.charAt(0).toUpperCase() || 'M'}
+              </div>
+              <div className="model-card-author-info">
+                <span className="model-card-author">{model.author}</span>
+                <span className="model-card-updated">
+                  <ClockIcon />
+                  {formatDate(model.lastModified)}
+                </span>
+              </div>
             </div>
-            <div className="model-card-author-info">
-              <span className="model-card-author">{model.author}</span>
-              <span className="model-card-updated">
-                <ClockIcon />
-                {formatDate(model.lastModified)}
-              </span>
-            </div>
-          </div>
-          {hasRestrictiveLicense && (
-            <div className="model-card-warning" title="Restrictive license - may not allow modifications">
-              <WarningIcon />
-            </div>
-          )}
-        </div>
-
-        {/* Model Name */}
-        <h3 className="model-card-name">{model.modelId.split('/').pop()}</h3>
-
-        {/* Task Badge */}
-        {model.pipeline_tag && (
-          <div className="model-card-task-row">
-            <span className="model-card-task">{model.pipeline_tag.replace(/-/g, ' ')}</span>
+            {hasRestrictiveLicense && (
+              <div className="model-card-warning" title="Restrictive license - may not allow modifications">
+                <WarningIcon />
+              </div>
+            )}
           </div>
         )}
 
-        {/* Stats Row - Premium 3D Stat Pills */}
-        <div className="model-card-stats">
-          <div className="model-card-stat model-card-stat--downloads" title="Downloads">
-            <DownloadIcon />
-            <span>{formatNumber(model.downloads)}</span>
+        {/* Model Name */}
+        <h3 className="model-card-name" style={isDocked ? { fontSize: '0.7rem', margin: 0 } : undefined}>{model.modelId.split('/').pop()}</h3>
+
+        {/* Task Badge */}
+        {model.pipeline_tag && (
+          <div className="model-card-task-row" style={isDocked ? { margin: 0 } : undefined}>
+            <span className="model-card-task" style={isDocked ? { fontSize: '0.55rem', padding: '1px 4px' } : undefined}>{model.pipeline_tag.replace(/-/g, ' ')}</span>
           </div>
-          <div className="model-card-stat model-card-stat--likes" title="Likes">
-            <HeartIcon />
-            <span>{formatNumber(model.likes)}</span>
-          </div>
-          {estimatedVRAM > 0 && (
-            <div className="model-card-stat model-card-stat--vram" title="Estimated VRAM">
-              <GpuIcon />
-              <span>{estimatedVRAM}GB</span>
+        )}
+
+        {/* Stats Row - Premium 3D Stat Pills (hidden when docked for compactness) */}
+        {!isDocked && (
+          <div className="model-card-stats">
+            <div className="model-card-stat model-card-stat--downloads" title="Downloads">
+              <DownloadIcon />
+              <span>{formatNumber(model.downloads)}</span>
             </div>
-          )}
-        </div>
+            <div className="model-card-stat model-card-stat--likes" title="Likes">
+              <HeartIcon />
+              <span>{formatNumber(model.likes)}</span>
+            </div>
+            {estimatedVRAM > 0 && (
+              <div className="model-card-stat model-card-stat--vram" title="Estimated VRAM">
+                <GpuIcon />
+                <span>{estimatedVRAM}GB</span>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Size & License - Premium Badges */}
-        <div className="model-card-meta">
-          <span className="model-card-size">{formatSize(estimatedSize)}</span>
-          {model.cardData?.license && (
-            <span className={`model-card-license ${hasRestrictiveLicense ? 'restrictive' : ''}`}>
-              {model.cardData.license}
-            </span>
-          )}
-        </div>
+        {/* Size & License - Premium Badges (hidden when docked) */}
+        {!isDocked && (
+          <div className="model-card-meta">
+            <span className="model-card-size">{formatSize(estimatedSize)}</span>
+            {model.cardData?.license && (
+              <span className={`model-card-license ${hasRestrictiveLicense ? 'restrictive' : ''}`}>
+                {model.cardData.license}
+              </span>
+            )}
+          </div>
+        )}
 
-        {/* Tags Preview */}
-        {model.tags && model.tags.length > 0 && (
+        {/* Tags Preview (hidden when docked) */}
+        {!isDocked && model.tags && model.tags.length > 0 && (
           <div className="model-card-tags">
             <TagIcon />
             {model.tags.slice(0, 3).map(tag => (
@@ -339,64 +346,66 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
           </div>
         )}
 
-        {/* Expandable Details */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              className="model-card-details"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-            >
-              <div className="model-card-details-inner">
-                {/* Model Info Grid */}
-                <div className="model-card-info-grid">
-                  <div className="model-card-info-item">
-                    <span className="model-card-info-label">Model ID</span>
-                    <span className="model-card-info-value">{model.modelId}</span>
+        {/* Expandable Details (hidden when docked) */}
+        {!isDocked && (
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                className="model-card-details"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+              >
+                <div className="model-card-details-inner">
+                  {/* Model Info Grid */}
+                  <div className="model-card-info-grid">
+                    <div className="model-card-info-item">
+                      <span className="model-card-info-label">Model ID</span>
+                      <span className="model-card-info-value">{model.modelId}</span>
+                    </div>
+                    {model.pipeline_tag && (
+                      <div className="model-card-info-item">
+                        <span className="model-card-info-label">Pipeline</span>
+                        <span className="model-card-info-value">{model.pipeline_tag}</span>
+                      </div>
+                    )}
+                    {model.cardData?.license && (
+                      <div className="model-card-info-item">
+                        <span className="model-card-info-label">License</span>
+                        <span className="model-card-info-value">{model.cardData.license}</span>
+                      </div>
+                    )}
+                    {estimatedVRAM > 0 && (
+                      <div className="model-card-info-item">
+                        <span className="model-card-info-label">Est. VRAM</span>
+                        <span className="model-card-info-value">{estimatedVRAM} GB</span>
+                      </div>
+                    )}
                   </div>
-                  {model.pipeline_tag && (
-                    <div className="model-card-info-item">
-                      <span className="model-card-info-label">Pipeline</span>
-                      <span className="model-card-info-value">{model.pipeline_tag}</span>
+
+                  {/* All Tags */}
+                  {model.tags && model.tags.length > 0 && (
+                    <div className="model-card-all-tags">
+                      <h4>Tags</h4>
+                      <div className="model-card-tags-list">
+                        {model.tags.map(tag => (
+                          <span key={tag} className="model-card-tag-full">{tag}</span>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {model.cardData?.license && (
-                    <div className="model-card-info-item">
-                      <span className="model-card-info-label">License</span>
-                      <span className="model-card-info-value">{model.cardData.license}</span>
-                    </div>
-                  )}
-                  {estimatedVRAM > 0 && (
-                    <div className="model-card-info-item">
-                      <span className="model-card-info-label">Est. VRAM</span>
-                      <span className="model-card-info-value">{estimatedVRAM} GB</span>
-                    </div>
-                  )}
+
+                  {/* View on HuggingFace */}
+                  <button className="model-card-hf-link" onClick={handleViewOnHuggingFace}>
+                    <span>View on HuggingFace</span>
+                    <ExternalLinkIcon />
+                  </button>
                 </div>
-
-                {/* All Tags */}
-                {model.tags && model.tags.length > 0 && (
-                  <div className="model-card-all-tags">
-                    <h4>Tags</h4>
-                    <div className="model-card-tags-list">
-                      {model.tags.map(tag => (
-                        <span key={tag} className="model-card-tag-full">{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* View on HuggingFace */}
-                <button className="model-card-hf-link" onClick={handleViewOnHuggingFace}>
-                  <span>View on HuggingFace</span>
-                  <ExternalLinkIcon />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
 
         {/* Actions */}
         {!isDocked && (
@@ -414,7 +423,7 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
               </motion.span>
               <span>{isExpanded ? 'Less' : 'More'}</span>
             </button>
-            
+
             {isInDock || showAdded ? (
               <button className="model-card-btn model-card-btn--added" disabled>
                 <CheckIcon />
@@ -435,8 +444,27 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
 
         {/* Remove Button (for docked cards) */}
         {isDocked && onRemove && (
-          <button className="model-card-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Remove from dock">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <button
+            className="model-card-remove"
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            title="Remove from dock"
+            style={{
+              position: 'absolute',
+              top: '3px',
+              right: '3px',
+              width: '18px',
+              height: '18px',
+              borderRadius: '4px',
+              background: 'rgba(255, 80, 80, 0.2)',
+              border: '1px solid rgba(255, 80, 80, 0.4)',
+              color: '#ff6b6b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
             </svg>
           </button>

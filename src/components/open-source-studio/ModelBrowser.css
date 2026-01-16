@@ -1,6 +1,6 @@
 /**
  * Model Browser - Premium 3D Liquid Glass Design
- * 
+ *
  * Features:
  * - Photorealistic glass search bar with 3D depth
  * - Premium filter dropdowns with hover effects
@@ -16,8 +16,9 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0; /* Critical for flex overflow */
   overflow: hidden;
-  
+
   /* Glass panel background */
   background: linear-gradient(
     170deg,
@@ -33,9 +34,9 @@
 .model-browser-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 16px 18px;
-  
+  gap: 6px;
+  padding: 8px 10px;
+
   /* Glass header with depth */
   background: linear-gradient(
     180deg,
@@ -43,7 +44,6 @@
     rgba(255, 255, 255, 0.01) 100%
   );
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* =============================================================================
@@ -54,10 +54,10 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+
   /* 3D inset glass effect */
   background: linear-gradient(
     165deg,
@@ -65,12 +65,8 @@
     rgba(0, 0, 0, 0.2) 100%
   );
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.2),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-    0 1px 0 rgba(255, 255, 255, 0.03);
-  
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .model-browser-search:focus-within {
@@ -103,10 +99,9 @@
   border: none;
   outline: none;
   font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
-  font-size: 0.9375rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: #fff;
-  letter-spacing: -0.01em;
 }
 
 .model-browser-input::placeholder {
@@ -123,13 +118,13 @@
   border-radius: 6px;
   cursor: pointer;
   border: none;
-  
+
   /* 3D mini button */
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   color: rgba(255, 255, 255, 0.5);
   font-size: 14px;
   font-weight: 600;
-  
+
   transition: all 0.2s ease;
 }
 
@@ -153,7 +148,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  
+
   /* 3D glass button */
   background: linear-gradient(
     145deg,
@@ -165,7 +160,7 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
     0 2px 4px rgba(0, 0, 0, 0.1);
-  
+
   transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -205,7 +200,7 @@
   gap: 14px;
   padding: 16px 18px;
   overflow: hidden;
-  
+
   /* Inset glass panel */
   background: linear-gradient(
     180deg,
@@ -241,9 +236,9 @@
   cursor: pointer;
   outline: none;
   appearance: none;
-  
+
   /* 3D dropdown */
-  background: 
+  background:
     url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,255,255,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center,
     linear-gradient(
       145deg,
@@ -255,12 +250,12 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 2px 4px rgba(0, 0, 0, 0.1);
-  
+
   transition: all 0.2s ease;
 }
 
 .model-browser-filter-group select:hover {
-  background: 
+  background:
     url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,210,30,0.8)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center,
     linear-gradient(
       145deg,
@@ -289,10 +284,11 @@
 
 .model-browser-results {
   flex: 1;
+  min-height: 0; /* Critical for flex overflow */
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 18px;
-  
+  padding: 8px;
+
   /* GPU acceleration */
   will-change: scroll-position;
   -webkit-overflow-scrolling: touch;
@@ -326,12 +322,8 @@
 
 .model-browser-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 18px;
-  
-  /* Preserve 3D for cards */
-  perspective: 1200px;
-  transform-style: preserve-3d;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
 }
 
 /* =============================================================================
@@ -385,11 +377,11 @@
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  
+
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
-  
+
   transition: all 0.2s ease;
 }
 
@@ -409,14 +401,14 @@
 }
 
 @keyframes premium-spin {
-  0% { 
+  0% {
     transform: rotate(0deg);
     filter: drop-shadow(0 0 8px rgba(255, 210, 30, 0.3));
   }
   50% {
     filter: drop-shadow(0 0 16px rgba(255, 210, 30, 0.5));
   }
-  100% { 
+  100% {
     transform: rotate(360deg);
     filter: drop-shadow(0 0 8px rgba(255, 210, 30, 0.3));
   }
@@ -438,11 +430,11 @@
   gap: 12px;
   padding: 24px;
   margin-top: 8px;
-  
+
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.5);
-  
+
   /* Glass loading bar */
   background: linear-gradient(
     180deg,
@@ -469,29 +461,29 @@
     gap: 12px;
     padding: 14px;
   }
-  
+
   .model-browser-search {
     width: 100%;
   }
-  
+
   .model-browser-filter-toggle {
     width: 100%;
     justify-content: center;
   }
-  
+
   .model-browser-filters {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .model-browser-filter-group {
     min-width: auto;
   }
-  
+
   .model-browser-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .model-browser-results {
     padding: 14px;
   }
