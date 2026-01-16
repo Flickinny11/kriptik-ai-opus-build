@@ -1259,4 +1259,418 @@ trainingRouter.get('/search-models', authMiddleware, async (req: Request, res: R
   }
 });
 
+// =============================================================================
+// FLAGSHIP TRAINING PLAN ENDPOINTS (Phase 2)
+// =============================================================================
+
+import {
+  createTrainingIntentLockEngine,
+  createTrainingMethodRecommender,
+  createTrainingDataStrategist,
+  createTrainingPlanGenerator,
+  type TrainingContract,
+  type TrainingImplementationPlan,
+  type BudgetAuthorization,
+  type TileModification,
+} from '../services/training/index.js';
+import { trainingPlans } from '../schema.js';
+
+/**
+ * POST /api/training/parse-intent
+ * Parse NLP prompt to create training contract and implementation plan
+ */
+trainingRouter.post('/parse-intent', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { prompt, context } = req.body;
+
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    // Create training contract
+    const intentLockEngine = createTrainingIntentLockEngine();
+    const contract = await intentLockEngine.createContract(userId, prompt, {
+      thinkingBudget: 64000,
+    });
+
+    // Generate implementation plan
+    const planGenerator = createTrainingPlanGenerator();
+    const plan = await planGenerator.generatePlan(contract);
+
+    // Store in database
+    await db.insert(trainingPlans).values({
+      id: plan.id,
+      userId,
+      contractId: contract.id,
+      contract: JSON.stringify(contract),
+      plan: JSON.stringify(plan),
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    res.json({
+      contract,
+      plan,
+    });
+  } catch (error) {
+    console.error('[Training API] Parse intent error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to parse training intent',
+    });
+  }
+});
+
+/**
+ * GET /api/training/plans/:planId
+ * Get implementation plan by ID
+ */
+trainingRouter.get('/plans/:planId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { planId } = req.params;
+
+    const [planRecord] = await db
+      .select()
+      .from(trainingPlans)
+      .where(eq(trainingPlans.id, planId))
+      .limit(1);
+
+    if (!planRecord) {
+      return res.status(404).json({ error: 'Plan not found' });
+    }
+
+    if (planRecord.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json({
+      plan: JSON.parse(planRecord.plan),
+      contract: JSON.parse(planRecord.contract),
+      status: planRecord.status,
+      approvedAt: planRecord.approvedAt,
+    });
+  } catch (error) {
+    console.error('[Training API] Get plan error:', error);
+    res.status(500).json({ error: 'Failed to get training plan' });
+  }
+});
+
+/**
+ * PUT /api/training/plans/:planId/tiles/:tileId
+ * Modify a tile in the implementation plan
+ */
+trainingRouter.put('/plans/:planId/tiles/:tileId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { planId, tileId } = req.params;
+    const { modification } = req.body as { modification: TileModification };
+
+    if (!modification) {
+      return res.status(400).json({ error: 'Modification is required' });
+    }
+
+    // Get existing plan
+    const [planRecord] = await db
+      .select()
+      .from(trainingPlans)
+      .where(eq(trainingPlans.id, planId))
+      .limit(1);
+
+    if (!planRecord) {
+      return res.status(404).json({ error: 'Plan not found' });
+    }
+
+    if (planRecord.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const plan: TrainingImplementationPlan = JSON.parse(planRecord.plan);
+    const contract: TrainingContract = JSON.parse(planRecord.contract);
+
+    // Apply modification
+    const planGenerator = createTrainingPlanGenerator();
+    const { plan: updatedPlan, affectedTiles } = await planGenerator.modifyTile(
+      plan,
+      tileId,
+      modification,
+      contract
+    );
+
+    // Update database
+    await db
+      .update(trainingPlans)
+      .set({
+        plan: JSON.stringify(updatedPlan),
+        status: 'modified',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(trainingPlans.id, planId));
+
+    res.json({
+      plan: updatedPlan,
+      affectedTiles,
+    });
+  } catch (error) {
+    console.error('[Training API] Modify tile error:', error);
+    res.status(500).json({ error: 'Failed to modify tile' });
+  }
+});
+
+/**
+ * POST /api/training/plans/:planId/approve
+ * Approve plan and start training
+ */
+trainingRouter.post('/plans/:planId/approve', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { planId } = req.params;
+    const { budgetAuthorization } = req.body as { budgetAuthorization: BudgetAuthorization };
+
+    if (!budgetAuthorization) {
+      return res.status(400).json({ error: 'Budget authorization is required' });
+    }
+
+    if (!budgetAuthorization.termsAccepted) {
+      return res.status(400).json({ error: 'Terms must be accepted' });
+    }
+
+    // Get existing plan
+    const [planRecord] = await db
+      .select()
+      .from(trainingPlans)
+      .where(eq(trainingPlans.id, planId))
+      .limit(1);
+
+    if (!planRecord) {
+      return res.status(404).json({ error: 'Plan not found' });
+    }
+
+    if (planRecord.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const plan: TrainingImplementationPlan = JSON.parse(planRecord.plan);
+    const contract: TrainingContract = JSON.parse(planRecord.contract);
+
+    // Lock contract and approve plan
+    const intentLockEngine = createTrainingIntentLockEngine();
+    const lockedContract = await intentLockEngine.lockContract(contract);
+
+    const planGenerator = createTrainingPlanGenerator();
+    const approvedPlan = await planGenerator.approvePlan(plan, budgetAuthorization, lockedContract);
+
+    // Update database
+    const approvedAt = new Date().toISOString();
+    await db
+      .update(trainingPlans)
+      .set({
+        contract: JSON.stringify(lockedContract),
+        plan: JSON.stringify(approvedPlan.plan),
+        status: 'approved',
+        budgetAuthorization: JSON.stringify(budgetAuthorization),
+        approvedAt,
+        updatedAt: approvedAt,
+      })
+      .where(eq(trainingPlans.id, planId));
+
+    // Create training job based on the approved plan
+    const jobId = crypto.randomUUID();
+    
+    // Extract config from approved plan for the training job
+    const methodTile = approvedPlan.plan.tiles.find(t => t.category === 'method');
+    const modelTile = approvedPlan.plan.tiles.find(t => t.category === 'model');
+    const gpuTile = approvedPlan.plan.tiles.find(t => t.category === 'gpu');
+    
+    await db.insert(trainingJobs).values({
+      id: jobId,
+      userId,
+      modality: lockedContract.targetCapability === 'music_generation' || lockedContract.targetCapability === 'voice_cloning' 
+        ? 'audio'
+        : lockedContract.targetCapability === 'image_generation' 
+        ? 'image'
+        : lockedContract.targetCapability === 'video_generation'
+        ? 'video'
+        : 'llm',
+      method: (methodTile?.userSelection || methodTile?.recommendation || 'lora') as string,
+      config: JSON.stringify({
+        contractId: lockedContract.id,
+        planId: approvedPlan.planId,
+        qualityTier: lockedContract.qualityTier,
+        targetCapability: lockedContract.targetCapability,
+        baseModel: modelTile?.userSelection || modelTile?.recommendation,
+        budgetAuthorization,
+      }),
+      status: 'queued',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Link job to plan
+    await db
+      .update(trainingPlans)
+      .set({ trainingJobId: jobId })
+      .where(eq(trainingPlans.id, planId));
+
+    res.json({
+      approvedPlan,
+      jobId,
+    });
+  } catch (error) {
+    console.error('[Training API] Approve plan error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to approve plan',
+    });
+  }
+});
+
+/**
+ * POST /api/training/plans/:planId/modify-with-ai
+ * Modify plan using NLP input
+ */
+trainingRouter.post('/plans/:planId/modify-with-ai', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { planId } = req.params;
+    const { nlpModification } = req.body as { nlpModification: string };
+
+    if (!nlpModification) {
+      return res.status(400).json({ error: 'NLP modification is required' });
+    }
+
+    // Get existing plan
+    const [planRecord] = await db
+      .select()
+      .from(trainingPlans)
+      .where(eq(trainingPlans.id, planId))
+      .limit(1);
+
+    if (!planRecord) {
+      return res.status(404).json({ error: 'Plan not found' });
+    }
+
+    if (planRecord.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const plan: TrainingImplementationPlan = JSON.parse(planRecord.plan);
+    const contract: TrainingContract = JSON.parse(planRecord.contract);
+
+    // Apply AI modification
+    const planGenerator = createTrainingPlanGenerator();
+    const { plan: updatedPlan, changes } = await planGenerator.modifyWithAI(
+      plan,
+      nlpModification,
+      contract
+    );
+
+    // Update database
+    await db
+      .update(trainingPlans)
+      .set({
+        plan: JSON.stringify(updatedPlan),
+        status: changes.length > 0 ? 'modified' : planRecord.status,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(trainingPlans.id, planId));
+
+    res.json({
+      plan: updatedPlan,
+      changes,
+    });
+  } catch (error) {
+    console.error('[Training API] Modify with AI error:', error);
+    res.status(500).json({ error: 'Failed to modify plan with AI' });
+  }
+});
+
+/**
+ * GET /api/training/search-data
+ * Search for training datasets
+ */
+trainingRouter.get('/search-data', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { query, capability, minSamples } = req.query;
+
+    if (!query || !capability) {
+      return res.status(400).json({ error: 'Query and capability are required' });
+    }
+
+    const dataStrategist = createTrainingDataStrategist();
+    const sources = await dataStrategist.searchTrainingData(
+      query as string,
+      capability as any
+    );
+
+    // Filter by minSamples if provided
+    const filteredSources = minSamples
+      ? sources.filter(s => s.samples >= parseInt(minSamples as string, 10))
+      : sources;
+
+    res.json({
+      sources: filteredSources,
+    });
+  } catch (error) {
+    console.error('[Training API] Search data error:', error);
+    res.status(500).json({ error: 'Failed to search training data' });
+  }
+});
+
+/**
+ * GET /api/training/plans
+ * List user's training plans
+ */
+trainingRouter.get('/plans', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const plans = await db
+      .select()
+      .from(trainingPlans)
+      .where(eq(trainingPlans.userId, userId))
+      .orderBy(desc(trainingPlans.createdAt))
+      .limit(50);
+
+    res.json({
+      plans: plans.map(p => ({
+        id: p.id,
+        contractId: p.contractId,
+        status: p.status,
+        summary: JSON.parse(p.plan).summary,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        approvedAt: p.approvedAt,
+        trainingJobId: p.trainingJobId,
+      })),
+    });
+  } catch (error) {
+    console.error('[Training API] List plans error:', error);
+    res.status(500).json({ error: 'Failed to list training plans' });
+  }
+});
+
 export default trainingRouter;

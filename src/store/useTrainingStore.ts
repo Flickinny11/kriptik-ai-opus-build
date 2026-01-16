@@ -181,6 +181,16 @@ interface TrainingState {
   // Progress streaming
   progressEventSource: EventSource | null;
 
+  // Flagship NLP Plan Flow (Phase 2)
+  nlpMode: boolean;
+  nlpPrompt: string;
+  isParsingIntent: boolean;
+  currentContract: TrainingContract | null;
+  currentPlan: TrainingImplementationPlan | null;
+  budgetAuthorization: BudgetAuthorizationData;
+  isApprovingPlan: boolean;
+  planChanges: PlanChange[];
+
   // Actions
   setWizardStep: (step: WizardStep) => void;
   setWizardData: (data: Partial<TrainingState['wizardData']>) => void;
@@ -207,9 +217,27 @@ interface TrainingState {
   updateProgress: (progress: Partial<TrainingProgress>) => void;
 
   setError: (error: string | null) => void;
+
+  // Flagship NLP Plan Actions
+  setNlpMode: (enabled: boolean) => void;
+  setNlpPrompt: (prompt: string) => void;
+  parseTrainingIntent: () => Promise<void>;
+  modifyTile: (tileId: string, modification: { type: string; value?: string; nlpPrompt?: string }) => Promise<void>;
+  modifyPlanWithAI: (nlpModification: string) => Promise<void>;
+  updateBudgetAuthorization: (data: Partial<BudgetAuthorizationData>) => void;
+  approvePlan: () => Promise<string | null>;
+  resetPlan: () => void;
 }
 
 const initialWizardData: TrainingState['wizardData'] = {};
+
+const initialBudgetAuthorization: BudgetAuthorizationData = {
+  maxBudget: 0,
+  notifyAt: 80,
+  freezeAt: 100,
+  notificationChannels: ['email', 'in_app'],
+  termsAccepted: false,
+};
 
 export const useTrainingStore = create<TrainingState>()(
   subscribeWithSelector((set, get) => ({
@@ -224,6 +252,16 @@ export const useTrainingStore = create<TrainingState>()(
     modelSearchResults: [],
     isSearching: false,
     progressEventSource: null,
+
+    // Flagship NLP Plan Flow
+    nlpMode: false,
+    nlpPrompt: '',
+    isParsingIntent: false,
+    currentContract: null,
+    currentPlan: null,
+    budgetAuthorization: initialBudgetAuthorization,
+    isApprovingPlan: false,
+    planChanges: [],
 
     // Wizard actions
     setWizardStep: (step) => set({ wizardStep: step }),
@@ -544,17 +582,297 @@ export const useTrainingStore = create<TrainingState>()(
               progress: {
                 ...job.progress,
                 ...progress,
-              } as TrainingProgress,
-            };
+              },
+            } as TrainingJob;
           }
           return job;
         }),
       });
     },
 
+    // =========================================================================
+    // FLAGSHIP NLP PLAN ACTIONS
+    // =========================================================================
+
+    setNlpMode: (enabled) => set({ nlpMode: enabled }),
+
+    setNlpPrompt: (prompt) => set({ nlpPrompt: prompt }),
+
+    parseTrainingIntent: async () => {
+      const { nlpPrompt } = get();
+      if (!nlpPrompt.trim()) return;
+
+      set({ isParsingIntent: true, error: null });
+
+      try {
+        const response = await authenticatedFetch(`${API_URL}/api/training/parse-intent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ prompt: nlpPrompt }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to parse training intent');
+        }
+
+        const { contract, plan } = await response.json();
+
+        // Set initial budget recommendation from plan
+        const budgetTile = plan.tiles?.find((t: ImplementationTile) => t.category === 'budget');
+        const recommendedBudget = budgetTile?.metadata?.recommendedBudget || plan.summary.estimatedCost.max * 1.2;
+
+        set({
+          currentContract: contract,
+          currentPlan: plan,
+          isParsingIntent: false,
+          budgetAuthorization: {
+            ...initialBudgetAuthorization,
+            maxBudget: Math.ceil(recommendedBudget),
+          },
+        });
+      } catch (error) {
+        set({
+          error: error instanceof Error ? error.message : 'Failed to parse training intent',
+          isParsingIntent: false,
+        });
+      }
+    },
+
+    modifyTile: async (tileId, modification) => {
+      const { currentPlan } = get();
+      if (!currentPlan) return;
+
+      set({ isLoading: true });
+
+      try {
+        const response = await authenticatedFetch(
+          `${API_URL}/api/training/plans/${currentPlan.id}/tiles/${tileId}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ modification }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to modify tile');
+        }
+
+        const { plan } = await response.json();
+        set({ currentPlan: plan, isLoading: false });
+      } catch (error) {
+        set({
+          error: error instanceof Error ? error.message : 'Failed to modify tile',
+          isLoading: false,
+        });
+      }
+    },
+
+    modifyPlanWithAI: async (nlpModification) => {
+      const { currentPlan } = get();
+      if (!currentPlan) return;
+
+      set({ isLoading: true });
+
+      try {
+        const response = await authenticatedFetch(
+          `${API_URL}/api/training/plans/${currentPlan.id}/modify-with-ai`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ nlpModification }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to modify plan');
+        }
+
+        const { plan, changes } = await response.json();
+        set({
+          currentPlan: plan,
+          planChanges: changes,
+          isLoading: false,
+        });
+      } catch (error) {
+        set({
+          error: error instanceof Error ? error.message : 'Failed to modify plan with AI',
+          isLoading: false,
+        });
+      }
+    },
+
+    updateBudgetAuthorization: (data) => {
+      set((state) => ({
+        budgetAuthorization: { ...state.budgetAuthorization, ...data },
+      }));
+    },
+
+    approvePlan: async () => {
+      const { currentPlan, budgetAuthorization } = get();
+      if (!currentPlan) return null;
+
+      if (!budgetAuthorization.termsAccepted) {
+        set({ error: 'You must accept the terms to proceed' });
+        return null;
+      }
+
+      set({ isApprovingPlan: true, error: null });
+
+      try {
+        const response = await authenticatedFetch(
+          `${API_URL}/api/training/plans/${currentPlan.id}/approve`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ budgetAuthorization }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to approve plan');
+        }
+
+        const { approvedPlan, jobId } = await response.json();
+        set({
+          currentPlan: approvedPlan.plan,
+          isApprovingPlan: false,
+        });
+
+        return jobId;
+      } catch (error) {
+        set({
+          error: error instanceof Error ? error.message : 'Failed to approve plan',
+          isApprovingPlan: false,
+        });
+        return null;
+      }
+    },
+
+    resetPlan: () => {
+      set({
+        nlpPrompt: '',
+        currentContract: null,
+        currentPlan: null,
+        budgetAuthorization: initialBudgetAuthorization,
+        planChanges: [],
+        error: null,
+      });
+    },
+
     setError: (error) => set({ error }),
   }))
 );
+
+// =============================================================================
+// FLAGSHIP TRAINING PLAN TYPES (Phase 2)
+// =============================================================================
+
+export interface TrainingContract {
+  id: string;
+  userId: string;
+  targetCapability: string;
+  qualityBenchmark: string;
+  qualityTier: string;
+  dataSourceStrategy: string;
+  recommendedBaseModels: Array<{
+    modelId: string;
+    displayName: string;
+    sizeGB: number;
+    vramRequired: number;
+    license: string;
+    reasoning: string;
+  }>;
+  recommendedMethods: Array<{
+    method: string;
+    displayName: string;
+    description: string;
+    reasoning: string;
+    estimatedHours: number;
+    estimatedCostUsd: { min: number; max: number };
+  }>;
+  estimatedTrainingTime: string;
+  estimatedCost: {
+    estimatedTotal: { min: number; max: number };
+  };
+  gpuRequirements: {
+    supportedGpus: string[];
+    recommendedGpuCount: number;
+  };
+  isLocked: boolean;
+}
+
+export interface ImplementationTile {
+  id: string;
+  category: 'model' | 'method' | 'data' | 'gpu' | 'config' | 'budget';
+  title: string;
+  description: string;
+  recommendation: string;
+  alternatives: Array<{
+    id: string;
+    value: string;
+    label: string;
+    description: string;
+    tradeoff: string;
+    costImpact?: { min: number; max: number };
+  }>;
+  isRecommended: boolean;
+  requiresApproval: boolean;
+  status: 'pending' | 'approved' | 'modified' | 'skipped';
+  userSelection?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TrainingImplementationPlan {
+  id: string;
+  contractId: string;
+  userId: string;
+  summary: {
+    targetCapability: string;
+    qualityBenchmark: string;
+    estimatedTime: string;
+    estimatedCost: { min: number; max: number; currency: string };
+    selectedMethod: string;
+    gpuRequirement: string;
+  };
+  tiles: ImplementationTile[];
+  pendingDecisions: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    required: boolean;
+    answered: boolean;
+    answer?: string;
+  }>;
+  status: 'draft' | 'pending_approval' | 'approved' | 'modified' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  approvedAt?: string;
+}
+
+export interface BudgetAuthorizationData {
+  maxBudget: number;
+  notifyAt: number;
+  freezeAt: number;
+  notificationChannels: Array<'email' | 'sms' | 'in_app'>;
+  termsAccepted: boolean;
+}
+
+interface PlanChange {
+  tileId: string;
+  field: string;
+  previousValue: string;
+  newValue: string;
+  reason: string;
+}
 
 // Selectors
 export const selectActiveJob = (state: TrainingState) =>

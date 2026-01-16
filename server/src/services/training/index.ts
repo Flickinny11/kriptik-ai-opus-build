@@ -196,6 +196,26 @@ export {
   type DataStatistics,
 } from './training-data-strategist.js';
 
+// Training Plan Generator (Phase 2)
+export {
+  TrainingPlanGenerator,
+  createTrainingPlanGenerator,
+  type TileCategory,
+  type TileStatus,
+  type PlanStatus,
+  type NotificationChannel,
+  type Alternative,
+  type ImplementationTile,
+  type UserDecision,
+  type UserModification,
+  type CostRange,
+  type TrainingImplementationPlan,
+  type BudgetAuthorization,
+  type ApprovedTrainingPlan,
+  type TileModification,
+  type PlanChange,
+} from './training-plan-generator.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================

@@ -260,6 +260,24 @@ export const trainingReports = sqliteTable('training_reports', {
 });
 
 /**
+ * Training Plans (Flagship Training Phase 2)
+ * Stores training implementation plans with approval tiles
+ */
+export const trainingPlans = sqliteTable('training_plans', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    contractId: text('contract_id').notNull(),
+    contract: text('contract').notNull(), // JSON - TrainingContract
+    plan: text('plan').notNull(), // JSON - TrainingImplementationPlan
+    status: text('status').notNull().default('draft'), // draft | pending_approval | approved | modified | rejected
+    budgetAuthorization: text('budget_authorization'), // JSON - BudgetAuthorization
+    trainingJobId: text('training_job_id').references(() => trainingJobs.id), // Reference to actual job when started
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+    approvedAt: text('approved_at'),
+});
+
+/**
  * Test Sessions
  * Tracks model testing sessions for side-by-side comparison
  */
