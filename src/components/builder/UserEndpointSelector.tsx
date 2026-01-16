@@ -1,5 +1,5 @@
 /**
- * Model Selector Component
+ * User Endpoint Selector Component
  *
  * Allows users to select their deployed models from Open Source Studio
  * when building apps in the Builder View.
@@ -16,7 +16,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserEndpoints, type UserEndpoint } from '@/hooks/useUserEndpoints';
-import './ModelSelector.css';
+import './UserEndpointSelector.css';
 
 // =============================================================================
 // ICONS (Custom SVG)
@@ -80,7 +80,7 @@ const StatusDot = ({ status }: { status: string }) => {
     };
     return (
         <span
-            className="model-selector__status-dot"
+            className="user-endpoint-selector__status-dot"
             style={{ backgroundColor: colors[status] || '#6B7280' }}
         />
     );
@@ -90,7 +90,7 @@ const StatusDot = ({ status }: { status: string }) => {
 // TYPES
 // =============================================================================
 
-interface ModelSelectorProps {
+interface UserEndpointSelectorProps {
     onSelect: (endpoint: UserEndpoint) => void;
     selectedId?: string;
     modalityFilter?: 'llm' | 'image' | 'video' | 'audio';
@@ -103,12 +103,12 @@ type ModalityFilter = 'all' | 'llm' | 'image' | 'video' | 'audio';
 // COMPONENT
 // =============================================================================
 
-export function ModelSelector({
+export function UserEndpointSelector({
     onSelect,
     selectedId,
     modalityFilter,
     compact = false,
-}: ModelSelectorProps) {
+}: UserEndpointSelectorProps) {
     const { endpoints, isLoading, error, refresh } = useUserEndpoints();
     const [isOpen, setIsOpen] = useState(false);
     const [filter, setFilter] = useState<ModalityFilter>(modalityFilter || 'all');
@@ -160,22 +160,22 @@ export function ModelSelector({
     if (compact) {
         // Compact dropdown mode
         return (
-            <div className="model-selector model-selector--compact">
+            <div className="user-endpoint-selector user-endpoint-selector--compact">
                 <button
-                    className="model-selector__trigger"
+                    className="user-endpoint-selector__trigger"
                     onClick={() => setIsOpen(!isOpen)}
                     disabled={isLoading}
                 >
                     {selectedEndpoint ? (
                         <>
                             {getModalityIcon(selectedEndpoint.modality)}
-                            <span className="model-selector__trigger-text">
+                            <span className="user-endpoint-selector__trigger-text">
                                 {selectedEndpoint.modelName}
                             </span>
                         </>
                     ) : (
-                        <span className="model-selector__trigger-placeholder">
-                            Select your model...
+                        <span className="user-endpoint-selector__trigger-placeholder">
+                            Select your deployed model...
                         </span>
                     )}
                     <ChevronIcon direction={isOpen ? 'up' : 'down'} />
@@ -184,25 +184,25 @@ export function ModelSelector({
                 <AnimatePresence>
                     {isOpen && (
                         <motion.div
-                            className="model-selector__dropdown"
+                            className="user-endpoint-selector__dropdown"
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                         >
                             {filteredEndpoints.length === 0 ? (
-                                <div className="model-selector__empty">
+                                <div className="user-endpoint-selector__empty">
                                     {isLoading ? 'Loading...' : 'No deployed models found'}
                                 </div>
                             ) : (
                                 filteredEndpoints.map(endpoint => (
                                     <button
                                         key={endpoint.id}
-                                        className={`model-selector__option ${endpoint.id === selectedId ? 'model-selector__option--selected' : ''}`}
+                                        className={`user-endpoint-selector__option ${endpoint.id === selectedId ? 'user-endpoint-selector__option--selected' : ''}`}
                                         onClick={() => handleSelect(endpoint)}
                                     >
                                         {getModalityIcon(endpoint.modality)}
-                                        <span className="model-selector__option-name">
+                                        <span className="user-endpoint-selector__option-name">
                                             {endpoint.modelName}
                                         </span>
                                         <StatusDot status={endpoint.status} />
@@ -219,21 +219,21 @@ export function ModelSelector({
 
     // Full panel mode
     return (
-        <div className="model-selector">
-            <div className="model-selector__header">
-                <h4 className="model-selector__title">Your Deployed Models</h4>
-                <p className="model-selector__subtitle">
+        <div className="user-endpoint-selector">
+            <div className="user-endpoint-selector__header">
+                <h4 className="user-endpoint-selector__title">Your Deployed Models</h4>
+                <p className="user-endpoint-selector__subtitle">
                     Select a model to use in your app
                 </p>
             </div>
 
             {/* Modality Filter Tabs */}
             {!modalityFilter && (
-                <div className="model-selector__filters">
+                <div className="user-endpoint-selector__filters">
                     {(['all', 'llm', 'image', 'video', 'audio'] as ModalityFilter[]).map(mod => (
                         <button
                             key={mod}
-                            className={`model-selector__filter-btn ${filter === mod ? 'model-selector__filter-btn--active' : ''}`}
+                            className={`user-endpoint-selector__filter-btn ${filter === mod ? 'user-endpoint-selector__filter-btn--active' : ''}`}
                             onClick={() => setFilter(mod)}
                         >
                             {mod === 'all' ? 'All' : mod.toUpperCase()}
@@ -244,7 +244,7 @@ export function ModelSelector({
 
             {/* Error State */}
             {error && (
-                <div className="model-selector__error">
+                <div className="user-endpoint-selector__error">
                     <p>{error}</p>
                     <button onClick={refresh}>Retry</button>
                 </div>
@@ -252,17 +252,17 @@ export function ModelSelector({
 
             {/* Loading State */}
             {isLoading && (
-                <div className="model-selector__loading">
-                    <div className="model-selector__spinner" />
+                <div className="user-endpoint-selector__loading">
+                    <div className="user-endpoint-selector__spinner" />
                     Loading models...
                 </div>
             )}
 
             {/* Endpoints List */}
             {!isLoading && !error && (
-                <div className="model-selector__list">
+                <div className="user-endpoint-selector__list">
                     {filteredEndpoints.length === 0 ? (
-                        <div className="model-selector__empty-state">
+                        <div className="user-endpoint-selector__empty-state">
                             <p>No deployed models found</p>
                             <span>
                                 Deploy models from Open Source Studio to use them here
@@ -272,33 +272,33 @@ export function ModelSelector({
                         filteredEndpoints.map(endpoint => (
                             <motion.button
                                 key={endpoint.id}
-                                className={`model-selector__card ${endpoint.id === selectedId ? 'model-selector__card--selected' : ''}`}
+                                className={`user-endpoint-selector__card ${endpoint.id === selectedId ? 'user-endpoint-selector__card--selected' : ''}`}
                                 onClick={() => handleSelect(endpoint)}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                             >
-                                <div className="model-selector__card-icon" data-modality={endpoint.modality}>
+                                <div className="user-endpoint-selector__card-icon" data-modality={endpoint.modality}>
                                     {getModalityIcon(endpoint.modality)}
                                 </div>
-                                <div className="model-selector__card-info">
-                                    <div className="model-selector__card-name">
+                                <div className="user-endpoint-selector__card-info">
+                                    <div className="user-endpoint-selector__card-name">
                                         {endpoint.modelName}
                                     </div>
-                                    <div className="model-selector__card-meta">
+                                    <div className="user-endpoint-selector__card-meta">
                                         <StatusDot status={endpoint.status} />
                                         <span>{endpoint.status}</span>
-                                        <span className="model-selector__card-provider">
+                                        <span className="user-endpoint-selector__card-provider">
                                             {endpoint.provider}
                                         </span>
                                     </div>
                                     {endpoint.modelDescription && (
-                                        <div className="model-selector__card-desc">
+                                        <div className="user-endpoint-selector__card-desc">
                                             {endpoint.modelDescription}
                                         </div>
                                     )}
                                 </div>
                                 {endpoint.id === selectedId && (
-                                    <div className="model-selector__card-check">
+                                    <div className="user-endpoint-selector__card-check">
                                         <CheckIcon />
                                     </div>
                                 )}
@@ -311,4 +311,4 @@ export function ModelSelector({
     );
 }
 
-export default ModelSelector;
+export default UserEndpointSelector;
