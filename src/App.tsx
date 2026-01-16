@@ -32,6 +32,9 @@ const AILabPage = lazy(() => import('./pages/AILabPage'));
 // Endpoints Dashboard (Auto-Deploy Private Endpoints - PROMPT 5)
 const EndpointsPage = lazy(() => import('./pages/EndpointsPage'));
 
+// Flagship Training Page (Phase 7)
+const TrainingPage = lazy(() => import('./pages/TrainingPage'));
+
 // Loading fallback
 const PageLoader = () => (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
@@ -182,6 +185,22 @@ function App() {
                         <PageErrorBoundary>
                             <Suspense fallback={<PageLoader />}>
                                 <EndpointsPage />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+
+                    {/* Flagship Training Page (Phase 7) */}
+                    <Route path="/training" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <TrainingPage />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/dashboard/training/:jobId" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <TrainingPage />
                             </Suspense>
                         </PageErrorBoundary>
                     } />

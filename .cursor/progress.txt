@@ -861,7 +861,7 @@ the old 'credentials' table with a different structure.
 
 RESOLUTION:
 1. Added user_credentials table to migration script
-2. Added oauth_states table to migration script  
+2. Added oauth_states table to migration script
 3. Added credential_audit_logs table to migration script
 4. Added temporary migration key to run the migration
 5. Successfully ran migration: https://api.kriptik.app/api/db/init
@@ -1014,7 +1014,7 @@ resulting in 500 errors on ALL API endpoints including:
 FIX APPLIED:
 Removed (*) suffix from 3 route definitions:
 1. /favorites/:modelId(*) -> /favorites/:modelId
-2. /favorites/check/:modelId(*) -> /favorites/check/:modelId  
+2. /favorites/check/:modelId(*) -> /favorites/check/:modelId
 3. /collections/:collectionId/items/:modelId(*) -> /collections/:collectionId/items/:modelId
 
 Model IDs like "meta-llama/Llama-3.3-70B" should be URL-encoded by the client
@@ -1151,7 +1151,7 @@ CONTEXT:
   - Training job list with live progress cards
   - Completion UI with save options (KripTik, HuggingFace, Download)
   - Deploy & Build App integration
-  
+
 - Created comprehensive Deploy Panel with:
   - Provider selection (RunPod vs Modal)
   - Credential entry with guided external links
@@ -1200,17 +1200,17 @@ CHANGES MADE:
    - Container now fills calc(100vw - 48px) x calc(100vh - 48px)
    - Added min-width: 600px, min-height: 500px limits
    - Added custom resize handle indicator (gold gradient)
-   
+
 3. Flex Overflow Fixes:
    - Added min-height: 0 to all flex containers
    - Critical for proper scrolling in nested flex layouts
-   - Applied to: .oss-content, .oss-tab-content, .oss-panel--*, 
+   - Applied to: .oss-content, .oss-tab-content, .oss-panel--*,
      .model-browser, .model-browser-results, .model-dock__content
-   
+
 4. Grid Layout Improvements:
    - Changed fixed columns to flexible: minmax(240px, 280px) 1fr minmax(280px, 340px)
    - Panels now resize proportionally with container
-   
+
 5. Responsive Updates:
    - Container sizing scales at breakpoints
    - Panel heights adapt to available space
@@ -1361,7 +1361,7 @@ FILES MODIFIED:
   - server/src/routes/training.ts (added 7 new endpoints)
   - server/src/schema.ts (added trainingPlans table)
   - server/src/services/training/index.ts (updated exports)
-  
+
   Frontend:
   - src/components/training/TrainingIntentInput.tsx (NEW - NLP prompt box)
   - src/components/training/TrainingImplementationPlan.tsx (NEW - main plan display)
@@ -1388,7 +1388,7 @@ IMPLEMENTATION SUMMARY:
 
 2. API Routes (Prompt 2.3)
    - POST /api/training/parse-intent - Parse NLP, create contract + plan
-   - GET /api/training/plans/:planId - Get plan by ID  
+   - GET /api/training/plans/:planId - Get plan by ID
    - PUT /api/training/plans/:planId/tiles/:tileId - Modify tile
    - POST /api/training/plans/:planId/approve - Approve plan, start training
    - POST /api/training/plans/:planId/modify-with-ai - NLP modification
@@ -1503,7 +1503,7 @@ FILES MODIFIED:
   - server/src/services/training/budget-manager.ts (NEW - 550+ lines)
   - server/src/routes/training.ts (added 8 new endpoints)
   - server/src/services/training/index.ts (updated exports)
-  
+
   Frontend:
   - src/components/training/types.ts (added budget/pipeline/checkpoint types)
   - src/components/training/BudgetFreezeOverlay.tsx (NEW - 220 lines)
@@ -1591,7 +1591,7 @@ FILES MODIFIED:
   - server/src/services/training/universal-model-tester.ts (NEW - 650+ lines)
   - server/src/routes/training.ts (added 6 new test endpoints)
   - server/src/services/training/index.ts (updated exports)
-  
+
   Frontend - Input Components:
   - src/components/training/inputs/TextPromptInput.tsx (NEW)
   - src/components/training/inputs/ImageInput.tsx (NEW)
@@ -1599,14 +1599,14 @@ FILES MODIFIED:
   - src/components/training/inputs/VideoInput.tsx (NEW)
   - src/components/training/inputs/CodeInput.tsx (NEW)
   - src/components/training/inputs/index.ts (NEW - barrel export)
-  
+
   Frontend - Output Components:
   - src/components/training/outputs/TextOutput.tsx (NEW)
   - src/components/training/outputs/ImageOutput.tsx (NEW)
   - src/components/training/outputs/AudioOutput.tsx (NEW)
   - src/components/training/outputs/VideoOutput.tsx (NEW)
   - src/components/training/outputs/index.ts (NEW - barrel export)
-  
+
   Frontend - Main Components:
   - src/components/training/UniversalModelTester.tsx (NEW - 320+ lines)
   - src/components/training/ComparisonView.tsx (NEW - 200+ lines)
@@ -1662,7 +1662,7 @@ FILES MODIFIED:
   - server/src/services/training/training-notifications.ts (NEW - 450+ lines)
   - server/src/routes/training.ts (added 4 notification endpoints)
   - server/src/services/training/index.ts (updated exports)
-  
+
   Frontend:
   - src/components/training/TrainingNotificationBell.tsx (NEW - 280+ lines)
   - src/components/training/NotificationPreferencesPanel.tsx (NEW - 320+ lines)
@@ -1707,6 +1707,60 @@ IMPLEMENTATION SUMMARY:
    - training_error: Training error occurred
    - training_stage_complete: Multi-stage pipeline stage done
 
-NEXT: All 6 phases of Flagship Training complete!
+NEXT: All 7 phases of Flagship Training complete!
 
 CONTEXT: Following FLAGSHIP-TRAINING-IMPLEMENTATION-PLAN.md (lines 1295-1434)
+
+═══ 2026-01-16T[TIMESTAMP] ═══
+COMPLETED: Phase 7 Main Training Page Integration
+FILES MODIFIED:
+  Frontend:
+  - src/pages/TrainingPage.tsx (NEW - 780+ lines)
+  - src/pages/TrainingPage.css (NEW - 480+ lines)
+  - src/App.tsx (added /training route)
+  
+  Store:
+  - src/store/useTrainingStore.ts (added nlpFlow state, enhanced types)
+
+CURRENT STATE: Build successful (frontend builds without errors)
+
+IMPLEMENTATION SUMMARY:
+
+1. Training Page (Prompt 7.1)
+   - Created NLP-first training page at /training
+   - Implements all 7 flow states:
+     * Landing: Hero + NLP input + capability showcase + recent jobs
+     * Generating: Animated progress with step indicators
+     * Plan Review: TrainingImplementationPlan integration
+     * Setup: Environment setup progress with logs
+     * Training: TrainingProgressEnhanced + QuickTestPanel
+     * Frozen: BudgetFreezeOverlay integration
+     * Complete: Summary + UniversalModelTester + actions
+
+2. Training Store Updates (Prompt 7.2)
+   - Added nlpFlow state section with:
+     * status: idle | parsing | plan_ready | modifying | approved | setting_up | training | frozen | complete | error
+     * setupProgress, trainingProgress, budgetState, freezeState
+     * result, currentDataSample, checkpoints, logs
+   - Added flowMode: 'wizard' | 'nlp' for backward compatibility
+   - Added new types: EnvironmentSetup, SetupStage, TrainingMetrics, BudgetState, FreezeState, CurrentDataSample, QualityCheckpoint
+
+3. Capability Cards
+   - Music Generation (Suno-level)
+   - Video Generation (Cinematic 4K)
+   - Image Generation (Custom styles)
+   - Voice Cloning (From 5 min audio)
+   - Text & Chat (GPT-4 level)
+   - Code Generation (Multi-language)
+
+4. Example Prompts
+   - Pre-defined training examples for each modality
+   - Click to populate NLP input
+
+5. Routes Added
+   - /training - Main training page
+   - /dashboard/training/:jobId - Job-specific view
+
+NEXT: All Flagship Training phases complete (1-7)
+
+CONTEXT: Following FLAGSHIP-TRAINING-IMPLEMENTATION-PLAN.md (lines 1438-1807)

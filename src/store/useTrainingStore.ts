@@ -191,6 +191,20 @@ interface TrainingState {
   isApprovingPlan: boolean;
   planChanges: PlanChange[];
 
+  // Phase 7: Enhanced NLP Flow State
+  nlpFlow: {
+    status: 'idle' | 'parsing' | 'plan_ready' | 'modifying' | 'approved' | 'setting_up' | 'training' | 'frozen' | 'complete' | 'error';
+    setupProgress: EnvironmentSetup | null;
+    trainingProgress: TrainingMetrics | null;
+    budgetState: BudgetState | null;
+    freezeState: FreezeState | null;
+    result: TrainingResult | null;
+    currentDataSample: CurrentDataSample | null;
+    checkpoints: QualityCheckpoint[];
+    logs: LogEntry[];
+  };
+  flowMode: 'wizard' | 'nlp';
+
   // Actions
   setWizardStep: (step: WizardStep) => void;
   setWizardData: (data: Partial<TrainingState['wizardData']>) => void;
@@ -239,6 +253,18 @@ const initialBudgetAuthorization: BudgetAuthorizationData = {
   termsAccepted: false,
 };
 
+const initialNlpFlow: TrainingState['nlpFlow'] = {
+  status: 'idle',
+  setupProgress: null,
+  trainingProgress: null,
+  budgetState: null,
+  freezeState: null,
+  result: null,
+  currentDataSample: null,
+  checkpoints: [],
+  logs: [],
+};
+
 export const useTrainingStore = create<TrainingState>()(
   subscribeWithSelector((set, get) => ({
     // Initial state
@@ -262,6 +288,10 @@ export const useTrainingStore = create<TrainingState>()(
     budgetAuthorization: initialBudgetAuthorization,
     isApprovingPlan: false,
     planChanges: [],
+
+    // Phase 7: Enhanced NLP Flow State
+    nlpFlow: initialNlpFlow,
+    flowMode: 'nlp',
 
     // Wizard actions
     setWizardStep: (step) => set({ wizardStep: step }),
@@ -872,6 +902,75 @@ interface PlanChange {
   previousValue: string;
   newValue: string;
   reason: string;
+}
+
+// Phase 7: Enhanced NLP Flow Types
+export interface EnvironmentSetup {
+  stages: SetupStage[];
+  currentStage: number;
+  startedAt: string;
+  completedAt?: string;
+}
+
+export interface SetupStage {
+  id: string;
+  name: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  startedAt?: string;
+  completedAt?: string;
+  error?: string;
+}
+
+export interface TrainingMetrics {
+  currentEpoch: number;
+  totalEpochs: number;
+  currentStep: number;
+  totalSteps: number;
+  loss: number;
+  learningRate: number;
+  gpuUtilization: number;
+  gpuMemoryUsed: number;
+  gpuMemoryTotal: number;
+  eta: string;
+  samplesPerSecond: number;
+}
+
+export interface BudgetState {
+  currentSpend: number;
+  maxBudget: number;
+  percentUsed: number;
+  estimatedTotalCost: number;
+  spendRate: number;
+  timeRemaining: number;
+}
+
+export interface FreezeState {
+  jobId: string;
+  checkpoint: { id: string; epoch: number; loss: number; path: string };
+  frozenAt: string;
+  currentSpend: number;
+  percentUsed: number;
+  canResume: boolean;
+  resumeUrl: string;
+  resumeToken: string;
+  expiresAt: string;
+}
+
+export interface CurrentDataSample {
+  index: number;
+  total: number;
+  preview: string;
+  modality: string;
+}
+
+export interface QualityCheckpoint {
+  id: string;
+  epoch: number;
+  step: number;
+  loss: number;
+  path: string;
+  createdAt: string;
+  isBest: boolean;
 }
 
 // Selectors
