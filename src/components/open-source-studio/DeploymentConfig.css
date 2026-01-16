@@ -1,20 +1,108 @@
 /**
- * Deployment Configuration Styles
+ * Deployment Configuration - Premium 3D Liquid Glass Design
+ *
+ * Features:
+ * - Photorealistic translucent glass panels
+ * - 3D depth with visible edges and layered shadows
+ * - GPU-accelerated hover animations
+ * - HuggingFace amber/gold accent theming
+ * - NO emojis - geometric icons only
  */
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES
+   ============================================================================= */
+
+.deployment-config {
+  --deploy-gold: #FFD21E;
+  --deploy-gold-light: #FFE066;
+  --deploy-amber: #F5A86C;
+  --deploy-green: #22C55E;
+  --deploy-glass-bg: rgba(35, 33, 45, 0.95);
+  --deploy-glass-border: rgba(255, 255, 255, 0.1);
+  --deploy-text-primary: rgba(255, 255, 255, 0.95);
+  --deploy-text-secondary: rgba(255, 255, 255, 0.65);
+  --deploy-text-muted: rgba(255, 255, 255, 0.4);
+  
+  --ease-premium: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* =============================================================================
+   CONTAINER - Premium 3D Glass Panel
+   ============================================================================= */
 
 .deployment-config {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 24px;
-  background: linear-gradient(145deg, rgba(30, 30, 40, 0.98), rgba(20, 20, 30, 0.99));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  max-height: 80vh;
+  gap: 24px;
+  padding: 28px;
+  max-height: 85vh;
   overflow-y: auto;
+  border-radius: 24px;
+  
+  /* Premium liquid glass */
+  background: 
+    linear-gradient(
+      175deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 15%,
+      transparent 30%
+    ),
+    linear-gradient(
+      168deg,
+      rgba(50, 48, 62, 0.95) 0%,
+      rgba(40, 38, 52, 0.97) 50%,
+      rgba(32, 30, 42, 0.99) 100%
+    );
+  border: 1px solid var(--deploy-glass-border);
+  
+  /* 3D layered shadows */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 20px 60px rgba(0, 0, 0, 0.25);
 }
 
-/* Header */
+/* Glass edge highlight */
+.deployment-config::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 25px;
+  padding: 1px;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Premium Scrollbar */
+.deployment-config::-webkit-scrollbar {
+  width: 8px;
+}
+
+.deployment-config::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.deployment-config::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  border-radius: 4px;
+}
+
+/* =============================================================================
+   HEADER - Premium Title Section
+   ============================================================================= */
+
 .deployment-config-header {
   display: flex;
   justify-content: space-between;
@@ -23,58 +111,114 @@
 
 .deployment-config-title-group {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   align-items: flex-start;
 }
 
-.deployment-config-title-group svg {
-  color: #F5A86C;
-  margin-top: 4px;
+.deployment-config-title-group > svg {
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  border-radius: 14px;
+  
+  /* 3D icon container */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.2) 0%,
+    rgba(245, 168, 108, 0.12) 100%
+  );
+  color: var(--deploy-gold);
+  border: 1px solid rgba(255, 210, 30, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 4px 12px rgba(255, 210, 30, 0.2);
 }
 
 .deployment-config-title {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #fff;
+  letter-spacing: -0.02em;
   margin: 0;
+  
+  /* Premium gradient text */
+  background: linear-gradient(
+    135deg,
+    var(--deploy-gold-light) 0%,
+    var(--deploy-gold) 30%,
+    var(--deploy-amber) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  
+  filter: drop-shadow(0 2px 8px rgba(255, 210, 30, 0.3));
 }
 
 .deployment-config-subtitle {
-  font-family: 'DM Mono', monospace;
+  font-family: 'Space Mono', monospace;
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 4px 0 0 0;
+  color: var(--deploy-text-secondary);
+  margin: 6px 0 0 0;
 }
 
 .deployment-config-close {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.6);
+  border: none;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  
+  /* 3D glass button */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--deploy-text-secondary);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.15);
+  
+  transition: all 0.25s var(--ease-premium);
 }
 
 .deployment-config-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: linear-gradient(
+    145deg,
+    rgba(239, 68, 68, 0.15) 0%,
+    rgba(220, 38, 38, 0.1) 100%
+  );
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  transform: scale(1.05) rotate(90deg);
 }
 
-/* Notice */
+/* =============================================================================
+   NOTICE BANNER - 3D Glass Alert
+   ============================================================================= */
+
 .deployment-config-notice {
   display: flex;
-  gap: 12px;
-  padding: 14px 18px;
-  background: rgba(245, 168, 108, 0.1);
-  border: 1px solid rgba(245, 168, 108, 0.2);
-  border-radius: 12px;
-  color: #F5A86C;
+  gap: 14px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  
+  /* 3D amber glass */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.12) 0%,
+    rgba(245, 168, 108, 0.08) 100%
+  );
+  border: 1px solid rgba(255, 210, 30, 0.25);
+  color: var(--deploy-amber);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 16px rgba(255, 210, 30, 0.1);
 }
 
 .deployment-config-notice svg {
@@ -83,305 +227,435 @@
 }
 
 .deployment-config-notice strong {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   display: block;
   margin-bottom: 4px;
+  color: var(--deploy-gold);
 }
 
 .deployment-config-notice p {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.8125rem;
-  color: rgba(245, 168, 108, 0.8);
+  color: rgba(245, 168, 108, 0.85);
   margin: 0;
+  line-height: 1.5;
 }
 
-/* Sections */
+/* =============================================================================
+   SECTIONS - 3D Glass Panels
+   ============================================================================= */
+
 .deployment-config-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .deployment-config-section-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  gap: 12px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--deploy-text-primary);
   margin: 0;
 }
 
 .deployment-config-section-title svg {
-  color: #F5A86C;
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  border-radius: 10px;
+  
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.15) 0%,
+    rgba(245, 168, 108, 0.1) 100%
+  );
+  color: var(--deploy-gold);
+  border: 1px solid rgba(255, 210, 30, 0.2);
 }
 
-/* GPU Grid */
+/* =============================================================================
+   GPU GRID - Premium 3D Selection Cards
+   ============================================================================= */
+
 .deployment-config-gpu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  
+  /* Preserve 3D */
+  perspective: 1000px;
 }
 
 .deployment-config-gpu-option {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  gap: 6px;
+  padding: 18px;
   text-align: left;
+  border: none;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  overflow: hidden;
+  
+  /* 3D glass card */
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.15);
+  
+  transition: all 0.3s var(--ease-premium);
 }
 
 .deployment-config-gpu-option:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
   border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    0 16px 40px rgba(0, 0, 0, 0.15);
 }
 
 .deployment-config-gpu-option.selected {
-  background: rgba(245, 168, 108, 0.1);
-  border-color: rgba(245, 168, 108, 0.4);
+  background: linear-gradient(
+    165deg,
+    rgba(255, 210, 30, 0.15) 0%,
+    rgba(245, 168, 108, 0.08) 100%
+  );
+  border-color: rgba(255, 210, 30, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 24px rgba(255, 210, 30, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .deployment-config-gpu-option.insufficient {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .deployment-config-gpu-option > svg {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  color: #F5A86C;
+  top: 12px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  padding: 4px;
+  border-radius: 6px;
+  
+  background: rgba(255, 210, 30, 0.2);
+  color: var(--deploy-gold);
 }
 
 .deployment-config-gpu-name {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #fff;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--deploy-text-primary);
 }
 
 .deployment-config-gpu-vram {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'Space Mono', monospace;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--deploy-text-secondary);
 }
 
 .deployment-config-gpu-cost {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64c864;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--deploy-green);
 }
 
 .deployment-config-gpu-badge {
-  margin-top: 4px;
-  padding: 2px 6px;
-  background: rgba(100, 200, 100, 0.15);
-  border-radius: 4px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   font-size: 0.625rem;
-  font-weight: 600;
-  color: #64c864;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   align-self: flex-start;
+  
+  background: linear-gradient(145deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.15));
+  color: var(--deploy-green);
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .deployment-config-gpu-warning {
   margin-top: 4px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.625rem;
-  color: #ff6b6b;
+  color: #ef4444;
 }
 
-/* Fields */
+/* =============================================================================
+   FORM FIELDS - 3D Glass Inputs
+   ============================================================================= */
+
 .deployment-config-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .deployment-config-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  gap: 8px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   font-size: 0.8125rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  color: var(--deploy-text-secondary);
 }
 
 .deployment-config-hint {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--deploy-text-muted);
   cursor: help;
+  transition: color 0.2s ease;
+}
+
+.deployment-config-hint:hover {
+  color: var(--deploy-gold);
 }
 
 .deployment-config-input,
 .deployment-config-select {
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  padding: 14px 18px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.9375rem;
-  color: #fff;
   outline: none;
-  transition: all 0.2s ease;
+  
+  /* 3D inset input */
+  background: linear-gradient(
+    165deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: var(--deploy-text-primary);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  
+  transition: all 0.25s var(--ease-premium);
 }
 
 .deployment-config-input:focus,
 .deployment-config-select:focus {
-  border-color: rgba(245, 168, 108, 0.4);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 210, 30, 0.5);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 3px rgba(255, 210, 30, 0.1);
 }
 
 /* Scaling Grid */
 .deployment-config-scaling-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px;
 }
 
 .deployment-config-scaling-note,
 .deployment-config-note {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--deploy-text-muted);
   font-style: italic;
+  line-height: 1.5;
 }
 
-/* Checkbox */
+/* =============================================================================
+   CHECKBOX - 3D Toggle
+   ============================================================================= */
+
 .deployment-config-checkbox {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.9375rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--deploy-text-primary);
   cursor: pointer;
 }
 
 .deployment-config-checkbox input {
-  width: 18px;
-  height: 18px;
-  accent-color: #F5A86C;
+  width: 22px;
+  height: 22px;
+  accent-color: var(--deploy-gold);
+  cursor: pointer;
 }
 
-/* Environment Variables */
+/* =============================================================================
+   ENVIRONMENT VARIABLES - Collapsible Section
+   ============================================================================= */
+
 .deployment-config-env-toggle {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  padding: 16px 20px;
+  border: none;
+  border-radius: 14px;
   cursor: pointer;
+  
+  /* 3D collapsible header */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--deploy-text-secondary);
+  
   transition: all 0.2s ease;
 }
 
 .deployment-config-env-toggle:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  color: var(--deploy-text-primary);
 }
 
 .deployment-config-env-section {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
+  gap: 10px;
+  padding-top: 14px;
 }
 
 .deployment-config-env-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .deployment-config-env-key {
-  font-family: 'DM Mono', monospace;
+  font-family: 'Space Mono', monospace;
   font-size: 0.8125rem;
-  font-weight: 600;
-  color: #F5A86C;
+  font-weight: 700;
+  color: var(--deploy-gold);
 }
 
 .deployment-config-env-value {
   flex: 1;
-  font-family: 'DM Mono', monospace;
+  font-family: 'Space Mono', monospace;
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--deploy-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .deployment-config-env-remove {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
-  cursor: pointer;
+  border-radius: 6px;
+  color: var(--deploy-text-muted);
   font-size: 16px;
+  cursor: pointer;
+  
+  transition: all 0.2s ease;
 }
 
 .deployment-config-env-remove:hover {
-  color: #ff6b6b;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
 }
 
 .deployment-config-env-add {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .deployment-config-env-input {
   flex: 1;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  font-family: 'DM Mono', monospace;
+  padding: 12px 14px;
+  font-family: 'Space Mono', monospace;
   font-size: 0.8125rem;
-  color: #fff;
   outline: none;
+  
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: var(--deploy-text-primary);
+  
+  transition: all 0.2s ease;
+}
+
+.deployment-config-env-input:focus {
+  border-color: rgba(255, 210, 30, 0.4);
 }
 
 .deployment-config-env-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--deploy-text-muted);
 }
 
 .deployment-config-env-add-btn {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(245, 168, 108, 0.15);
-  border: 1px solid rgba(245, 168, 108, 0.3);
-  border-radius: 8px;
-  color: #F5A86C;
+  border: none;
+  border-radius: 10px;
   cursor: pointer;
+  
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.2) 0%,
+    rgba(245, 168, 108, 0.15) 100%
+  );
+  border: 1px solid rgba(255, 210, 30, 0.3);
+  color: var(--deploy-gold);
+  
   transition: all 0.2s ease;
 }
 
 .deployment-config-env-add-btn:hover:not(:disabled) {
-  background: rgba(245, 168, 108, 0.25);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 30, 0.3) 0%,
+    rgba(245, 168, 108, 0.2) 100%
+  );
+  transform: scale(1.05);
 }
 
 .deployment-config-env-add-btn:disabled {
@@ -389,94 +663,159 @@
   cursor: not-allowed;
 }
 
-/* Cost Summary */
+/* =============================================================================
+   COST SUMMARY - Premium Glass Card
+   ============================================================================= */
+
 .deployment-config-cost-summary {
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  
+  /* Inset glass card */
+  background: linear-gradient(
+    165deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .deployment-config-cost-row {
   display: flex;
   justify-content: space-between;
   font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
-  padding: 6px 0;
+  font-size: 0.9rem;
+  color: var(--deploy-text-secondary);
+  padding: 8px 0;
+}
+
+.deployment-config-cost-row:not(:last-of-type) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .deployment-config-cost-total {
+  font-family: 'Space Mono', monospace;
   font-weight: 700;
-  color: #64c864;
+  font-size: 1.125rem;
+  color: var(--deploy-green);
 }
 
 .deployment-config-cost-note {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 8px 0 0 0;
+  color: var(--deploy-text-muted);
+  margin: 10px 0 0 0;
   font-style: italic;
 }
 
-/* Test Notice */
+/* =============================================================================
+   TEST NOTICE - Success Glass Banner
+   ============================================================================= */
+
 .deployment-config-test-notice {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  background: rgba(100, 200, 100, 0.1);
-  border: 1px solid rgba(100, 200, 100, 0.2);
-  border-radius: 10px;
-  color: #64c864;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  
+  /* 3D success glass */
+  background: linear-gradient(
+    145deg,
+    rgba(34, 197, 94, 0.15) 0%,
+    rgba(22, 163, 74, 0.1) 100%
+  );
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: var(--deploy-green);
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 12px rgba(34, 197, 94, 0.1);
 }
 
-/* Deploy Button */
+/* =============================================================================
+   DEPLOY BUTTON - Premium 3D Gold Button
+   ============================================================================= */
+
 .deployment-config-deploy-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 16px 24px;
-  background: linear-gradient(135deg, #F5A86C 0%, #E8904A 100%);
+  gap: 12px;
+  padding: 18px 32px;
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 700;
   border: none;
-  border-radius: 12px;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1a1a1a;
+  border-radius: 16px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(245, 168, 108, 0.3);
-  transition: all 0.2s ease;
+  
+  /* Premium amber gradient */
+  background: linear-gradient(
+    145deg,
+    var(--deploy-amber) 0%,
+    #E8904A 100%
+  );
+  color: #1a1a1a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 24px rgba(245, 168, 108, 0.35),
+    0 12px 40px rgba(245, 168, 108, 0.2);
+  
+  transition: all 0.3s var(--ease-premium);
 }
 
 .deployment-config-deploy-btn:hover:not(:disabled) {
-  box-shadow: 0 6px 24px rgba(245, 168, 108, 0.4);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 10px 32px rgba(245, 168, 108, 0.45),
+    0 16px 48px rgba(245, 168, 108, 0.25);
 }
 
 .deployment-config-deploy-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .deployment-spinner {
-  animation: spin 0.8s linear infinite;
+  animation: premium-spin 0.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
 }
 
-@keyframes spin {
+@keyframes premium-spin {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive */
-@media (max-width: 600px) {
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .deployment-config {
+    padding: 20px;
+    border-radius: 20px;
+  }
+  
   .deployment-config-gpu-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .deployment-config-scaling-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .deployment-config-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .deployment-config-gpu-grid {
     grid-template-columns: 1fr;
   }
 }
