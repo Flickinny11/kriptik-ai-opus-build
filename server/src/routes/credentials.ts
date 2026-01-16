@@ -751,5 +751,67 @@ router.post('/oauth-complete', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * GET /api/credentials/status
+ * Get simple list of configured platforms for the credential setup UI
+ */
+router.get('/status', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const vault = getCredentialVault();
+
+        // Get all credentials for this user
+        const userCredentials = await vault.listCredentials(userId);
+
+        // Extract unique platform/integration IDs
+        const configured = userCredentials
+            .map(c => c.integrationId.toLowerCase())
+            .filter((v, i, a) => a.indexOf(v) === i); // unique
+
+        res.json({
+            success: true,
+            configured,
+            total: configured.length,
+        });
+    } catch (error) {
+        console.error('Error getting credential status:', error);
+        res.status(500).json({ error: 'Failed to get credential status' });
+    }
+});
+
+/**
+ * POST /api/credentials/save
+ * Save credentials for a platform (simplified endpoint for CredentialSetup)
+ */
+router.post('/save', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { platform, credentials } = req.body;
+
+        if (!platform || !credentials || typeof credentials !== 'object') {
+            return res.status(400).json({ error: 'platform and credentials are required' });
+        }
+
+        const vault = getCredentialVault();
+
+        // Store the credential with the platform as integration ID
+        const stored = await vault.storeCredential(userId, platform.toLowerCase(), credentials, {
+            connectionName: platform,
+        });
+
+        res.status(201).json({
+            success: true,
+            credential: {
+                id: stored.id,
+                platform: platform.toLowerCase(),
+                createdAt: stored.createdAt,
+            },
+        });
+    } catch (error) {
+        console.error('Error saving credential:', error);
+        res.status(500).json({ error: 'Failed to save credential' });
+    }
+});
+
 export default router;
 
