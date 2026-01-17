@@ -34,7 +34,7 @@ const RUNPOD_ENDPOINT_URL = process.env.RUNPOD_URL_SIGLIP ||
 
 // Fallback to HuggingFace if RunPod not configured
 const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
-const HUGGINGFACE_API_URL = 'https://api-inference.huggingface.co/models';
+const HUGGINGFACE_API_URL = 'https://router.huggingface.co/hf-inference/models';
 
 // Updated dimensions for So400m model
 const SIGLIP_SO400M_DIMENSIONS = 1152;

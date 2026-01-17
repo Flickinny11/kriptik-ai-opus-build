@@ -35,7 +35,7 @@ const RUNPOD_ENDPOINT_URL = process.env.RUNPOD_URL_BGE_M3 ||
 
 // Fallback to HuggingFace if RunPod not configured
 const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
-const HUGGINGFACE_API_URL = 'https://api-inference.huggingface.co/pipeline/feature-extraction';
+const HUGGINGFACE_API_URL = 'https://router.huggingface.co/hf-inference/pipeline/feature-extraction';
 
 interface RunPodResponse {
   id?: string;
