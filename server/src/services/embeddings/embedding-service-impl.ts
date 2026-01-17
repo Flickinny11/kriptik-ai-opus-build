@@ -23,20 +23,26 @@ import type {
   EmbeddingOptions,
 } from './embedding-service.js';
 import { TYPE_TO_PROVIDER, EMBEDDING_COSTS } from './embedding-service.js';
-import { BGEM3Provider } from './providers/bge-m3-provider.js';
+// Use RunPod providers (with HuggingFace fallback) for production
+import { RunPodBGEM3Provider } from './providers/runpod-bge-m3-provider.js';
 import { VoyageCodeProvider } from './providers/voyage-code-provider.js';
-import { SigLIPProvider } from './providers/siglip-provider.js';
+import { RunPodSigLIPProvider } from './providers/runpod-siglip-provider.js';
+import { RunPodVLJEPAProvider } from './providers/runpod-vl-jepa-provider.js';
 import { getEmbeddingCache, type EmbeddingCache } from './embedding-cache.js';
 
 // ============================================================================
 // Provider Instances
 // ============================================================================
 
+// RunPod providers with HuggingFace fallback
 const providers = {
-  'bge-m3': new BGEM3Provider(),
+  'bge-m3': new RunPodBGEM3Provider(),
   'voyage-code-3': new VoyageCodeProvider(),
-  'siglip-2': new SigLIPProvider(),
+  'siglip-2': new RunPodSigLIPProvider(),
 } as const;
+
+// VL-JEPA provider for advanced intent understanding
+const vlJepaProvider = new RunPodVLJEPAProvider();
 
 type ProviderKey = keyof typeof providers;
 
@@ -139,10 +145,10 @@ export class EmbeddingService implements IEmbeddingService {
 
       // Handle visual type with images
       if (request.type === 'visual' && request.options?.imageBase64) {
-        const siglip = providers['siglip-2'] as SigLIPProvider;
+        const siglip = providers['siglip-2'] as RunPodSigLIPProvider;
         providerResult = await siglip.embedImage(request.options.imageBase64, request.options);
       } else if (request.type === 'visual' && request.options?.imageUrl) {
-        const siglip = providers['siglip-2'] as SigLIPProvider;
+        const siglip = providers['siglip-2'] as RunPodSigLIPProvider;
         providerResult = await siglip.embedImage(request.options.imageUrl, request.options);
       } else {
         providerResult = await provider.embed(textsOnly, request.options);
@@ -320,6 +326,13 @@ export class EmbeddingService implements IEmbeddingService {
       providerHealths[key] = health;
     });
 
+    // Also check VL-JEPA provider
+    healthChecks.push(
+      vlJepaProvider.healthCheck().then(health => {
+        providerHealths['vl-jepa'] = health;
+      })
+    );
+
     await Promise.all(healthChecks);
 
     const cacheHealth = await this.cache.healthCheck();
@@ -333,6 +346,82 @@ export class EmbeddingService implements IEmbeddingService {
         entries: cacheHealth.memoryEntries,
         hitRate: this.cache.getStats().hitRate,
       },
+    };
+  }
+
+  /**
+   * Get VL-JEPA provider for advanced intent understanding
+   */
+  getVLJEPAProvider(): RunPodVLJEPAProvider {
+    return vlJepaProvider;
+  }
+
+  /**
+   * Generate VL-JEPA intent embedding
+   */
+  async embedIntent(intent: string, context?: string): Promise<{
+    embedding: number[];
+    latencyMs: number;
+  }> {
+    const startTime = Date.now();
+
+    if (vlJepaProvider.isConfigured()) {
+      const result = await vlJepaProvider.embed([intent], { cacheKey: context });
+      return {
+        embedding: result.embeddings[0] || [],
+        latencyMs: Date.now() - startTime,
+      };
+    }
+
+    // Fallback to BGE-M3 for intent if VL-JEPA not available
+    const result = await this.embed({
+      content: intent,
+      type: 'intent',
+    });
+
+    return {
+      embedding: result.embeddings[0] || [],
+      latencyMs: result.latencyMs,
+    };
+  }
+
+  /**
+   * Predict build outcomes using VL-JEPA
+   */
+  async predictBuildOutcome(
+    intent: string,
+    historicalPatterns: number[][],
+    context?: Record<string, unknown>
+  ): Promise<{
+    embedding: number[];
+    predictions: {
+      success_probability?: number;
+      complexity_score?: number;
+      recommended_patterns?: string[];
+      potential_issues?: string[];
+    };
+    latencyMs: number;
+  }> {
+    if (!vlJepaProvider.isConfigured()) {
+      // Return basic prediction without VL-JEPA
+      return {
+        embedding: [],
+        predictions: {
+          success_probability: 0.75,
+          complexity_score: 0.5,
+        },
+        latencyMs: 0,
+      };
+    }
+
+    const result = await vlJepaProvider.predict(intent, historicalPatterns, context);
+    return {
+      embedding: result.embedding,
+      predictions: result.predictions || {
+        success_probability: 0.75,
+        complexity_score: 0.5,
+      },
+      latencyMs: result.latencyMs,
     };
   }
 
