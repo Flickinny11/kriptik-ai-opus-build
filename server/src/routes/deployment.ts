@@ -13,6 +13,11 @@ import {
   getDeploymentRecommender,
   type DeploymentProvider,
 } from '../services/deployment/index.js';
+import {
+  getBuildIntegrationHooks,
+  type RunPodDeploymentRequest,
+} from '../services/automation/build-integration-hooks.js';
+import { getGPUAvailability } from '../services/compute/runpod-availability.js';
 
 const deploymentRouter = Router();
 
@@ -243,6 +248,287 @@ deploymentRouter.delete('/:id', authMiddleware, async (req: Request, res: Respon
     console.error('[Deployment API] Delete error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to delete deployment',
+    });
+  }
+});
+
+// =============================================================================
+// BUILD LOOP RUNPOD DEPLOYMENT ENDPOINTS
+// =============================================================================
+
+const BuildDeploySchema = z.object({
+  buildId: z.string(),
+  projectId: z.string(),
+  modelUrl: z.string().url(),
+  modelType: z.enum(['llm', 'image', 'video', 'audio', 'embedding', 'multimodal']),
+  modelName: z.string().optional(),
+  gpuType: z.string().optional(),
+  scalingConfig: z.object({
+    minWorkers: z.number().min(0).default(0),
+    maxWorkers: z.number().min(1).default(3),
+    idleTimeout: z.number().min(60).default(300),
+  }).optional(),
+});
+
+/**
+ * GET /api/deployment/runpod/gpus
+ * Get real-time RunPod GPU availability
+ */
+deploymentRouter.get('/runpod/gpus', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const availability = await getGPUAvailability(userId);
+
+    res.json({
+      success: true,
+      data: availability,
+    });
+  } catch (error) {
+    console.error('[Deployment API] GPU availability error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get GPU availability',
+    });
+  }
+});
+
+/**
+ * GET /api/deployment/runpod/recommend
+ * Get recommended GPU for a model type
+ */
+deploymentRouter.get('/runpod/recommend', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { modelType, preferSpeed } = req.query;
+    const hooks = getBuildIntegrationHooks();
+
+    // Estimate VRAM based on model type
+    const vramMap: Record<string, number> = {
+      'llm': 24,
+      'image': 12,
+      'video': 24,
+      'audio': 8,
+      'embedding': 4,
+      'multimodal': 40,
+    };
+    const requiredVRAM = vramMap[modelType as string] || 16;
+
+    const recommendation = hooks.getRecommendedRunPodGPU(
+      requiredVRAM,
+      preferSpeed !== 'false'
+    );
+
+    if (!recommendation) {
+      return res.status(404).json({
+        error: 'No suitable GPU available',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: recommendation,
+    });
+  } catch (error) {
+    console.error('[Deployment API] GPU recommend error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get GPU recommendation',
+    });
+  }
+});
+
+/**
+ * POST /api/deployment/runpod/build-deploy
+ * Deploy a model to RunPod as part of build loop
+ */
+deploymentRouter.post('/runpod/build-deploy', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const config = BuildDeploySchema.parse(req.body);
+    const hooks = getBuildIntegrationHooks();
+
+    const request: RunPodDeploymentRequest = {
+      buildId: config.buildId,
+      userId,
+      projectId: config.projectId,
+      modelUrl: config.modelUrl,
+      modelType: config.modelType,
+      modelName: config.modelName,
+      gpuType: config.gpuType,
+      scalingConfig: config.scalingConfig,
+    };
+
+    const result = await hooks.deployToRunPod(request);
+
+    // Return appropriate status based on approval requirement
+    const statusCode = result.approvalRequired ? 202 : (result.success ? 201 : 400);
+
+    res.status(statusCode).json({
+      success: result.success,
+      data: result,
+    });
+  } catch (error) {
+    console.error('[Deployment API] Build deploy error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to deploy model',
+    });
+  }
+});
+
+/**
+ * POST /api/deployment/runpod/build-deploy/:allocationId/complete
+ * Complete a pending RunPod deployment after user approval
+ */
+deploymentRouter.post('/runpod/build-deploy/:allocationId/complete', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { allocationId } = req.params;
+    const config = BuildDeploySchema.parse(req.body);
+    const hooks = getBuildIntegrationHooks();
+
+    const request: RunPodDeploymentRequest = {
+      buildId: config.buildId,
+      userId,
+      projectId: config.projectId,
+      modelUrl: config.modelUrl,
+      modelType: config.modelType,
+      modelName: config.modelName,
+      gpuType: config.gpuType,
+      scalingConfig: config.scalingConfig,
+    };
+
+    const result = await hooks.completeRunPodDeploymentAfterApproval(
+      config.buildId,
+      allocationId,
+      request
+    );
+
+    res.status(result.success ? 201 : 400).json({
+      success: result.success,
+      data: result,
+    });
+  } catch (error) {
+    console.error('[Deployment API] Complete deploy error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to complete deployment',
+    });
+  }
+});
+
+/**
+ * GET /api/deployment/runpod/build/:buildId/status
+ * Get RunPod deployment status for a build
+ */
+deploymentRouter.get('/runpod/build/:buildId/status', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { buildId } = req.params;
+    const hooks = getBuildIntegrationHooks();
+
+    const status = await hooks.getRunPodDeploymentStatus(buildId);
+
+    if (!status) {
+      return res.status(404).json({
+        error: 'No deployment found for this build',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: status,
+    });
+  } catch (error) {
+    console.error('[Deployment API] Build status error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get deployment status',
+    });
+  }
+});
+
+/**
+ * PUT /api/deployment/runpod/build/:buildId/scaling
+ * Update scaling configuration for a RunPod deployment
+ */
+deploymentRouter.put('/runpod/build/:buildId/scaling', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { buildId } = req.params;
+    const { minWorkers, maxWorkers } = req.body;
+
+    if (typeof minWorkers !== 'number' || typeof maxWorkers !== 'number') {
+      return res.status(400).json({
+        error: 'minWorkers and maxWorkers are required',
+      });
+    }
+
+    const hooks = getBuildIntegrationHooks();
+    const result = await hooks.updateRunPodScaling(buildId, minWorkers, maxWorkers);
+
+    if (!result.success) {
+      return res.status(400).json({
+        error: result.error || 'Failed to update scaling',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Scaling updated successfully',
+    });
+  } catch (error) {
+    console.error('[Deployment API] Update scaling error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to update scaling',
+    });
+  }
+});
+
+/**
+ * DELETE /api/deployment/runpod/build/:buildId
+ * Terminate a RunPod deployment for a build
+ */
+deploymentRouter.delete('/runpod/build/:buildId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { buildId } = req.params;
+    const hooks = getBuildIntegrationHooks();
+
+    const result = await hooks.terminateRunPodDeployment(buildId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        error: result.error || 'Failed to terminate deployment',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Deployment terminated successfully',
+    });
+  } catch (error) {
+    console.error('[Deployment API] Terminate error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to terminate deployment',
     });
   }
 });

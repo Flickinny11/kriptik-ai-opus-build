@@ -402,5 +402,172 @@ function generateFallbackPlan(prompt: string): GeneratedPlan {
     };
 }
 
+/**
+ * POST /api/plan/reconfigure
+ * Reconfigure an implementation plan based on user modifications
+ *
+ * Takes the original plan and applies all user modifications (task and phase level)
+ * to generate a new, updated plan that incorporates the changes.
+ */
+router.post('/reconfigure', async (req: Request, res: Response) => {
+    const userId = req.headers['x-user-id'] as string;
+    const {
+        buildId,
+        originalPlan,
+        taskModifications,
+        phaseModifications,
+    } = req.body;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!originalPlan || !originalPlan.phases) {
+        return res.status(400).json({ error: 'Original plan is required' });
+    }
+
+    try {
+        // Build modification context for Claude
+        const modificationContext = buildModificationContext(
+            originalPlan,
+            taskModifications || [],
+            phaseModifications || []
+        );
+
+        const reconfigurePrompt = `You are an expert software architect helping to reconfigure an implementation plan.
+
+The user has made the following modifications to their plan:
+
+${modificationContext}
+
+Based on these modifications, generate an UPDATED implementation plan that:
+1. Incorporates all the user's requested changes
+2. Adjusts related phases/tasks as needed for consistency
+3. Re-evaluates complexity and time estimates
+4. Maintains the same JSON structure as the original plan
+
+Original plan structure for reference:
+${JSON.stringify(originalPlan, null, 2)}
+
+IMPORTANT: Your response MUST be valid JSON matching the exact structure of the original plan.
+Update phase titles, descriptions, options, and selectedOptions as needed based on the modifications.
+Add or remove tasks/phases if the modifications require it.
+
+Respond with ONLY valid JSON, no markdown, no code blocks.`;
+
+        const claude = createClaudeService({
+            agentType: 'planning',
+            systemPrompt: PLAN_GENERATION_PROMPT,
+            projectId: buildId || uuidv4(),
+            userId,
+        });
+
+        const result = await claude.generate(reconfigurePrompt, {
+            model: CLAUDE_MODELS.OPUS_4_5,
+            maxTokens: 64000,
+            useExtendedThinking: true,
+            thinkingBudgetTokens: 16000,
+            effort: 'high',
+        });
+
+        let plan: GeneratedPlan;
+        try {
+            const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                plan = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('No JSON found in response');
+            }
+        } catch (parseError) {
+            console.error('Failed to parse reconfigured plan:', result.content);
+            // Return original plan with a note about modifications
+            return res.status(500).json({
+                error: 'Failed to parse reconfigured plan',
+                originalPlan,
+            });
+        }
+
+        // Validate plan structure
+        if (!plan.phases || !Array.isArray(plan.phases)) {
+            return res.status(500).json({
+                error: 'Invalid plan structure',
+                originalPlan,
+            });
+        }
+
+        res.json({
+            success: true,
+            plan,
+            modificationsApplied: {
+                tasks: taskModifications?.length || 0,
+                phases: phaseModifications?.length || 0,
+            },
+            usage: {
+                inputTokens: result.usage.inputTokens,
+                outputTokens: result.usage.outputTokens,
+            },
+        });
+
+    } catch (error) {
+        console.error('Plan reconfiguration error:', error);
+        res.status(500).json({
+            error: error instanceof Error ? error.message : 'Plan reconfiguration failed',
+            originalPlan,
+        });
+    }
+});
+
+/**
+ * Build a context string describing all modifications
+ */
+function buildModificationContext(
+    originalPlan: { phases: Array<{ id: string; title: string; tasks?: Array<{ id: string; content: string }> }> },
+    taskModifications: Array<{
+        taskId: string;
+        phaseId: string;
+        originalContent: string;
+        modificationPrompt: string;
+    }>,
+    phaseModifications: Array<{
+        phaseId: string;
+        originalTitle: string;
+        modificationPrompt: string;
+    }>
+): string {
+    const parts: string[] = [];
+
+    // Phase-level modifications
+    if (phaseModifications.length > 0) {
+        parts.push('## Phase-Level Modifications:');
+        for (const mod of phaseModifications) {
+            const phase = originalPlan.phases.find(p => p.id === mod.phaseId);
+            parts.push(`
+### Phase: "${mod.originalTitle}"
+User's modification request: "${mod.modificationPrompt}"
+Current phase title: "${phase?.title || mod.originalTitle}"
+`);
+        }
+    }
+
+    // Task-level modifications
+    if (taskModifications.length > 0) {
+        parts.push('## Task-Level Modifications:');
+        for (const mod of taskModifications) {
+            const phase = originalPlan.phases.find(p => p.id === mod.phaseId);
+            parts.push(`
+### Task in Phase "${phase?.title || mod.phaseId}"
+Original task: "${mod.originalContent}"
+User's modification request: "${mod.modificationPrompt}"
+`);
+        }
+    }
+
+    if (parts.length === 0) {
+        parts.push('No modifications were specified.');
+    }
+
+    return parts.join('\n');
+}
+
 export default router;
 

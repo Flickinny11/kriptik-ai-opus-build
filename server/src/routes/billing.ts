@@ -1639,4 +1639,403 @@ router.get('/oss/estimate', async (req: Request, res: Response) => {
     }
 });
 
+// ============================================================================
+// RESOURCE METERING & APPROVAL
+// ============================================================================
+
+import { getResourceMeteringService } from '../services/billing/resource-metering.js';
+
+/**
+ * POST /api/billing/resources/allocate
+ * Request resource allocation (pending approval)
+ *
+ * Body:
+ * - buildId: string
+ * - resourceType: 'gpu' | 'cpu' | 'storage' | 'bandwidth'
+ * - provider: 'runpod' | 'aws' | 'gcp' | 'azure' | 'lambda-labs'
+ * - resourceId: string
+ * - resourceName: string
+ * - pricePerHour: number (in cents)
+ * - estimatedDurationMinutes: number
+ * - operationType: 'training' | 'inference' | 'building' | 'finetuning'
+ * - isUserInitiated: boolean
+ */
+router.post('/resources/allocate', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const {
+            buildId,
+            resourceType,
+            provider,
+            resourceId,
+            resourceName,
+            pricePerHour,
+            estimatedDurationMinutes,
+            operationType = 'training',
+            isUserInitiated = true,
+            metadata = {},
+        } = req.body;
+
+        // Validate required fields
+        if (!buildId || !resourceType || !provider || !resourceId || !resourceName) {
+            res.status(400).json({ error: 'Missing required fields' });
+            return;
+        }
+
+        if (typeof pricePerHour !== 'number' || pricePerHour <= 0) {
+            res.status(400).json({ error: 'pricePerHour must be a positive number' });
+            return;
+        }
+
+        if (typeof estimatedDurationMinutes !== 'number' || estimatedDurationMinutes <= 0) {
+            res.status(400).json({ error: 'estimatedDurationMinutes must be a positive number' });
+            return;
+        }
+
+        const meteringService = getResourceMeteringService();
+
+        const approvalRequest = await meteringService.createAllocation({
+            buildId,
+            userId,
+            resourceType,
+            provider,
+            resourceId,
+            resourceName,
+            pricePerHour,
+            estimatedDurationMinutes,
+            operationType,
+            isUserInitiated,
+            metadata,
+        });
+
+        res.json({
+            success: true,
+            approvalRequest,
+            message: approvalRequest.userPaymentRequired
+                ? 'Resource allocation created. User approval required before proceeding.'
+                : 'Resource allocation created. KripTik absorbs cost for this operation.',
+        });
+    } catch (error) {
+        console.error('Error creating resource allocation:', error);
+        res.status(500).json({ error: 'Failed to create resource allocation' });
+    }
+});
+
+/**
+ * POST /api/billing/resources/:allocationId/approve
+ * Approve a pending resource allocation
+ */
+router.post('/resources/:allocationId/approve', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { allocationId } = req.params;
+
+        const meteringService = getResourceMeteringService();
+        const result = await meteringService.approveAllocation(allocationId, userId);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                allocation: result.allocation,
+                message: 'Resource allocation approved. Ready to start metering.',
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error,
+            });
+        }
+    } catch (error) {
+        console.error('Error approving allocation:', error);
+        res.status(500).json({ error: 'Failed to approve allocation' });
+    }
+});
+
+/**
+ * POST /api/billing/resources/:allocationId/decline
+ * Decline a pending resource allocation
+ */
+router.post('/resources/:allocationId/decline', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { allocationId } = req.params;
+        const { reason } = req.body;
+
+        const meteringService = getResourceMeteringService();
+        const result = await meteringService.declineAllocation(allocationId, userId, reason);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Resource allocation declined.',
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error,
+            });
+        }
+    } catch (error) {
+        console.error('Error declining allocation:', error);
+        res.status(500).json({ error: 'Failed to decline allocation' });
+    }
+});
+
+/**
+ * POST /api/billing/resources/:allocationId/start
+ * Start metering for an approved allocation
+ */
+router.post('/resources/:allocationId/start', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { allocationId } = req.params;
+
+        const meteringService = getResourceMeteringService();
+        const allocation = meteringService.getAllocation(allocationId);
+
+        if (!allocation) {
+            res.status(404).json({ error: 'Allocation not found' });
+            return;
+        }
+
+        if (allocation.userId !== userId) {
+            res.status(403).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const result = await meteringService.startMetering(allocationId);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Metering started. Billing per-second.',
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error,
+            });
+        }
+    } catch (error) {
+        console.error('Error starting metering:', error);
+        res.status(500).json({ error: 'Failed to start metering' });
+    }
+});
+
+/**
+ * POST /api/billing/resources/:allocationId/pause
+ * Pause metering for an active allocation
+ */
+router.post('/resources/:allocationId/pause', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { allocationId } = req.params;
+
+        const meteringService = getResourceMeteringService();
+        const allocation = meteringService.getAllocation(allocationId);
+
+        if (!allocation) {
+            res.status(404).json({ error: 'Allocation not found' });
+            return;
+        }
+
+        if (allocation.userId !== userId) {
+            res.status(403).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const result = await meteringService.pauseMetering(allocationId);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Metering paused. No charges while paused.',
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error,
+            });
+        }
+    } catch (error) {
+        console.error('Error pausing metering:', error);
+        res.status(500).json({ error: 'Failed to pause metering' });
+    }
+});
+
+/**
+ * POST /api/billing/resources/:allocationId/resume
+ * Resume metering for a paused allocation
+ */
+router.post('/resources/:allocationId/resume', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { allocationId } = req.params;
+
+        const meteringService = getResourceMeteringService();
+        const allocation = meteringService.getAllocation(allocationId);
+
+        if (!allocation) {
+            res.status(404).json({ error: 'Allocation not found' });
+            return;
+        }
+
+        if (allocation.userId !== userId) {
+            res.status(403).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const result = await meteringService.resumeMetering(allocationId);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Metering resumed. Billing continues per-second.',
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error,
+            });
+        }
+    } catch (error) {
+        console.error('Error resuming metering:', error);
+        res.status(500).json({ error: 'Failed to resume metering' });
+    }
+});
+
+/**
+ * POST /api/billing/resources/:allocationId/stop
+ * Stop metering and finalize billing
+ */
+router.post('/resources/:allocationId/stop', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { allocationId } = req.params;
+
+        const meteringService = getResourceMeteringService();
+        const allocation = meteringService.getAllocation(allocationId);
+
+        if (!allocation) {
+            res.status(404).json({ error: 'Allocation not found' });
+            return;
+        }
+
+        if (allocation.userId !== userId) {
+            res.status(403).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const report = await meteringService.stopMetering(allocationId);
+
+        if (report) {
+            res.json({
+                success: true,
+                report,
+                message: `Metering completed. Total: $${report.totalCostDollars} for ${report.totalMinutes} minutes.`,
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: 'Failed to generate usage report',
+            });
+        }
+    } catch (error) {
+        console.error('Error stopping metering:', error);
+        res.status(500).json({ error: 'Failed to stop metering' });
+    }
+});
+
+/**
+ * GET /api/billing/resources/:allocationId
+ * Get allocation details and current usage
+ */
+router.get('/resources/:allocationId', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { allocationId } = req.params;
+
+        const meteringService = getResourceMeteringService();
+        const allocation = meteringService.getAllocation(allocationId);
+
+        if (!allocation) {
+            res.status(404).json({ error: 'Allocation not found' });
+            return;
+        }
+
+        if (allocation.userId !== userId) {
+            res.status(403).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const currentUsage = meteringService.getCurrentUsage(allocationId);
+
+        res.json({
+            allocation,
+            currentUsage,
+        });
+    } catch (error) {
+        console.error('Error fetching allocation:', error);
+        res.status(500).json({ error: 'Failed to fetch allocation' });
+    }
+});
+
+/**
+ * GET /api/billing/resources/build/:buildId
+ * Get all allocations for a build
+ */
+router.get('/resources/build/:buildId', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { buildId } = req.params;
+
+        const meteringService = getResourceMeteringService();
+        const allocations = meteringService.getAllocationsForBuild(buildId);
+
+        // Filter to only user's allocations
+        const userAllocations = allocations.filter(a => a.userId === userId);
+
+        res.json({
+            buildId,
+            allocations: userAllocations,
+            summary: {
+                total: userAllocations.length,
+                pending: userAllocations.filter(a => a.status === 'pending_approval').length,
+                active: userAllocations.filter(a => a.status === 'active').length,
+                completed: userAllocations.filter(a => a.status === 'completed').length,
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching build allocations:', error);
+        res.status(500).json({ error: 'Failed to fetch allocations' });
+    }
+});
+
+/**
+ * GET /api/billing/resources/active
+ * Get all active allocations for the user
+ */
+router.get('/resources/active', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+
+        const meteringService = getResourceMeteringService();
+        const totalUsage = meteringService.getTotalActiveUsage(userId);
+        const activeAllocations = meteringService.getAllocationsForUser(userId)
+            .filter(a => a.status === 'active')
+            .map(a => ({
+                ...a,
+                currentUsage: meteringService.getCurrentUsage(a.id),
+            }));
+
+        res.json({
+            summary: totalUsage,
+            allocations: activeAllocations,
+        });
+    } catch (error) {
+        console.error('Error fetching active allocations:', error);
+        res.status(500).json({ error: 'Failed to fetch active allocations' });
+    }
+});
+
 export default router;
