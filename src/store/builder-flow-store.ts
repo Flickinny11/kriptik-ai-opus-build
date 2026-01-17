@@ -25,13 +25,15 @@ import type { ResourceRecommendation } from '../components/builder/resources/Res
 
 export type BuilderFlowPhase =
     | 'idle'
-    | 'plan_review'
-    | 'dependency_connect'
-    | 'dependency_install'
-    | 'resource_approval'
-    | 'build'
-    | 'deployment'
-    | 'complete'
+    | 'plan_generation'      // NEW: Generate implementation plan from prompt
+    | 'plan_review'          // Review/modify generated plan
+    | 'intent_lock'          // NEW: Lock intent and create sacred contract
+    | 'dependency_connect'   // Connect required integrations
+    | 'dependency_install'   // Install dependencies (streaming)
+    | 'resource_approval'    // Approve GPU/cloud resources
+    | 'build'                // Execute the build
+    | 'deployment'           // Deploy model (if applicable)
+    | 'complete'             // Build complete
     | 'error';
 
 export interface BuilderFlowState {
@@ -41,8 +43,16 @@ export interface BuilderFlowState {
     currentPhase: BuilderFlowPhase;
     error: string | null;
 
-    // Plan state
+    // Plan generation state
+    userPrompt: string | null;
+    planGenerating: boolean;
+    planGenerated: boolean;
+
+    // Plan review state
     planApproved: boolean;
+
+    // Intent lock state
+    intentLocked: boolean;
 
     // Dependency connection state
     dependencies: DependencyData[];
@@ -79,13 +89,21 @@ export interface BuilderFlowState {
 interface BuilderFlowActions {
     // Flow control
     initializeBuild: (buildId: string, projectId: string) => void;
+    startPlanGeneration: (prompt: string) => void;
     setPhase: (phase: BuilderFlowPhase) => void;
     nextPhase: () => void;
     setError: (error: string | null) => void;
     reset: () => void;
 
+    // Plan generation actions
+    setPlanGenerating: (generating: boolean) => void;
+    completePlanGeneration: () => void;
+
     // Plan actions
     approvePlan: () => void;
+
+    // Intent lock actions
+    lockIntent: () => void;
 
     // Dependency connection actions
     setDependencies: (dependencies: DependencyData[]) => void;
@@ -132,7 +150,13 @@ const initialState: BuilderFlowState = {
     currentPhase: 'idle',
     error: null,
 
+    userPrompt: null,
+    planGenerating: false,
+    planGenerated: false,
+
     planApproved: false,
+
+    intentLocked: false,
 
     dependencies: [],
     connectedDependencies: new Set(),
@@ -163,12 +187,14 @@ const initialState: BuilderFlowState = {
 
 const PHASE_ORDER: BuilderFlowPhase[] = [
     'idle',
-    'plan_review',
-    'dependency_connect',
-    'dependency_install',
-    'resource_approval',
-    'build',
-    'deployment',
+    'plan_generation',     // Generate implementation plan from prompt
+    'plan_review',         // User reviews and modifies plan
+    'intent_lock',         // Lock intent and extract dependencies
+    'dependency_connect',  // Connect required integrations
+    'dependency_install',  // Install dependencies
+    'resource_approval',   // Approve GPU resources if needed
+    'build',               // Execute the build
+    'deployment',          // Deploy model if applicable
     'complete',
 ];
 
@@ -207,10 +233,19 @@ export const useBuilderFlowStore = create<BuilderFlowStore>()(
                     ...initialState,
                     buildId,
                     projectId,
-                    currentPhase: 'plan_review',
+                    currentPhase: 'idle',
                     phaseStartTime: Date.now(),
                     buildStartTime: Date.now(),
                 }, false, { type: 'builderFlow/initializeBuild' });
+            },
+
+            startPlanGeneration: (prompt) => {
+                set({
+                    userPrompt: prompt,
+                    currentPhase: 'plan_generation',
+                    planGenerating: true,
+                    phaseStartTime: Date.now(),
+                }, false, { type: 'builderFlow/startPlanGeneration' });
             },
 
             setPhase: (phase) => {
@@ -246,9 +281,32 @@ export const useBuilderFlowStore = create<BuilderFlowStore>()(
                 set(initialState, false, { type: 'builderFlow/reset' });
             },
 
+            // Plan generation actions
+            setPlanGenerating: (generating) => {
+                set({ planGenerating: generating }, false, { type: 'builderFlow/setPlanGenerating' });
+            },
+
+            completePlanGeneration: () => {
+                set({
+                    planGenerating: false,
+                    planGenerated: true,
+                    currentPhase: 'plan_review',
+                    phaseStartTime: Date.now(),
+                }, false, { type: 'builderFlow/completePlanGeneration' });
+            },
+
             // Plan actions
             approvePlan: () => {
                 set({ planApproved: true }, false, { type: 'builderFlow/approvePlan' });
+            },
+
+            // Intent lock actions
+            lockIntent: () => {
+                set({
+                    intentLocked: true,
+                    currentPhase: 'dependency_connect',
+                    phaseStartTime: Date.now(),
+                }, false, { type: 'builderFlow/lockIntent' });
             },
 
             // Dependency connection actions
@@ -353,9 +411,13 @@ export const useBuilderFlowStore = create<BuilderFlowStore>()(
                 const state = get();
                 switch (state.currentPhase) {
                     case 'idle':
-                        return !!state.buildId;
+                        return !!state.buildId && !!state.userPrompt;
+                    case 'plan_generation':
+                        return state.planGenerated && !state.planGenerating;
                     case 'plan_review':
                         return state.planApproved;
+                    case 'intent_lock':
+                        return state.intentLocked;
                     case 'dependency_connect':
                         // Can proceed if all dependencies are connected or user manually completed
                         return state.dependencyConnectionComplete ||

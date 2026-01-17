@@ -136,7 +136,7 @@ const ProviderBadge: React.FC<{ provider: string }> = ({ provider }) => {
 
 const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
     const getColor = () => {
-        if (score >= 120) return { bg: 'rgba(120, 255, 150, 0.2)', text: 'rgba(120, 255, 150, 0.95)' };
+        if (score >= 120) return { bg: 'rgba(245, 166, 35, 0.25)', text: 'rgba(255, 184, 77, 0.95)' };
         if (score >= 100) return { bg: 'rgba(255, 200, 100, 0.2)', text: 'rgba(255, 200, 100, 0.95)' };
         return { bg: 'rgba(255, 255, 255, 0.1)', text: 'rgba(255, 255, 255, 0.7)' };
     };
@@ -279,7 +279,7 @@ export const ResourceApprovalView: React.FC<ResourceApprovalViewProps> = ({
                         <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px' }}>
                             Available Options
                         </div>
-                        <div style={{ fontSize: '20px', fontWeight: 600, color: 'rgba(120, 255, 150, 0.95)' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 600, color: 'rgba(255, 184, 77, 0.95)' }}>
                             {recommendations.length}
                         </div>
                     </div>
@@ -333,8 +333,8 @@ export const ResourceApprovalView: React.FC<ResourceApprovalViewProps> = ({
                                                 fontSize: '10px',
                                                 fontWeight: 600,
                                                 textTransform: 'uppercase',
-                                                background: 'linear-gradient(135deg, rgba(120, 255, 150, 0.9), rgba(100, 220, 130, 0.95))',
-                                                color: 'rgba(0, 0, 0, 0.9)',
+                                                background: 'linear-gradient(135deg, rgba(245, 166, 35, 0.95), rgba(232, 139, 16, 0.95))',
+                                                color: 'rgba(255, 255, 255, 0.95)',
                                                 borderRadius: '4px',
                                             }}>
                                                 Best Match
@@ -360,7 +360,7 @@ export const ResourceApprovalView: React.FC<ResourceApprovalViewProps> = ({
                                             <span style={{
                                                 fontSize: '14px',
                                                 color: rec.resource.availableCount > 5
-                                                    ? 'rgba(120, 255, 150, 0.9)'
+                                                    ? 'rgba(255, 184, 77, 0.95)'
                                                     : 'rgba(255, 200, 100, 0.9)',
                                             }}>
                                                 {rec.resource.availableCount} units
@@ -400,7 +400,7 @@ export const ResourceApprovalView: React.FC<ResourceApprovalViewProps> = ({
                                     {rec.resource.spotAvailable && rec.resource.spotPrice && (
                                         <div style={{
                                             fontSize: '12px',
-                                            color: 'rgba(120, 255, 150, 0.8)',
+                                            color: 'rgba(255, 184, 77, 0.85)',
                                             marginTop: '4px',
                                         }}>
                                             Spot: ${rec.resource.spotPrice.toFixed(2)}/hr
@@ -457,19 +457,19 @@ export const ResourceApprovalView: React.FC<ResourceApprovalViewProps> = ({
                         fontSize: '15px',
                         fontWeight: 600,
                         background: selectedResource
-                            ? 'linear-gradient(135deg, rgba(120, 255, 150, 0.9) 0%, rgba(100, 220, 130, 0.95) 100%)'
+                            ? 'linear-gradient(135deg, rgba(245, 166, 35, 0.95) 0%, rgba(232, 139, 16, 0.95) 100%)'
                             : 'rgba(255, 255, 255, 0.1)',
                         border: 'none',
                         borderRadius: '12px',
-                        color: selectedResource ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.4)',
+                        color: selectedResource ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.4)',
                         cursor: selectedResource ? 'pointer' : 'default',
                         boxShadow: selectedResource
-                            ? '0 8px 32px rgba(120, 255, 150, 0.3), 0 0 40px rgba(120, 255, 150, 0.15)'
+                            ? '0 8px 32px rgba(245, 166, 35, 0.35), 0 0 40px rgba(232, 139, 16, 0.2)'
                             : 'none',
                     }}
                     whileHover={selectedResource ? {
                         scale: 1.02,
-                        boxShadow: '0 12px 40px rgba(120, 255, 150, 0.4), 0 0 60px rgba(120, 255, 150, 0.2)',
+                        boxShadow: '0 12px 40px rgba(245, 166, 35, 0.45), 0 0 60px rgba(232, 139, 16, 0.25)',
                     } : {}}
                     whileTap={selectedResource ? { scale: 0.98 } : {}}
                     onClick={handleApprove}
