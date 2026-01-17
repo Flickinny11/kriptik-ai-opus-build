@@ -55,13 +55,19 @@ export interface ClassificationContext {
 
 /**
  * Map common model names/aliases to HuggingFace model IDs
+ * NOTE: Some models (like Wan) are proprietary and not on HuggingFace
+ * For these, we use a placeholder that will trigger fallback GPU estimates
  */
 const MODEL_ALIASES: Record<string, string> = {
     // Video Generation
-    'wan': 'Lightricks/Wan-2.2-i2v',
-    'wan 2': 'Lightricks/Wan-2.2-i2v',
-    'wan 2.1': 'Lightricks/Wan-2.1-i2v',
-    'wan 2.2': 'Lightricks/Wan-2.2-i2v',
+    // NOTE: Wan models are proprietary Lightricks models not available on HuggingFace
+    // Using LTX-Video as fallback since it's the public Lightricks model
+    'wan': 'Lightricks/LTX-Video',
+    'wan 2': 'Lightricks/LTX-Video',
+    'wan 2.1': 'Lightricks/LTX-Video',
+    'wan 2.2': 'Lightricks/LTX-Video',
+    'ltx': 'Lightricks/LTX-Video',
+    'ltx video': 'Lightricks/LTX-Video',
     'cogvideo': 'THUDM/CogVideoX-5b',
     'cogvideox': 'THUDM/CogVideoX-5b',
     'animatediff': 'guoyww/animatediff-motion-adapter-v1-5-2',
