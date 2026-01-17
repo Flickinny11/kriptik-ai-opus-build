@@ -15,6 +15,8 @@
 
 import { EventEmitter } from 'events';
 
+import { EmbeddingService } from '../embeddings/embedding-service-impl.js';
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -148,9 +150,11 @@ export class VLJEPAFeedbackLoop extends EventEmitter {
         avgSatisfaction: number;
         avgTtft: number;
     }> = new Map();
+    private embeddingService: EmbeddingService;
 
     constructor() {
         super();
+        this.embeddingService = new EmbeddingService();
     }
 
     /**
@@ -369,31 +373,25 @@ export class VLJEPAFeedbackLoop extends EventEmitter {
     }
 
     /**
-     * Generate embedding for intent (simplified).
-     * In production, this would use the actual SemanticIntentService.
+     * Generate embedding for intent using real embedding service.
+     * Uses BGE-M3 (1024-dim) for semantic understanding of intents.
      */
     private async getIntentEmbedding(intent: string): Promise<number[]> {
-        // Simplified embedding using character codes and word hashing
-        // In production, use actual embedding service
-        const words = intent.toLowerCase().split(/\s+/);
-        const embedding: number[] = new Array(128).fill(0);
+        try {
+            const result = await this.embeddingService.embed({
+                content: intent,
+                type: 'intent', // Intent embeddings use BGE-M3 (1024 dims)
+            });
 
-        for (let i = 0; i < words.length; i++) {
-            const word = words[i];
-            const hash = this.hashString(word);
-            const idx = hash % embedding.length;
-            embedding[idx] += 1 / (i + 1); // Weight by position
-        }
-
-        // Normalize
-        const norm = Math.sqrt(embedding.reduce((sum, v) => sum + v * v, 0));
-        if (norm > 0) {
-            for (let i = 0; i < embedding.length; i++) {
-                embedding[i] /= norm;
+            if (result.embeddings.length > 0) {
+                return result.embeddings[0];
             }
+        } catch (error) {
+            console.error('[VLJEPAFeedbackLoop] Embedding failed:', error);
         }
 
-        return embedding;
+        // Fallback: Return zero vector with correct dimensions (1024 for BGE-M3)
+        return new Array(1024).fill(0);
     }
 
     /**

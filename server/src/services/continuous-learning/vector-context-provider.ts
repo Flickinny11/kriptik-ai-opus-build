@@ -9,6 +9,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import { LRUCache } from 'lru-cache';
 
+import { EmbeddingService } from '../embeddings/embedding-service-impl.js';
+import type { EmbeddingType } from '../embeddings/embedding-service.js';
+
 import type {
   TaskDescription,
   ContextConfig,
@@ -66,10 +69,12 @@ export class VectorContextProvider {
   private qdrantClient: QdrantClientWrapper;
   private queryCache: LRUCache<string, SearchResult[]>;
   private embeddingCache: LRUCache<string, number[]>;
+  private embeddingService: EmbeddingService;
 
   constructor(config?: Partial<VectorContextConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.qdrantClient = getQdrantClient();
+    this.embeddingService = new EmbeddingService();
 
     this.queryCache = new LRUCache<string, SearchResult[]>({
       max: this.config.maxCacheSize,
@@ -447,31 +452,36 @@ export class VectorContextProvider {
   }
 
   /**
-   * Generate embedding for text
+   * Generate embedding for text using real embedding service
+   * Uses BGE-M3 (1024-dim) for semantic understanding
    */
-  private async generateEmbedding(text: string): Promise<number[]> {
-    const cacheKey = text.slice(0, 100);
+  private async generateEmbedding(text: string, type: EmbeddingType = 'reasoning'): Promise<number[]> {
+    const cacheKey = `${type}:${text.slice(0, 100)}`;
     const cached = this.embeddingCache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
-    // Simple hash-based embedding (in production, use actual embedding service)
-    const hash = text.split('').reduce((acc, char) => {
-      return ((acc << 5) - acc) + char.charCodeAt(0);
-    }, 0);
+    try {
+      const result = await this.embeddingService.embed({
+        content: text,
+        type: type,
+      });
 
-    const embedding: number[] = [];
-    for (let i = 0; i < 384; i++) {
-      embedding.push(Math.sin(hash * (i + 1)) * Math.cos(hash / (i + 1)));
+      if (result.embeddings.length > 0) {
+        this.embeddingCache.set(cacheKey, result.embeddings[0]);
+        return result.embeddings[0];
+      }
+    } catch (error) {
+      console.error('[VectorContextProvider] Embedding failed, using fallback:', error);
     }
 
-    // Normalize
-    const magnitude = Math.sqrt(embedding.reduce((sum, v) => sum + v * v, 0));
-    const normalized = embedding.map(v => v / magnitude);
-
-    this.embeddingCache.set(cacheKey, normalized);
-    return normalized;
+    // Fallback: Return zero vector with correct dimensions for type
+    // BGE-M3 (reasoning, intent, error) = 1024 dims
+    // Voyage-code-3 (code) = 1024 dims
+    // SigLIP-2 (visual) = 768 dims
+    const dims = type === 'visual' ? 768 : 1024;
+    return new Array(dims).fill(0);
   }
 
   /**

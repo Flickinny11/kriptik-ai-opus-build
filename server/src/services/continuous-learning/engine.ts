@@ -45,6 +45,7 @@ import type {
 // Import existing services
 import { getUsageService, UsageService } from '../billing/usage-service.js';
 import { getQdrantClient, QdrantClientWrapper } from '../embeddings/qdrant-client.js';
+import { EmbeddingService } from '../embeddings/embedding-service-impl.js';
 import { getHyperThinkingOrchestrator, HyperThinkingOrchestrator } from '../hyper-thinking/orchestrator.js';
 import { getEvolutionFlywheel, EvolutionFlywheel } from '../learning/evolution-flywheel.js';
 import { getShadowModelRegistry, ShadowModelRegistry } from '../learning/shadow-model-registry.js';
@@ -62,6 +63,7 @@ export class ContinuousLearningEngine extends EventEmitter {
   // Service references
   private usageService: UsageService;
   private qdrantClient: QdrantClientWrapper;
+  private embeddingService: EmbeddingService;
   private hyperThinking: HyperThinkingOrchestrator;
   private evolutionFlywheel: EvolutionFlywheel;
   private shadowRegistry: ShadowModelRegistry;
@@ -105,6 +107,7 @@ export class ContinuousLearningEngine extends EventEmitter {
     // Initialize service references
     this.usageService = getUsageService();
     this.qdrantClient = getQdrantClient();
+    this.embeddingService = new EmbeddingService();
     this.hyperThinking = getHyperThinkingOrchestrator();
     this.evolutionFlywheel = getEvolutionFlywheel();
     this.shadowRegistry = getShadowModelRegistry();
@@ -581,21 +584,25 @@ export class ContinuousLearningEngine extends EventEmitter {
   }
 
   /**
-   * Generate embedding for a task description
+   * Generate embedding for a task description using real embedding service
+   * Uses BGE-M3 (1024-dim) for semantic understanding of tasks
    */
   private async generateTaskEmbedding(task: string): Promise<number[]> {
-    // Use a simple hash-based embedding for now
-    // In production, this would use the embedding service
-    const hash = task.split('').reduce((acc, char) => {
-      return ((acc << 5) - acc) + char.charCodeAt(0);
-    }, 0);
+    try {
+      const result = await this.embeddingService.embed({
+        content: task,
+        type: 'reasoning', // Tasks are reasoning-type embeddings using BGE-M3
+      });
 
-    // Generate a 384-dim vector (standard embedding size)
-    const embedding: number[] = [];
-    for (let i = 0; i < 384; i++) {
-      embedding.push(Math.sin(hash * (i + 1)) * Math.cos(hash / (i + 1)));
+      if (result.embeddings.length > 0) {
+        return result.embeddings[0];
+      }
+    } catch (error) {
+      console.error('[ContinuousLearningEngine] Embedding failed:', error);
     }
-    return embedding;
+
+    // Fallback: Return zero vector with correct dimensions (1024 for BGE-M3)
+    return new Array(1024).fill(0);
   }
 
   /**
