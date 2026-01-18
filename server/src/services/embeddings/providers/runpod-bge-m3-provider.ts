@@ -35,18 +35,32 @@ const RUNPOD_ENDPOINT_URL = process.env.RUNPOD_URL_BGE_M3 ||
 
 // Fallback to HuggingFace if RunPod not configured
 const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
-const HUGGINGFACE_API_URL = 'https://router.huggingface.co/hf-inference/pipeline/feature-extraction';
+// New HuggingFace Inference Providers URL format (2025+)
+const HUGGINGFACE_API_URL = 'https://router.huggingface.co/hf-inference/models';
+
+// Response format for infinity-embedding worker
+interface InfinityEmbeddingData {
+  object: string;
+  embedding: number[];
+  index: number;
+}
+
+interface InfinityEmbeddingOutput {
+  object?: string;
+  model?: string;
+  data?: InfinityEmbeddingData[];
+  usage?: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
+  error?: string;
+  traceback?: string;
+}
 
 interface RunPodResponse {
   id?: string;
   status?: string;
-  output?: {
-    embeddings?: number[][];
-    dimensions?: number;
-    tokens_used?: number;
-    error?: string;
-    traceback?: string;
-  };
+  output?: InfinityEmbeddingOutput;
   error?: string;
 }
 
@@ -96,7 +110,7 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
   }
 
   /**
-   * Generate embeddings via RunPod Serverless
+   * Generate embeddings via RunPod Serverless (infinity-embedding worker)
    */
   private async embedViaRunPod(
     texts: string[],
@@ -107,6 +121,7 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
 
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
+        // Use infinity-embedding API format
         const response = await fetch(RUNPOD_ENDPOINT_URL, {
           method: 'POST',
           headers: {
@@ -115,12 +130,8 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
           },
           body: JSON.stringify({
             input: {
-              texts,
-              options: {
-                return_dense: true,
-                return_sparse: false,
-                max_length: this.maxTokens,
-              },
+              model: 'BAAI/bge-m3',
+              input: texts,
             },
           }),
         });
@@ -142,16 +153,24 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
           throw new Error(`Handler error: ${data.output.error}`);
         }
 
-        // Extract embeddings
-        const embeddings = data.output?.embeddings;
-        if (!embeddings || embeddings.length === 0) {
+        // Extract embeddings from infinity-embedding response format
+        const embeddingData = data.output?.data;
+        if (!embeddingData || embeddingData.length === 0) {
           throw new Error('No embeddings returned from RunPod');
         }
 
+        // Sort by index and extract embeddings
+        const sortedData = [...embeddingData].sort((a, b) => a.index - b.index);
+        const embeddings = sortedData.map(d => d.embedding);
+
+        // Get token count from usage if available
+        const tokensUsed = data.output?.usage?.total_tokens ||
+          texts.reduce((sum, t) => sum + Math.ceil(t.length / 4), 0);
+
         return {
           embeddings,
-          tokensUsed: data.output?.tokens_used || texts.reduce((sum, t) => sum + Math.ceil(t.length / 4), 0),
-          dimensions: data.output?.dimensions || this.defaultDimensions,
+          tokensUsed,
+          dimensions: embeddings[0]?.length || this.defaultDimensions,
           latencyMs: Date.now() - startTime,
         };
 
@@ -177,18 +196,15 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
 
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
-        const response = await fetch(`${HUGGINGFACE_API_URL}/${CONFIG.modelId}`, {
+        // New HuggingFace Inference Providers URL format: /models/{model}/pipeline/feature-extraction
+        const response = await fetch(`${HUGGINGFACE_API_URL}/${CONFIG.modelId}/pipeline/feature-extraction`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            inputs: texts,
-            options: {
-              wait_for_model: true,
-              use_cache: true,
-            },
+            inputs: texts.length === 1 ? texts[0] : texts,
           }),
         });
 
