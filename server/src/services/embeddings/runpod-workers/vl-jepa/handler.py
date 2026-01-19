@@ -1,16 +1,19 @@
 """
-VL-JEPA RunPod Serverless Handler
+VL-JEPA / Intent Understanding RunPod Serverless Handler
 
-This handler loads the VL-JEPA model for vision-language joint embeddings
-and predictive architecture processing.
+This handler provides intent understanding and vision-language embeddings.
+Uses SigLIP for both text and image embeddings (supports all input types).
 
-Model: facebook/vl-jepa (1.6B parameters)
-Dimensions: 1024
+Primary Model: google/siglip-so400m-patch14-384 (SigLIP)
+Fallback: openai/clip-vit-large-patch14-336 (CLIP)
+Dimensions: 1024 (normalized output)
+
+Note: V-JEPA 2 is video-only and doesn't support text input.
+For now, SigLIP handles all modalities (text, image, text+image).
 """
 
 import runpod
 import torch
-from transformers import AutoProcessor, AutoModel
 from PIL import Image
 import base64
 import io
@@ -20,39 +23,48 @@ import numpy as np
 # Global model instances
 model = None
 processor = None
+model_type = None  # 'siglip' or 'clip'
 
-# Model configuration - VL-JEPA released Dec 2025
-# Using the official Meta/Facebook model
-MODEL_ID = "facebook/vl-jepa"
+# Model configuration
+SIGLIP_MODEL_ID = "google/siglip-so400m-patch14-384"
+CLIP_MODEL_ID = "openai/clip-vit-large-patch14-336"
 DIMENSIONS = 1024
 
 def load_model():
-    """Load VL-JEPA model at startup"""
-    global model, processor
+    """Load SigLIP model at startup with CLIP fallback"""
+    global model, processor, model_type
 
     if model is None:
-        print(f"[VL-JEPA] Loading model {MODEL_ID}...")
-
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        # Try SigLIP first (supports both text and image)
         try:
-            # Try loading VL-JEPA from HuggingFace
-            processor = AutoProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
-            model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
+            print(f"[Intent] Attempting to load {SIGLIP_MODEL_ID}...")
+            from transformers import AutoProcessor, AutoModel
+            processor = AutoProcessor.from_pretrained(SIGLIP_MODEL_ID)
+            model = AutoModel.from_pretrained(SIGLIP_MODEL_ID)
             model = model.to(device)
             model.eval()
-            print(f"[VL-JEPA] Model loaded on {device}")
+            model_type = 'siglip'
+            print(f"[Intent] SigLIP model loaded on {device}")
+            return model, processor
         except Exception as e:
-            print(f"[VL-JEPA] Failed to load from HuggingFace: {e}")
-            # Fallback: Use a compatible vision-language model
-            # VL-JEPA is based on I-JEPA architecture
+            print(f"[Intent] Failed to load SigLIP: {e}")
+
+        # Fallback to CLIP
+        try:
+            print(f"[Intent] Attempting fallback to {CLIP_MODEL_ID}...")
             from transformers import CLIPProcessor, CLIPModel
-            MODEL_ID_FALLBACK = "openai/clip-vit-large-patch14-336"
-            processor = CLIPProcessor.from_pretrained(MODEL_ID_FALLBACK)
-            model = CLIPModel.from_pretrained(MODEL_ID_FALLBACK)
+            processor = CLIPProcessor.from_pretrained(CLIP_MODEL_ID)
+            model = CLIPModel.from_pretrained(CLIP_MODEL_ID)
             model = model.to(device)
             model.eval()
-            print(f"[VL-JEPA] Using fallback model {MODEL_ID_FALLBACK} on {device}")
+            model_type = 'clip'
+            print(f"[Intent] Using CLIP fallback on {device}")
+            return model, processor
+        except Exception as e:
+            print(f"[Intent] All model loading attempts failed: {e}")
+            raise RuntimeError(f"Failed to load any model: {e}")
 
     return model, processor
 
@@ -125,8 +137,12 @@ def handler(job):
         m, proc = load_model()
         device = next(m.parameters()).device
 
+        # Determine which model we're using for response
+        actual_model = SIGLIP_MODEL_ID if model_type == 'siglip' else CLIP_MODEL_ID
+
         result = {
-            "model": MODEL_ID,
+            "model": actual_model,
+            "model_type": model_type,
             "dimensions": DIMENSIONS
         }
 
@@ -293,9 +309,9 @@ def handler(job):
         }
 
 # Cold start - preload model
-print("[VL-JEPA] Starting cold boot...")
+print("[Intent] Starting cold boot...")
 load_model()
-print("[VL-JEPA] Ready to serve requests")
+print("[Intent] Ready to serve requests")
 
 # Start RunPod handler
 runpod.serverless.start({"handler": handler})

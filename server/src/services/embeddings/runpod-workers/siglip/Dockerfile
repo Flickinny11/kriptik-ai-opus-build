@@ -1,21 +1,26 @@
 # SigLIP 2 RunPod Serverless Worker
 # Model: google/siglip-so400m-patch14-384 (400M parameters, 1152-dim embeddings)
+# Requires PyTorch 2.6+ due to CVE-2025-32434 (torch.load security fix)
 
-FROM runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04
+FROM runpod/pytorch:2.8.0-py3.11-cuda12.8.1-cudnn-devel-ubuntu22.04
 
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (torch already in base image)
+# Pin runpod to 1.7.10 - versions 1.7.11+ have a bug that routes all requests to same worker
 RUN pip install --no-cache-dir \
-    runpod \
-    transformers>=4.35.0 \
-    torch>=2.1.0 \
+    runpod==1.7.10 \
+    transformers>=4.40.0 \
     pillow \
     requests \
-    huggingface_hub
+    huggingface_hub \
+    accelerate \
+    sentencepiece \
+    protobuf
 
-# Download model during build (faster cold starts)
-RUN python -c "from transformers import AutoProcessor, AutoModel; AutoProcessor.from_pretrained('google/siglip-so400m-patch14-384'); AutoModel.from_pretrained('google/siglip-so400m-patch14-384')"
+# Model downloads at runtime on first request (avoids build timeout issues)
+# For faster cold starts, uncomment below once build infrastructure is stable:
+# RUN python -c "from transformers import AutoProcessor, AutoModel; AutoProcessor.from_pretrained('google/siglip-so400m-patch14-384'); AutoModel.from_pretrained('google/siglip-so400m-patch14-384')"
 
 # Copy handler
 COPY handler.py /app/handler.py
