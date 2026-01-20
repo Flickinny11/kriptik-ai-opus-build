@@ -15,6 +15,11 @@ from PIL import Image
 import base64
 import io
 import requests as http_requests
+import os
+
+# Force safetensors loading to bypass CVE-2025-32434 torch.load restriction
+os.environ["SAFETENSORS_FAST_GPU"] = "1"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 
 # Global model instances
 model = None
@@ -25,21 +30,21 @@ MODEL_ID = "google/siglip-so400m-patch14-384"
 DIMENSIONS = 1152
 
 def load_model():
-    """Load SigLIP model at startup"""
+    """Load SigLIP model at startup with safetensors to bypass CVE-2025-32434"""
     global model, processor
 
     if model is None:
-        print(f"[SigLIP] Loading model {MODEL_ID}...")
+        print(f"[SigLIP] Loading model {MODEL_ID} with safetensors...")
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # Load processor and model
+        # Load processor and model with safetensors to bypass torch.load CVE
         processor = AutoProcessor.from_pretrained(MODEL_ID)
-        model = AutoModel.from_pretrained(MODEL_ID)
+        model = AutoModel.from_pretrained(MODEL_ID, use_safetensors=True)
         model = model.to(device)
         model.eval()
 
-        print(f"[SigLIP] Model loaded on {device}")
+        print(f"[SigLIP] Model loaded (safetensors) on {device}")
 
     return model, processor
 

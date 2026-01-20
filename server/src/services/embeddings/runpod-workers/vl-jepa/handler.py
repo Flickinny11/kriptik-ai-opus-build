@@ -19,6 +19,11 @@ import base64
 import io
 import requests as http_requests
 import numpy as np
+import os
+
+# Force safetensors loading to bypass CVE-2025-32434 torch.load restriction
+os.environ["SAFETENSORS_FAST_GPU"] = "1"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 
 # Global model instances
 model = None
@@ -39,28 +44,30 @@ def load_model():
 
         # Try SigLIP first (supports both text and image)
         try:
-            print(f"[Intent] Attempting to load {SIGLIP_MODEL_ID}...")
+            print(f"[Intent] Attempting to load {SIGLIP_MODEL_ID} with safetensors...")
             from transformers import AutoProcessor, AutoModel
             processor = AutoProcessor.from_pretrained(SIGLIP_MODEL_ID)
-            model = AutoModel.from_pretrained(SIGLIP_MODEL_ID)
+            # Force safetensors loading to bypass CVE-2025-32434
+            model = AutoModel.from_pretrained(SIGLIP_MODEL_ID, use_safetensors=True)
             model = model.to(device)
             model.eval()
             model_type = 'siglip'
-            print(f"[Intent] SigLIP model loaded on {device}")
+            print(f"[Intent] SigLIP model loaded (safetensors) on {device}")
             return model, processor
         except Exception as e:
             print(f"[Intent] Failed to load SigLIP: {e}")
 
         # Fallback to CLIP
         try:
-            print(f"[Intent] Attempting fallback to {CLIP_MODEL_ID}...")
+            print(f"[Intent] Attempting fallback to {CLIP_MODEL_ID} with safetensors...")
             from transformers import CLIPProcessor, CLIPModel
             processor = CLIPProcessor.from_pretrained(CLIP_MODEL_ID)
-            model = CLIPModel.from_pretrained(CLIP_MODEL_ID)
+            # Force safetensors loading to bypass CVE-2025-32434
+            model = CLIPModel.from_pretrained(CLIP_MODEL_ID, use_safetensors=True)
             model = model.to(device)
             model.eval()
             model_type = 'clip'
-            print(f"[Intent] Using CLIP fallback on {device}")
+            print(f"[Intent] Using CLIP fallback (safetensors) on {device}")
             return model, processor
         except Exception as e:
             print(f"[Intent] All model loading attempts failed: {e}")

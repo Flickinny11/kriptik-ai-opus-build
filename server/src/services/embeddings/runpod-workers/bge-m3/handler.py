@@ -13,6 +13,10 @@ import runpod
 import torch
 import os
 
+# Force safetensors loading to bypass CVE-2025-32434 torch.load restriction
+os.environ["SAFETENSORS_FAST_GPU"] = "1"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+
 # Global model instance (loaded once at cold start)
 model = None
 model_type = None  # 'flagembedding' or 'sentence_transformers'
@@ -50,17 +54,18 @@ def load_model():
         except Exception as e:
             print(f"[BGE-M3] sentence-transformers failed: {e}")
 
-        # Final fallback to transformers AutoModel
+        # Final fallback to transformers AutoModel with safetensors
         try:
-            print("[BGE-M3] Attempting final fallback to transformers AutoModel...")
+            print("[BGE-M3] Attempting final fallback to transformers AutoModel with safetensors...")
             from transformers import AutoTokenizer, AutoModel
             global tokenizer
             tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-m3")
-            model = AutoModel.from_pretrained("BAAI/bge-m3")
+            # Force safetensors loading to bypass CVE-2025-32434
+            model = AutoModel.from_pretrained("BAAI/bge-m3", use_safetensors=True)
             model = model.to(device)
             model.eval()
             model_type = 'transformers'
-            print(f"[BGE-M3] Model loaded with transformers on {device}")
+            print(f"[BGE-M3] Model loaded with transformers (safetensors) on {device}")
             return model
         except Exception as e:
             print(f"[BGE-M3] All model loading attempts failed: {e}")
