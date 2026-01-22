@@ -21,6 +21,10 @@ import {
 import {
   getTemporalExpectationsManager,
 } from '../services/visual-semantic/temporal-expectations.js';
+import {
+  getProactiveErrorPredictor,
+  type MonitoringConfig,
+} from '../services/visual-semantic/proactive-error-predictor.js';
 import { getVJEPA2Provider, type VisualIntentLock as VJEPA2IntentLock } from '../services/embeddings/providers/runpod-vjepa2-provider.js';
 import { RunPodVLJEPAProvider } from '../services/embeddings/providers/runpod-vl-jepa-provider.js';
 
@@ -663,6 +667,205 @@ router.post('/v-jepa2/embed-temporal', authMiddleware, async (req: Request, res:
 });
 
 // ============================================================================
+// Proactive Error Prediction Routes
+// ============================================================================
+
+/**
+ * POST /visual-semantic/monitoring/start
+ * Start a proactive error monitoring session
+ */
+router.post('/monitoring/start', authMiddleware, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const { projectId, config, intentLockId, expectationsId } = req.body;
+
+    if (!projectId) {
+      return res.status(400).json({ error: 'projectId is required' });
+    }
+
+    const predictor = getProactiveErrorPredictor();
+    const sessionId = await predictor.startSession(
+      projectId,
+      config as Partial<MonitoringConfig> | undefined,
+      intentLockId,
+      expectationsId
+    );
+
+    return res.json({
+      success: true,
+      sessionId,
+      message: 'Monitoring session started',
+    });
+  } catch (error) {
+    console.error('[VisualSemantic] Failed to start monitoring session:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to start monitoring',
+    });
+  }
+});
+
+/**
+ * POST /visual-semantic/monitoring/:sessionId/frame
+ * Process a frame and get error predictions
+ */
+router.post('/monitoring/:sessionId/frame', authMiddleware, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const { sessionId } = req.params;
+    const { screenshotBase64, metadata } = req.body;
+
+    if (!screenshotBase64) {
+      return res.status(400).json({ error: 'screenshotBase64 is required' });
+    }
+
+    const predictor = getProactiveErrorPredictor();
+    const result = await predictor.processFrame(sessionId, screenshotBase64, metadata);
+
+    return res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error('[VisualSemantic] Failed to process frame:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to process frame',
+    });
+  }
+});
+
+/**
+ * GET /visual-semantic/monitoring/:sessionId/status
+ * Get monitoring session status
+ */
+router.get('/monitoring/:sessionId/status', authMiddleware, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const { sessionId } = req.params;
+    const predictor = getProactiveErrorPredictor();
+    const status = predictor.getSessionStatus(sessionId);
+
+    if (!status) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    return res.json({
+      success: true,
+      ...status,
+    });
+  } catch (error) {
+    console.error('[VisualSemantic] Failed to get session status:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get status',
+    });
+  }
+});
+
+/**
+ * POST /visual-semantic/monitoring/:sessionId/pause
+ * Pause a monitoring session
+ */
+router.post('/monitoring/:sessionId/pause', authMiddleware, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const { sessionId } = req.params;
+    const predictor = getProactiveErrorPredictor();
+    predictor.pauseSession(sessionId);
+
+    return res.json({
+      success: true,
+      message: 'Session paused',
+    });
+  } catch (error) {
+    console.error('[VisualSemantic] Failed to pause session:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to pause session',
+    });
+  }
+});
+
+/**
+ * POST /visual-semantic/monitoring/:sessionId/resume
+ * Resume a paused monitoring session
+ */
+router.post('/monitoring/:sessionId/resume', authMiddleware, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const { sessionId } = req.params;
+    const predictor = getProactiveErrorPredictor();
+    predictor.resumeSession(sessionId);
+
+    return res.json({
+      success: true,
+      message: 'Session resumed',
+    });
+  } catch (error) {
+    console.error('[VisualSemantic] Failed to resume session:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to resume session',
+    });
+  }
+});
+
+/**
+ * POST /visual-semantic/monitoring/:sessionId/stop
+ * Stop a monitoring session
+ */
+router.post('/monitoring/:sessionId/stop', authMiddleware, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const { sessionId } = req.params;
+    const predictor = getProactiveErrorPredictor();
+    predictor.stopSession(sessionId);
+
+    return res.json({
+      success: true,
+      message: 'Session stopped',
+    });
+  } catch (error) {
+    console.error('[VisualSemantic] Failed to stop session:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to stop session',
+    });
+  }
+});
+
+// ============================================================================
 // Health Check
 // ============================================================================
 
@@ -674,6 +877,7 @@ router.get('/health', async (_req: Request, res: Response) => {
   try {
     const vjepa2Provider = getVJEPA2Provider();
     const vlJepaProvider = new RunPodVLJEPAProvider();
+    const _predictor = getProactiveErrorPredictor();
 
     return res.json({
       success: true,
@@ -681,6 +885,7 @@ router.get('/health', async (_req: Request, res: Response) => {
         hybridAnalysisEngine: true,
         visualIntentLockManager: true,
         temporalExpectationsManager: true,
+        proactiveErrorPredictor: true,
         vjepa2Provider: {
           configured: vjepa2Provider.isConfigured(),
         },

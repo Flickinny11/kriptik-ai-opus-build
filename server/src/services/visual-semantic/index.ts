@@ -45,3 +45,19 @@ export {
   type NextStatePrediction,
   type ErrorAnticipationResult,
 } from './temporal-expectations.js';
+
+// Proactive Error Prediction
+export {
+  ProactiveErrorPredictor,
+  getProactiveErrorPredictor,
+  resetProactiveErrorPredictor,
+  type PredictedError,
+  type PredictionSeverity,
+  type ErrorType,
+  type VisualIndicator,
+  type MonitoringSession,
+  type MonitoringConfig,
+  type FrameState,
+  type ErrorPredictionResult,
+  type Recommendation,
+} from './proactive-error-predictor.js';
