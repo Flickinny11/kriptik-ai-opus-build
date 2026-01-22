@@ -99,6 +99,41 @@ export {
 } from './orchestrator.js';
 
 // =============================================================================
+// V-JEPA 2 ENHANCED VERIFIERS (Phases 6-8)
+// =============================================================================
+
+export {
+    // Visual Semantic Verifier (Phase 6)
+    VisualSemanticVerifier,
+    getVisualSemanticVerifier,
+    createVisualSemanticVerifier,
+    resetVisualSemanticVerifier,
+    type VisualSemanticVerifierConfig,
+    type VisualSemanticResult,
+
+    // Temporal State Verifier (Phase 7)
+    TemporalStateVerifier,
+    getTemporalStateVerifier,
+    createTemporalStateVerifier,
+    resetTemporalStateVerifier,
+    type TemporalStateVerifierConfig,
+    type TemporalStateResult,
+
+    // Backend Implementation Verifier (Phase 8)
+    BackendImplementationVerifier,
+    getBackendVerifier,
+    createBackendVerifier,
+    resetBackendVerifier,
+    type BackendVerifierConfig,
+    type BackendVerificationResult,
+
+    // Common types
+    type VerificationSeverity,
+    type VerificationIssue,
+    type BaseVerificationResult,
+} from './vjepa2-verifiers.js';
+
+// =============================================================================
 // COMBINED TYPES
 // =============================================================================
 
