@@ -128,3 +128,31 @@ export {
     type GPUVerificationConfig,
     type CombinedGPUVerificationResult,
 } from './gpu-verification.js';
+
+// ============================================================================
+// VISUAL SEMANTIC JUDGING (V-JEPA 2 Enhanced)
+// ============================================================================
+
+// Multi-Agent Judge - Evaluates parallel agent outputs
+export {
+    MultiAgentJudgeService,
+    type AgentResult,
+    type JudgingCriteria,
+    type CriteriaScore,
+    type JudgmentResult,
+    type ConflictAnalysis,
+    type MergeStrategy,
+} from './multi-agent-judge.js';
+
+// Visual Semantic Judge - V-JEPA 2 enhanced visual comparison
+export {
+    VisualSemanticJudge,
+    getVisualSemanticJudge,
+    resetVisualSemanticJudge,
+    type VisualAgentResult,
+    type VisualJudgingCriteria,
+    type VisualCriteriaScore,
+    type VisualComparisonResult,
+    type CrossAgentVisualAnalysis,
+    type VisualJudgmentResult,
+} from './visual-semantic-judge.js';
