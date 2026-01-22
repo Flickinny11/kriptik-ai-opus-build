@@ -4,7 +4,56 @@
 
 ---
 
-## Current State (as of 2026-01-14)
+## Current State (as of 2026-01-20)
+
+### File Restructure - Separating Project Context from Operational Rules
+
+**Session Date**: 2026-01-20
+**Issue**: CLAUDE.md was mixing KripTik AI project documentation with Claude operational rules
+**Solution**: Created clear separation between project context and operational rules
+
+**Changes Made:**
+
+1. **Created `.claude/KRIPTIK-PROJECT-CONTEXT.md`** (NEW FILE)
+   - Contains ALL KripTik AI architecture and project-specific content
+   - Tech stack, database schema, API routes, Zustand stores
+   - Core architectural systems (Intent Lock, 6-Phase Build Loop, etc.)
+   - Two Operation Modes (Builder View vs Feature Agent)
+   - Visual design standards
+   - Feature status summary
+   - Existing components list
+
+2. **Restructured `CLAUDE.md`** (PURE OPERATIONAL RULES)
+   - Now contains ONLY how Claude should operate
+   - Knowledge currency mandate
+   - Session start/end protocols
+   - Browser integration tools
+   - Sacred rules (Never/Always)
+   - Self-verification protocol
+   - Autonomous operation protocol
+   - Memory system & agent handoff
+   - Anti-slop detection rules
+   - Enhanced capabilities (January 2026)
+   - Cursor 2.2 parity checklist
+
+3. **Updated capabilities for January 2026:**
+   - Claude Opus 4.5: 80.9% SWE-bench, effort parameter, compaction control
+   - Claude Code 2.1: Hooks system, hot reload skills, LSP tool, wildcard permissions
+   - Cursor 2.2 parity: Debug Mode, Shadow Workspace, 8 parallel agents
+
+**File Structure Now:**
+```
+CLAUDE.md                          → HOW Claude operates (rules, workflows)
+.claude/KRIPTIK-PROJECT-CONTEXT.md → WHAT KripTik AI is (architecture, features)
+.claude/rules/00-NEXT-SESSION-START-HERE.md → Quick start (auto-loaded)
+.claude/rules/01-session-context.md → Session history (this file)
+.claude/COMPREHENSIVE-STATUS-REPORT-2026-01-20.md → Latest codebase analysis
+.claude/ROADMAP-TO-COMPLETION.md   → Priority action items
+```
+
+---
+
+## Previous State (as of 2026-01-14)
 
 ### ✅ Social Login / Auth Fix Applied
 

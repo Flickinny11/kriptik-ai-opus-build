@@ -411,9 +411,14 @@ export class MCPPlatformClients extends EventEmitter {
         const credentials: Record<string, string> = {};
 
         try {
-            const stored = await vault.getCredentials(userId, platform);
-            if (stored) {
-                Object.assign(credentials, stored);
+            const credential = await vault.getCredential(userId, platform);
+            if (credential?.data) {
+                // Convert credential data to string records
+                for (const [key, value] of Object.entries(credential.data)) {
+                    if (typeof value === 'string') {
+                        credentials[key] = value;
+                    }
+                }
             }
         } catch (error) {
             console.warn(`[MCPPlatformClients] Could not load credentials for ${platform}:`, error);
@@ -439,7 +444,15 @@ export class MCPPlatformClients extends EventEmitter {
 
         for (const [platform, config] of Object.entries(PLATFORM_CONFIGS)) {
             try {
-                const stored = await vault.getCredentials(userId, platform) || {};
+                const credential = await vault.getCredential(userId, platform);
+                const stored: Record<string, string> = {};
+                if (credential?.data) {
+                    for (const [key, value] of Object.entries(credential.data)) {
+                        if (typeof value === 'string') {
+                            stored[key] = value;
+                        }
+                    }
+                }
                 const missingKeys = config.requiredCredentials.filter(key => !stored[key]);
 
                 results.push({

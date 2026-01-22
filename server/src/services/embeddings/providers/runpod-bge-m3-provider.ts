@@ -38,29 +38,28 @@ const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 // New HuggingFace Inference Providers URL format (2025+)
 const HUGGINGFACE_API_URL = 'https://router.huggingface.co/hf-inference/models';
 
-// Response format for infinity-embedding worker
+// Response format for infinity-embedding worker (OpenAI-compatible)
 interface InfinityEmbeddingData {
-  object: string;
   embedding: number[];
   index: number;
+  object?: string;
 }
 
-interface InfinityEmbeddingOutput {
-  object?: string;
-  model?: string;
+interface InfinityOutput {
   data?: InfinityEmbeddingData[];
+  model?: string;
+  object?: string;
   usage?: {
     prompt_tokens: number;
     total_tokens: number;
   };
   error?: string;
-  traceback?: string;
 }
 
 interface RunPodResponse {
   id?: string;
   status?: string;
-  output?: InfinityEmbeddingOutput;
+  output?: InfinityOutput;
   error?: string;
 }
 
@@ -87,26 +86,17 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
   }
 
   /**
-   * Generate embeddings for text inputs
+   * Generate embeddings for text inputs (RunPod only - no HuggingFace fallback)
    */
   async embed(texts: string[], options?: EmbeddingOptions): Promise<ProviderEmbeddingResult> {
     const startTime = Date.now();
 
-    // Try RunPod first if configured
-    if (this.isRunPodConfigured()) {
-      try {
-        return await this.embedViaRunPod(texts, options, startTime);
-      } catch (error) {
-        console.warn('[RunPod BGE-M3] RunPod failed, falling back to HuggingFace:', error);
-      }
+    // RunPod only - no HuggingFace fallback for production
+    if (!this.isRunPodConfigured()) {
+      throw new Error('RunPod not configured. Set RUNPOD_API_KEY and RUNPOD_ENDPOINT_BGE_M3.');
     }
 
-    // Fallback to HuggingFace
-    if (HUGGINGFACE_API_KEY) {
-      return await this.embedViaHuggingFace(texts, startTime);
-    }
-
-    throw new Error('No embedding provider configured. Set RUNPOD_API_KEY or HUGGINGFACE_API_KEY.');
+    return await this.embedViaRunPod(texts, options, startTime);
   }
 
   /**
@@ -121,7 +111,7 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
 
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
-        // Use infinity-embedding API format
+        // Use TEI (Text Embeddings Inference) OpenAI-compatible format
         const response = await fetch(RUNPOD_ENDPOINT_URL, {
           method: 'POST',
           headers: {
@@ -130,8 +120,8 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
           },
           body: JSON.stringify({
             input: {
-              model: 'BAAI/bge-m3',
               input: texts,
+              model: 'BAAI/bge-m3',
             },
           }),
         });
@@ -153,7 +143,7 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
           throw new Error(`Handler error: ${data.output.error}`);
         }
 
-        // Extract embeddings from infinity-embedding response format
+        // Extract embeddings from TEI response format
         const embeddingData = data.output?.data;
         if (!embeddingData || embeddingData.length === 0) {
           throw new Error('No embeddings returned from RunPod');
@@ -273,18 +263,18 @@ export class RunPodBGEM3Provider implements EmbeddingProvider {
   }
 
   /**
-   * Health check
+   * Health check (RunPod only)
    */
   async healthCheck(): Promise<ProviderHealth> {
     const startTime = Date.now();
 
     try {
-      // Check if any provider is configured
-      if (!this.isRunPodConfigured() && !HUGGINGFACE_API_KEY) {
+      // Check if RunPod is configured
+      if (!this.isRunPodConfigured()) {
         return {
           name: this.name,
           healthy: false,
-          error: 'No API keys configured',
+          error: 'RunPod not configured',
           lastChecked: new Date().toISOString(),
         };
       }

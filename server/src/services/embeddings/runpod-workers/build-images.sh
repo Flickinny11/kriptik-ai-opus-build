@@ -11,7 +11,8 @@
 #   ./build-images.sh                    # Build and push all images
 #   ./build-images.sh bge-m3             # Build and push only BGE-M3
 #   ./build-images.sh siglip             # Build and push only SigLIP
-#   ./build-images.sh vl-jepa            # Build and push only VL-JEPA
+#   ./build-images.sh vl-jepa            # Build and push only VL-JEPA (SigLIP fallback)
+#   ./build-images.sh vjepa2             # Build and push V-JEPA 2 (temporal video understanding)
 #
 
 set -e
@@ -60,14 +61,18 @@ case "$TARGET" in
     vl-jepa)
         build_image "vl-jepa" "vl-jepa"
         ;;
+    vjepa2)
+        build_image "vjepa2" "vjepa2"
+        ;;
     all)
         build_image "bge-m3" "bge-m3"
         build_image "siglip" "siglip"
         build_image "vl-jepa" "vl-jepa"
+        build_image "vjepa2" "vjepa2"
         ;;
     *)
         echo "Unknown target: $TARGET"
-        echo "Usage: $0 [bge-m3|siglip|vl-jepa|all]"
+        echo "Usage: $0 [bge-m3|siglip|vl-jepa|vjepa2|all]"
         exit 1
         ;;
 esac

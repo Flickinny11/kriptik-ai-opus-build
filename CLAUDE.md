@@ -1,6 +1,7 @@
-# KripTik AI - Claude Code Operational Framework
+# Claude Code - Operational Rules
 
-> **CRITICAL**: This file defines how Claude Code operates within KripTik AI. Read this ENTIRELY before making ANY changes.
+> **PURPOSE**: This file defines HOW Claude Code operates - behaviors, workflows, verification, and rules.
+> **For WHAT KripTik AI is, see `.claude/KRIPTIK-PROJECT-CONTEXT.md` (project architecture).**
 
 ---
 
@@ -19,18 +20,11 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 1. **Check today's date** from system prompt (format: YYYY-MM-DD)
 2. **Use WebSearch** when integrating with ANY external service, API, or library
 3. **Search with FULL DATE precision** - not just year!
-   - Use: `"[technology] December 2025"` or `"[library] latest version Dec 2025"`
-   - Even better: `"[technology] released December 20 2025"` for cutting-edge updates
+   - Use: `"[technology] January 2026"` or `"[library] latest version Jan 2026"`
+   - Even better: `"[technology] released January 20 2026"` for cutting-edge updates
    - In the AI race, a week is a long time - tech evolves daily
 4. **Never assume** your knowledge of configs, endpoints, or features is current
 5. **Verify model IDs** before using them - they change frequently (sometimes weekly)
-
-**Example Stale Knowledge Patterns to Avoid**:
-- Using `claude-3-opus` instead of `claude-opus-4-5-20251101`
-- Using deprecated API endpoints
-- Using old configuration formats
-- Missing new required parameters
-- Not leveraging newer, better features
 
 ---
 
@@ -42,26 +36,21 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 
 1. **Acknowledge the auto-loaded context** - Confirm you have the session context, gotchas, and architecture loaded.
 
-2. **Check today's FULL date** - Note the year, month, AND day. Use the full date in searches (e.g., "December 2025" or "Dec 20 2025"). In the AI race, even weeks matter - new models, APIs, and capabilities release constantly.
+2. **Check today's FULL date** - Note the year, month, AND day. Use the full date in searches (e.g., "January 2026" or "Jan 20 2026"). In the AI race, even weeks matter - new models, APIs, and capabilities release constantly.
 
 3. **If working on UI** - Launch browser tools: `~/bin/chrome-dev`
 
 **Memory Files (AUTO-LOADED via .claude/rules/):**
 ```
-.claude/rules/00-NEXT-SESSION-START-HERE.md - START HERE! Current goal & next steps
-.claude/rules/01-session-context.md  - Recent work, current goals
-.claude/rules/02-gotchas.md          - Known issues to avoid
-.claude/rules/03-browser-integration.md - Browser tools guide
-.claude/rules/04-architecture.md     - System dependencies
-.claude/rules/05-pending-items.md    - Deferred items
+.claude/rules/00-NEXT-SESSION-START-HERE.md - START HERE! Quick context
+.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md - Auth rules (DO NOT MODIFY)
 ```
 
-**CRITICAL**: File `00-NEXT-SESSION-START-HERE.md` tells you exactly what to do next. Read it first!
-
-**Legacy locations (for reference):**
+**Project Context (Read when needed):**
 ```
-.cursor/memory/build_state.json      - Phase status (still valid)
-.claude/memory/*                     - Old location (deprecated, use rules/)
+.claude/KRIPTIK-PROJECT-CONTEXT.md   - Full project architecture & features
+.claude/HONEST-FEATURE-STATUS.md     - Real status (not optimistic)
+.claude/archive/                     - Historical implementation plans
 ```
 
 **FAILURE TO ACKNOWLEDGE CONTEXT**: Lost work, repeated mistakes, stale information.
@@ -73,14 +62,11 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 **Before ending work on any task:**
 
 1. Run `npm run build` - Must pass
-2. **UPDATE** `.claude/rules/00-NEXT-SESSION-START-HERE.md` - Mark what you completed, what's next
-3. **UPDATE** `.claude/rules/01-session-context.md` with what was done
-4. **UPDATE** `.claude/memory/implementation_log.md` with implementation details
-5. Add any new gotchas to `.claude/rules/02-gotchas.md`
-6. Run the Completion Checklist (see below)
-7. **COMMIT & PUSH** all memory file changes
+2. **UPDATE** `.claude/rules/00-NEXT-SESSION-START-HERE.md` if project state changed
+3. **UPDATE** `.claude/HONEST-FEATURE-STATUS.md` if feature status changed
+4. Run the Completion Checklist (see below)
 
-**CRITICAL**: The rules/ files are auto-loaded by the next session. If you don't update them, the next agent starts blind and repeats mistakes!
+**CRITICAL**: Keep status files accurate so the next session has correct context!
 
 **Memory File Update Template:**
 ```markdown
@@ -145,35 +131,10 @@ When Chrome is running with remote debugging (`~/bin/chrome-dev`), you have acce
 - Use `get_network_requests` to debug API issues
 - Use `execute_script` to inspect state
 
-**When user selects an element in browser:**
-- The element selection provides context about what to modify
-- Still follow ALL rules (anti-slop, no placeholders, custom icons, etc.)
-- Verify your edit with a screenshot after making changes
-
 **DON'T:**
 - Claim UI is fixed without visual verification
 - Skip screenshot for "small" changes
 - Assume hot reload worked - verify it
-
-### Element Selection Workflow
-
-When the user selects an element via browser tools:
-
-1. **Receive element context** - You'll see the element's UID, tag, classes, text
-2. **Identify the component** - Find the React component that renders this element:
-   - Search for unique class names: `grep -r "className.*uniqueClass" src/`
-   - Search for text content: `grep -r "Button Text" src/`
-   - Check common locations: `src/components/`, `src/pages/`
-   - Look for Tailwind classes that match the element
-3. **Make the change** - Following ALL KripTik rules:
-   - No placeholders
-   - No emoji
-   - Custom icons only (`src/components/icons/`, NOT Lucide)
-   - Premium design standards (depth, motion, typography)
-   - Anti-slop rules (no purple-pink gradients, no flat designs)
-4. **Verify visually** - Take screenshot to confirm the change
-5. **Check console** - Ensure no errors were introduced
-6. **Wire up if needed** - Ensure the change is integrated, not orphaned
 
 ### Starting Browser with Debugging
 
@@ -183,112 +144,84 @@ When the user selects an element via browser tools:
 ~/bin/chrome-dev 9222 http://localhost:5173  # With initial URL
 ```
 
-### Configuration
+---
 
-- Global: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Project: `.mcp.json` in project root
+## CONTEXT7 MCP - CURRENT DOCUMENTATION
 
-**IMPORTANT**: Restart Claude Code after config changes to pick up MCP servers.
+> **USE THIS!** Your training data is stale. Context7 provides up-to-date library documentation.
+
+### When to Use Context7
+
+**AUTOMATICALLY use Context7 when:**
+- Integrating with ANY external library (React, Next.js, Supabase, Stripe, etc.)
+- Using APIs that may have changed since your training cutoff
+- Writing code for libraries with frequent updates
+- Uncertain about current API signatures or patterns
+
+### How to Invoke
+
+Add "use context7" to your prompts, or use the MCP tools directly:
+
+| Tool | Purpose |
+|------|---------|
+| `resolve-library-id` | Convert library name to Context7 ID |
+| `query-docs` | Get current docs for a library |
+
+**Examples:**
+```
+"use context7 - how do I use the new React 19 use() hook?"
+"use context7 - what's the current Next.js 15 app router API?"
+"use context7 - Supabase realtime subscription syntax"
+```
+
+### Why This Matters
+
+- Your knowledge cutoff is ~1 year behind
+- Libraries like React, Next.js, and Supabase release breaking changes frequently
+- Context7 pulls CURRENT documentation directly into your context
+- Prevents hallucinated APIs and deprecated patterns
 
 ---
 
-## PROJECT IDENTITY
+## VERCEL AGENT SKILLS - REACT/NEXT.JS OPTIMIZATION
 
-**Project**: KripTik AI - Ultimate AI-First Builder Platform
-**Version**: 3.0
-**Progress**: 51/66 features complete (77%)
-**Intent Lock Status**: LOCKED (see intent.json)
+> **INSTALLED!** 45+ React performance rules + 100+ web design guidelines.
 
-**Core Value Proposition**: Transform KripTik AI into the most comprehensive, fastest, cost-efficient, and accurate autonomous AI-first build platform in the market.
+### Installed Skills (Auto-Activate)
 
----
+| Skill | Rules | Triggers On |
+|-------|-------|-------------|
+| `react-best-practices` | 45 rules, 8 categories | Writing React/Next.js components, data fetching, performance |
+| `web-design-guidelines` | 100+ rules | UI review, accessibility audit, UX check |
 
-## TWO OPERATION MODES (CRITICAL UNDERSTANDING)
+### React Best Practices Categories (by Priority)
 
-> **IMPORTANT**: KripTik AI has TWO distinct modes of operation. Understanding these is essential for development.
+1. **CRITICAL**: Eliminating Waterfalls (`async-*`)
+2. **CRITICAL**: Bundle Size Optimization (`bundle-*`)
+3. **HIGH**: Server-Side Performance (`server-*`)
+4. **MEDIUM-HIGH**: Client-Side Data Fetching (`client-*`)
+5. **MEDIUM**: Re-render Optimization (`rerender-*`)
+6. **MEDIUM**: Rendering Performance (`rendering-*`)
+7. **LOW-MEDIUM**: JavaScript Performance (`js-*`)
+8. **LOW**: Advanced Patterns (`advanced-*`)
 
-### Mode 1: Builder View (Full Apps from NLP)
+### Key Rules to Remember
 
-**Access**: Dashboard → Project Card → Builder View OR Dashboard → Large Prompt Box
+- `async-parallel` - Use Promise.all() for independent operations
+- `bundle-barrel-imports` - Import directly, avoid barrel files
+- `bundle-dynamic-imports` - Use next/dynamic for heavy components
+- `server-cache-react` - Use React.cache() for per-request deduplication
+- `rerender-memo` - Extract expensive work into memoized components
+- `rendering-activity` - Use Activity component for show/hide
 
-**Purpose**: Build COMPLETE applications from a single NLP prompt.
+### When to Apply
 
-**How It SHOULD Work:**
-1. User enters NLP describing the app they want to build
-2. User selects "Multi-Agent Orchestration" or "Kriptoenite" in prompt box
-3. **Intent Lock System** creates immutable Sacred Contract (Opus 4.5, 64K thinking)
-4. User presented with production options to select
-5. User approves implementation plan (or modifies further)
-6. User is asked for env variables - extension helps fetch credentials
-7. Credentials stored in Credential Vault + written to .env
-8. **Full 6-Phase Orchestration** runs:
-   - Phase 0: Intent Lock (Sacred Contract)
-   - Phase 1: Initialization (artifacts, scaffolding)
-   - Phase 2: Parallel Build (3-5 agents with Memory Harness)
-   - Phase 3: Integration Check (orphan scan, dead code)
-   - Phase 4: Functional Test (browser automation as real user)
-   - Phase 5: Intent Satisfaction (CRITICAL GATE - not done until done)
-   - Phase 6: Browser Demo (agent-controlled browser shows working app)
-9. Verification Swarm (6 agents) runs continuously
-10. Speed enhancements + Error Escalation (4 levels, never gives up)
-11. User sees completed working app in agent-controlled browser
-12. User clicks "Take Control" to interact with their app
+- **Always** when writing new React/Next.js code
+- When reviewing code for performance issues
+- When refactoring existing components
+- When optimizing bundle size or load times
 
-**Key Characteristics:**
-- Uses Memory Harness system for unlimited context
-- Agents share context/memory via artifact generation
-- Parallel agents communicate live
-- NOT Feature Agents - this is full orchestration
-- Cannot finish until actually done (Intent Satisfaction gate)
-
-### Mode 2: Feature Agent (Features for Existing Apps)
-
-**Access**: Developer Toolbar → Feature Agent Button → Feature Agent UI Popout
-
-**Purpose**: Add features/modifications to EXISTING builds created via Builder View.
-
-**How It SHOULD Work:**
-1. User has already built an app via Builder View
-2. User clicks Feature Agent button on developer toolbar
-3. Feature Agent UI popout opens
-4. User selects model from dropdown
-5. User enters NLP describing the feature
-6. User deploys Feature Agent (up to 6 parallel agents)
-7. **Intent Lock** creates implementation plan for this feature
-8. User approves plan (or modifies further)
-9. User provides any required credentials
-10. **Same 6-Phase Orchestration** runs for the feature
-11. All 6 agents share same context/memory as original app build
-12. Verification Swarm + Error Checking + Testing in sandbox
-13. When done, tile "glows" to show completion
-14. User clicks "Show Me" button
-15. Agent-controlled browser demonstrates the working feature
-16. User clicks to take control
-
-**Key Characteristics:**
-- Up to 6 Feature Agents can run in parallel
-- All agents share context/memory from original build
-- Each agent follows same orchestration loop as Builder View
-- Tiles can be minimized while agents work
-- Agents communicate with each other to avoid conflicts
-- Uses same Memory Harness system
-- 100% production-ready before showing user
-
-### Key Differences
-
-| Aspect | Builder View | Feature Agent |
-|--------|--------------|---------------|
-| **Purpose** | Build complete apps | Add features to existing apps |
-| **Entry Point** | Dashboard/Builder chat | Developer toolbar button |
-| **Parallel Agents** | Orchestrated internally | User deploys up to 6 |
-| **Agent Visibility** | Progress indicator | Tile per agent with SSE streaming |
-| **When "Show Me" Appears** | Phase 6 Browser Demo | When agent tile glows (complete) |
-
-### IMPORTANT: Builder View Should NOT Deploy Feature Agents
-
-The NLP in Builder View should trigger the full multi-agent orchestration with 6-phase build loop. It should NOT deploy Feature Agents. Feature Agents are specifically for adding features to existing builds, not for initial app creation.
-
-**Current Gap**: Builder View uses DevelopmentOrchestrator instead of BuildLoopOrchestrator. See `.claude/rules/06-nlp-to-completion-gaps.md` for full gap analysis.
+Skills are in `~/.claude/skills/` - read full rule files when needed.
 
 ---
 
@@ -303,24 +236,17 @@ The NLP in Builder View should trigger the full multi-agent orchestration with 6
 - Use purple-to-pink or blue-to-purple gradients (classic AI slop).
 - Use Lucide React icons - use custom icons from `src/components/icons/` instead.
 - Create orphaned code (components, routes, functions that aren't wired up).
-- Modify existing database column types (Turso limitation).
-- Add new databases or AI service providers (AD002 constraint).
 - Claim completion without verification.
-- Dismiss items from prompts without explicit acknowledgment.
-- Modify intent.json after it's locked.
 - Skip the verification checklist.
 - Skip browser verification for UI changes.
-- **MODIFY AUTH FILES** (auth.ts, auth tables in schema.ts, middleware/auth.ts, auth-client.ts) - Auth is LOCKED. See AUTH-IMMUTABLE-SPECIFICATION.md
+- **MODIFY AUTH FILES** without explicit user approval - Auth is LOCKED.
 
 ### ALWAYS:
 - Read files before modifying them.
 - Verify builds pass after changes.
 - Update .claude/rules/*.md files after significant work (auto-loaded by next agent).
-- Check feature_list.json for current status before working on features.
-- Respect the Intent Lock contract (intent.json).
 - Use the completion checklist before claiming done.
-- Preserve existing architecture (AD003: additive changes only).
-- Consider credit costs when suggesting model usage.
+- Preserve existing architecture (additive changes only).
 - Report blockers immediately rather than guessing.
 - Use custom icons from `src/components/icons/` (NOT Lucide React).
 - Wire up new code to existing systems (no orphaned code).
@@ -334,564 +260,26 @@ The NLP in Builder View should trigger the full multi-agent orchestration with 6
 
 > **CRITICAL WARNING: DO NOT MODIFY AUTH FILES WITHOUT EXPLICIT USER APPROVAL**
 
-Authentication has been broken multiple times by AI prompts modifying auth-related code. The auth configuration is now LOCKED and documented in:
-
-**`.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md`**
+Authentication has been broken multiple times by AI prompts modifying auth-related code. See `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` for details.
 
 ### Files That MUST NOT Be Modified:
+- `server/src/auth.ts`
+- `server/src/schema.ts` (auth tables only)
+- `server/src/middleware/auth.ts`
+- `src/lib/auth-client.ts`
 
-| File | Reason |
-|------|--------|
-| `server/src/auth.ts` | Better Auth configuration with exact table mappings |
-| `server/src/schema.ts` (auth tables only) | `users`, `sessions`, `accounts`, `verifications` table definitions |
-| `server/src/middleware/auth.ts` | Date handling helpers for SQLite TEXT columns |
-| `src/lib/auth-client.ts` | Frontend auth client with cross-origin settings |
-
-### Why Auth Breaks:
-
-1. **Table Name Mismatch**: Better Auth expects `user` but KripTik uses `users` (plural)
-2. **Date Type Mismatch**: SQLite TEXT columns return strings, not Date objects
-3. **Cross-Origin Cookies**: Frontend/backend on different domains require specific cookie settings
-4. **Drizzle Adapter**: Schema mapping MUST be passed correctly
-5. **Hardcoded URLs**: Different files using different API URLs break cookie domains
-6. **Missing Credentials**: Fetch calls without `credentials: 'include'` don't send cookies
-
-### URL Management - CRITICAL RULES
-
+### URL Management - CRITICAL
 **NEVER hardcode API URLs in any file.** Always use centralized configuration:
 
 ```typescript
-// ✅ CORRECT - Import from centralized config
+// CORRECT - Import from centralized config
 import { API_URL, authenticatedFetch } from '@/lib/api-config';
 
-// Use API_URL directly
+// Use API_URL directly with credentials
 fetch(`${API_URL}/api/endpoint`, {
     credentials: 'include', // REQUIRED for cookies
 });
-
-// OR use authenticatedFetch helper (includes credentials automatically)
-authenticatedFetch(`${API_URL}/api/endpoint`, { ... });
 ```
-
-**❌ WRONG Patterns to Avoid:**
-```typescript
-// ❌ DON'T hardcode URLs
-const API_URL = 'https://api.kriptik.app';
-const API_URL = 'http://localhost:3001';
-
-// ❌ DON'T use inconsistent fallbacks
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app'; // Wrong fallback
-const API_URL = import.meta.env.VITE_API_URL || ''; // Empty fallback
-
-// ❌ DON'T forget credentials
-fetch(`${API_URL}/api/endpoint`, { method: 'GET' }); // Missing credentials!
-```
-
-**Migration Guide**: See `.cursor/rules/URL-MIGRATION-GUIDE.md` for step-by-step instructions on fixing existing hardcoded URLs.
-
-### If You Need to Work on Auth:
-
-1. **READ** `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` FIRST
-2. **READ** `.cursor/rules/URL-MIGRATION-GUIDE.md` if modifying files with URLs
-3. **ASK** the user for explicit approval before ANY changes
-4. **UNDERSTAND** the exact table mappings and why they exist
-5. **VERIFY** your changes don't break the configuration
-6. **TEST** auth works after any changes
-
-### Quick Reference:
-
-```
-SQL Table Names: users, session, account, verification
-Cookie Prefix: kriptik_auth
-Backend URL: Use API_URL from @/lib/api-config (NOT hardcoded)
-Frontend URL: Use FRONTEND_URL from @/lib/api-config (NOT hardcoded)
-Credentials: ALWAYS include credentials: 'include' in fetch calls
-```
-
----
-
-## TECH STACK
-
-### Frontend
-- **Framework**: React 18.3.1 + TypeScript 5.6.2
-- **Build**: Vite 5.4.10
-- **Styling**: Tailwind CSS 3.4.1 + tailwindcss-animate
-- **UI Components**: Radix UI (14 packages), Custom Icons (`src/components/icons/`)
-- **Animation**: Framer Motion 12.23.24
-- **3D**: Three.js 0.165.0, @react-three/fiber 9.4.2, @react-three/drei
-- **State**: Zustand 5.0.8 (16 stores)
-- **Code Editor**: Monaco Editor 0.55.1, Sandpack (CodeSandbox)
-- **Forms**: React Hook Form 7.66.1 + Zod 4.1.12
-
-### Backend
-- **Runtime**: Node.js + Express 5.1.0
-- **Language**: TypeScript 5.9.3
-- **Database**: Turso SQLite via @libsql/client 0.15.15
-- **ORM**: Drizzle ORM 0.44.7
-- **Auth**: Better Auth 1.4.1
-- **Payments**: Stripe 20.0.0
-- **AI Gateway**: OpenRouter (unified API for all models)
-- **AI SDK**: @anthropic-ai/sdk 0.71.0, OpenAI SDK 6.9.1
-
-### Cloud & Infrastructure
-- **Deployment**: Vercel, Cloudflare Pages/Workers
-- **AWS**: S3, Lambda, ECS, ECR, CloudWatch, EC2
-- **GitHub**: @octokit/rest 22.0.1
-- **Notifications**: web-push 3.6.7
-
----
-
-## CORE ARCHITECTURAL SYSTEMS
-
-### 1. Intent Lock System
-**Location**: `server/src/services/ai/intent-lock.ts`
-
-Creates immutable "Sacred Contracts" before any building starts.
-
-```
-CRITICAL: Intent Contracts are NEVER modified after creation.
-- Uses Opus 4.5 with HIGH effort + 64K thinking budget
-- Defines success criteria, user workflows, visual identity
-- Stored in build_intents table
-- Reference: intent.json for project-level contract
-```
-
-**Contract Structure**:
-- `appSoul`: One of 8 types (immersive_media, professional, developer, creative, social, ecommerce, utility, gaming)
-- `coreValueProp`: Single sentence value proposition
-- `successCriteria`: Must pass visual/functional/performance tests
-- `userWorkflows`: Step-by-step user journeys
-- `visualIdentity`: soul, emotion, depth, motion philosophy
-- `antiPatterns`: Things to avoid
-- `locked`: boolean - immutable once true
-
-### 2. 6-Phase Build Loop
-**Location**: `server/src/services/automation/build-loop.ts`
-
-```
-Phase 0: INTENT LOCK - Create immutable contract (Sacred Contract)
-Phase 1: INITIALIZATION - Set up artifacts, scaffolding, seed data
-Phase 2: PARALLEL BUILD - 3-5 coding agents build features continuously
-Phase 3: INTEGRATION CHECK - Scan for orphans, dead code, unwired routes
-Phase 4: FUNCTIONAL TEST - Browser automation testing as real user
-Phase 5: INTENT SATISFACTION - Critical gate (prevents premature victory)
-Phase 6: BROWSER DEMO - Show user their working app
-```
-
-**Three-Stage Gated System**:
-- Stage 1: FRONTEND (mock data) - UI/UX testing
-- Stage 2: BACKEND (real APIs) - data integration
-- Stage 3: PRODUCTION (auth, payments) - full system
-
-### 3. 6-Agent Verification Swarm
-**Location**: `server/src/services/verification/swarm.ts`
-
-Six parallel verification agents running continuously:
-
-| Agent | Polling | Threshold | Purpose |
-|-------|---------|-----------|---------|
-| Error Checker | 5s | BLOCKS | TypeScript/ESLint/runtime errors |
-| Code Quality | 30s | 80 | DRY, naming, organization |
-| Visual Verifier | 60s | - | Screenshot AI analysis, anti-slop |
-| Security Scanner | 60s | BLOCKS | Vulnerabilities, exposed keys |
-| Placeholder Eliminator | 10s | ZERO | TODOs, mocks, lorem ipsum |
-| Design Style | per-feature | 85 | Soul-appropriate design |
-
-**Output**: `CombinedVerificationResult`
-- `verdict`: APPROVED | NEEDS_WORK | BLOCKED | REJECTED
-- `overallScore`: 0-100
-- `blockers`: list of blocking issues
-
-### 4. Ghost Mode Controller
-**Location**: `server/src/services/ghost-mode/ghost-controller.ts`
-
-Autonomous background building when user is away.
-
-**Session States**: idle, active, paused, waiting_approval, error_recovery, completed, wake_triggered
-
-**Wake Conditions** (8 types):
-- `completion` - task done
-- `error` - any error
-- `critical_error` - only critical
-- `decision_needed` - needs user input
-- `cost_threshold` - credit limit reached
-- `time_elapsed` - time limit
-- `feature_complete` - specific feature done
-- `quality_threshold` - quality score drop
-
-**Notification Channels**: Email, SMS, Slack, Discord, Webhook, Push
-
-### 5. Developer Mode Orchestrator
-**Location**: `server/src/services/developer-mode/orchestrator.ts`
-
-Coordinates up to 6 concurrent Developer Mode agents with human oversight.
-
-**Key Features**:
-- Users have direct control over each agent
-- Agents work in parallel (max 6 slots)
-- Memory Harness integration (InitializerAgent, CodingAgentWrapper)
-- File lock coordination
-- Merge queue management with verification
-- Credit & budget tracking
-
-### 6. Model Router
-**Location**: `server/src/services/ai/model-router.ts`
-
-Intelligent model selection for cost optimization.
-
-**Model Tiers**:
-- **Premium**: Claude Opus 4.5 (max quality, extended thinking, 64K output)
-- **Critical**: Claude Sonnet 4.5 / GPT-4o (excellent quality, cost-effective)
-- **Standard**: Claude Haiku / GPT-4o-mini (fast, cheap, good)
-- **Simple**: Llama / DeepSeek (ultra-cheap, formatting)
-- **Vision**: GPT-4o / Claude 4.5 (image processing)
-
-**IMPORTANT Cost Philosophy**:
-> It's CHEAPER to use a better model that gets it right the first time than to use a cheap model that requires 3 correction cycles. Error correction costs us, not the customer. Optimize for first-time-right.
-
-### 7. Phase-Based Model Configuration
-**Location**: `server/src/services/ai/openrouter-client.ts`
-
-```
-CRITICAL MODEL SELECTION BY PHASE:
-- intent_lock: Opus 4.5, HIGH effort, 64K thinking budget
-- build_agent: Sonnet 4.5, medium effort, 16K thinking
-- visual_verify: Sonnet 4.5, HIGH effort, 32K thinking
-- tournament_judge: Opus 4.5, HIGH effort, 64K thinking
-- simple_check: Haiku 3.5, low effort, no thinking
-```
-
-### CURRENT MODEL IDs (Keep Updated)
-**Last verified: 2025-12**
-
-| Tier | Model | ID |
-|------|-------|-----|
-| Premium | Claude Opus 4.5 | `claude-opus-4-5-20251101` |
-| Critical | Claude Sonnet 4.5 | `claude-sonnet-4-5-20241022` |
-| Standard | Claude Haiku 3.5 | `claude-haiku-3-5-20241022` |
-| Vision | GPT-4o | `gpt-4o` |
-| Simple | DeepSeek | `deepseek-chat` |
-
-**Extended Thinking**: Use `thinking_budget` parameter (Opus: 64K, Sonnet: 32K)
-
-**DEPRECATED - DO NOT USE**: claude-3-opus, claude-3-sonnet, claude-3-haiku, gpt-4-turbo
-
-### 8. Anti-Slop Detection
-**Location**: `server/src/services/verification/anti-slop-detector.ts`
-
-**7 Core Principles** (each scored 0-100):
-1. **Depth** - Real shadows, layers, glass effects (not flat)
-2. **Motion** - Meaningful animations, not decorative
-3. **Emoji Ban** - Zero tolerance in production UI
-4. **Typography** - Premium fonts, proper hierarchy (not generic)
-5. **Color** - Intentional palettes, not defaults
-6. **Layout** - Purposeful spacing, visual rhythm
-7. **App Soul** - Design matches app's essence
-
-**Minimum Pass Score**: 85/100
-
-**INSTANT FAIL Patterns**:
-- `from-purple-* to-pink-*` gradients
-- `from-blue-* to-purple-*` gradients
-- Emoji Unicode ranges (U+1F300-U+1F9FF)
-- "Coming soon", "TODO", "FIXME", "lorem ipsum"
-- `font-sans` without custom font override
-- `gray-200`, `gray-300`, `gray-400` without intent
-
-### 9. 4-Level Error Escalation
-**Location**: `server/src/services/automation/error-escalation.ts`
-
-**NEVER GIVES UP. Always escalates until fixed.**
-
-| Level | Model | Attempts | Handles |
-|-------|-------|----------|---------|
-| 1: Simple | Sonnet 4.5 | 3 | syntax, imports, types |
-| 2: Deep | Opus 4.5 + 64K | 3 | architecture, dependencies |
-| 3: Rewrite | Opus 4.5 + 64K | 2 | targeted component rewrite |
-| 4: Rebuild | Opus 4.5 + 64K | 1 | full feature from Intent |
-
-### 10. Feature Agent System (Unified with 6-Phase Build Loop)
-**Location**: `server/src/services/feature-agent/feature-agent-service.ts`
-
-Feature Agents now use the FULL 6-Phase Build Loop with all Cursor 2.1+ enhancements:
-
-**Complete feature implementation workflow:**
-1. Intent Lock creation (Sacred Contract)
-2. Implementation plan generation with phase approval
-3. Credentials collection (secure vault + .env write)
-4. **6-Phase Build Loop Execution:**
-   - Phase 0: INTENT LOCK - Create/validate Sacred Contract
-   - Phase 1: INITIALIZATION - Artifacts, scaffolding, seed data
-   - Phase 2: PARALLEL BUILD - Agents build with real-time feedback
-   - Phase 3: INTEGRATION CHECK - Orphan scan, dead code, unwired routes
-   - Phase 4: FUNCTIONAL TEST - Browser automation as real user
-   - Phase 5: INTENT SATISFACTION - Critical gate (prevents premature victory)
-   - Phase 6: BROWSER DEMO - Visual verification
-5. Verification swarm validation (6-agent parallel check)
-6. Merge to main
-
-**Cursor 2.1+ Features Active:**
-- Streaming Feedback Channel (real-time verification → builder)
-- Continuous Verification (TypeScript, ESLint, tests running continuously)
-- Runtime Debug Context (variable states, execution paths for errors)
-- Browser-in-the-Loop (continuous visual verification during build)
-- Human Verification Checkpoints (pause for critical fixes)
-- Multi-Agent Judging (auto-evaluate parallel results, pick best)
-- Error Pattern Library (Level 0 pre-escalation instant fixes)
-
-**UI Components**: `src/components/feature-agent/*`
-**Store**: `useFeatureAgentTileStore.ts`
-
-**CRITICAL**: Feature Agents are now INCAPABLE of claiming done when not done. The 6-phase loop with Intent Satisfaction gate (Phase 5) ensures all success criteria are verified before completion.
-
-### 11. Autonomous Learning Engine (Component 28)
-**Location**: `server/src/services/learning/*`
-
-5-Layer self-improving AI system:
-
-| Layer | Purpose | Files |
-|-------|---------|-------|
-| L1: Experience Capture | Decision traces, artifacts | experience-capture.ts |
-| L2: AI Judgment (RLAIF) | Quality scoring, preferences | ai-judgment.ts |
-| L3: Shadow Models | Continuously trained models | shadow-model-registry.ts |
-| L4: Meta-Learning | Pattern library, strategies | pattern-library.ts, strategy-evolution.ts |
-| L5: Evolution Flywheel | Orchestrator | evolution-flywheel.ts |
-
-**Tables**: learningExperiences, learningEvaluations, learnedPatterns, learnedStrategies, preferencePairs
-
-### 12. Soft Interrupt System
-**Location**: `server/src/services/soft-interrupt/interrupt-manager.ts`
-
-Non-blocking input during agent execution:
-- Classification of interrupt type
-- Priority queue handling
-- Context merging without breaking flow
-- UI: `src/components/builder/SoftInterruptInput.tsx`
-
----
-
-## DATABASE SCHEMA
-
-**Location**: `server/src/schema.ts` (600+ lines)
-
-### Core Tables
-- `users` - user accounts with credits, tier
-- `projects` - project metadata
-- `files` - code files with version history
-- `generations` - AI generation history
-- `sessions`, `accounts` - Better Auth
-
-### Builder Architecture
-- `buildIntents` - Intent Lock contracts (immutable)
-- `featureProgress` - feature tracking with passes: boolean
-- `verificationResults` - swarm agent results
-- `buildCheckpoints` - Time Machine snapshots
-- `appSoulTemplates` - 8 design systems
-- `errorEscalationHistory` - 4-level escalation tracking
-- `buildModeConfigs` - Speed Dial modes
-- `tournamentRuns` - competing implementations
-- `intelligenceDialConfigs` - per-request toggles
-- `buildSessionProgress` - real-time progress
-
-### Developer Mode
-- `developerModeSessions` - agent sessions
-- `developerModeAgents` - individual agents
-- `developerModeAgentLogs` - execution logs
-- `developerModeSandboxes` - isolated previews
-- `developerModeMergeQueue` - code integration
-- `developerModeCreditTransactions` - usage tracking
-- `developerModePRs` - auto-created PRs
-
-### Learning Engine
-- `learningExperiences` - captured decisions
-- `learningEvaluations` - AI judgments
-- `learnedPatterns` - pattern library
-- `learnedStrategies` - evolved strategies
-- `preferencePairs` - RLHF training data
-- `learningEvolutionCycles` - evolution tracking
-
-### Billing & Credentials
-- `subscriptions` - Stripe subscription data
-- `userCredentials` - encrypted API keys (AES-GCM)
-- `credentialAuditLogs` - access audit trail
-- `projectEnvVars` - per-project environment variables
-
-### Notifications
-- `notifications` - system & feature agent notifications
-- `notificationPreferences` - per-user settings
-
----
-
-## CRITICAL API ROUTES
-
-### Developer Mode
-```
-POST /api/developer-mode/sessions - Create session
-POST /api/developer-mode/agents - Deploy agent
-GET  /api/developer-mode/events/:sessionId - SSE stream
-POST /api/developer-mode/merge - Merge queue
-```
-
-### Feature Agent
-```
-POST /api/feature-agent/deploy - Start feature agent
-POST /api/feature-agent/:id/approve-plan - Approve implementation
-POST /api/feature-agent/:id/credentials - Submit credentials
-GET  /api/feature-agent/:id/stream - SSE for tile updates
-```
-
-### Ghost Mode
-```
-POST /api/ghost-mode/sessions - Start ghost session
-GET  /api/ghost-mode/sessions/:id/events - Event stream
-POST /api/ghost-mode/sessions/:id/wake - Trigger wake
-```
-
-### Learning
-```
-GET  /api/learning/evolution-status - Flywheel status
-POST /api/learning/trigger-cycle - Manual evolution cycle
-```
-
-### Verification
-```
-POST /api/validation/pre-flight - Pre-deployment validation
-GET  /api/verification/swarm/:buildId - Swarm status
-```
-
----
-
-## ZUSTAND STORES (15 total)
-
-**Critical stores to understand**:
-- `useFeatureAgentTileStore.ts` - Feature agent tile state (primary agent UI)
-- `useLearningStore.ts` - Evolution flywheel state
-- `useBuilderStore.ts` - Main builder state
-- `useProjectStore.ts` - Project management
-- `useAuthStore.ts` - Authentication state
-- `useGhostModeStore.ts` - Ghost mode autonomous building
-
-**NOTE**: `useDeveloperModeStore.ts` has been removed. Feature Agents now use the unified 6-Phase Build Loop directly.
-
-**IMPORTANT**: Always check existing store before adding state.
-
----
-
-## VISUAL DESIGN STANDARDS
-
-KripTik must create the reaction: **"Holy shit, this is amazing - this is more advanced than anything I've ever used."**
-
-### 1. DEPTH AND DIMENSION
-- NO flat designs. Ever.
-- Use layered shadows, glassmorphism, subtle gradients
-- Elements must feel like they exist in 3D space
-- Cards and panels need depth through shadows and highlights
-
-### 2. MOTION AND LIFE
-- Static UI is dead UI
-- Micro-interactions on every interactive element
-- Smooth state transitions (not jarring switches)
-- Loading states must be visually interesting (not boring spinners)
-- Use Framer Motion extensively
-
-### 3. AGENT VISUALIZATIONS
-- Rich visual representations when agents work
-- Animated connection lines between communicating agents
-- Pulse effects, particle systems, energy flows
-- Each agent has distinct visual identity
-- Real-time status feels alive, not just text updates
-
-### 4. TYPOGRAPHY
-- Premium fonts: DM Sans, Space Mono, Inter (configured)
-- Clear hierarchy through weight, size, spacing
-- Code/technical text uses premium monospace
-
-### 5. COLOR
-- Rich palette with intentional meaning
-- Proper contrast for accessibility
-- Subtle gradients over flat colors
-- Glow effects for emphasis (used sparingly)
-- **BANNED**: purple-to-pink, blue-to-purple gradients
-- **Ghost Mode**: Always use `#F5A86C` (amber) - NEVER purple
-
----
-
-## MEMORY SYSTEM & AGENT HANDOFF PROTOCOL
-
-> **CRITICAL**: Memory files are how agents communicate across sessions. Without proper updates, the next agent starts blind.
-
-### The Handoff Problem
-
-Each Claude Code session is a NEW agent with NO memory of previous sessions. The ONLY way context survives is through these files. Treat memory updates as **mandatory handoff artifacts**.
-
-### Existing (.cursor/memory/) - READ ONLY
-- `build_state.json` - Current phase, progress, completed features
-- `decisions.json` - Architectural decisions (AD001-AD006), technical choices
-- `issue_resolutions.json` - Issue patterns and resolutions
-
-### Claude Code (.claude/rules/) - AUTO-LOADED (Primary)
-> **These files are automatically loaded at session start. Update them for next agent.**
-- `01-session-context.md` - Current session focus and progress
-- `02-gotchas.md` - Known issues, workarounds
-- `03-browser-integration.md` - Browser MCP tools guide
-- `04-architecture.md` - System dependencies
-- `05-pending-items.md` - Deferred or partial items
-
-### Claude Code (.claude/memory/) - Manual Read (Secondary)
-> **These are NOT auto-loaded. Read manually when needed.**
-- `implementation_log.md` - What was built and why (detailed)
-- `feature_dependencies.md` - Feature→file mapping
-
-### Reference Files (Root)
-- `feature_list.json` - 66 features with status
-- `intent.json` - Locked Intent Contract
-- `.mcp.json` - MCP server configuration for browser tools
-
-### Agent Handoff Artifact Requirements
-
-**After EVERY session, update these for the next agent:**
-
-1. **session_context.md** - MANDATORY
-   ```markdown
-   ## What Was Done This Session
-   - [List specific changes with file paths]
-
-   ## What's In Progress (Incomplete)
-   - [List any partially completed work]
-
-   ## What Should Happen Next
-   - [List recommended next steps]
-
-   ## Blockers/Issues Discovered
-   - [List any problems found]
-   ```
-
-2. **implementation_log.md** - For significant code changes
-   ```markdown
-   ## [Date] - [Feature/Fix Name]
-   **Files Changed**: [list]
-   **Why**: [rationale]
-   **How**: [approach]
-   **Integration Points**: [what it connects to]
-   ```
-
-3. **gotchas.md** - When you discover something that could trip up future agents
-   ```markdown
-   ## [Problem Category]
-   **Problem**: [what happened]
-   **Solution**: [how to fix/avoid]
-   **Files**: [affected files]
-   ```
-
-### Memory Update Triggers
-
-Update memory files when:
-- Completing a feature or significant change
-- Discovering a bug or workaround
-- Making architectural decisions
-- Leaving work incomplete
-- Finding something that "just works this way"
-- Before ending ANY session
 
 ---
 
@@ -900,11 +288,10 @@ Update memory files when:
 ### Before Implementing
 1. Read all relevant files first
 2. Check feature_list.json for current status
-3. Verify intent.json alignment
-4. Consider integration with existing systems
-5. Plan implementation order
-6. Anticipate what might fail
-7. **KNOWLEDGE CHECK**: Is this integrating with external services? → WebSearch first!
+3. Consider integration with existing systems
+4. Plan implementation order
+5. Anticipate what might fail
+6. **KNOWLEDGE CHECK**: Is this integrating with external services? → WebSearch first!
 
 ### Knowledge Currency Checklist
 **Before integrating with ANY external technology:**
@@ -913,30 +300,13 @@ Update memory files when:
 [ ] What is today's FULL date? (YYYY-MM-DD from system prompt)
 [ ] Is my knowledge of this technology current?
 [ ] Have I searched with FULL DATE precision?
-    - "[technology] [month] [year]" (e.g., "Claude API December 2025")
-    - "[technology] latest [month] [day] [year]" for cutting-edge (e.g., "OpenAI Dec 20 2025")
+    - "[technology] [month] [year]" (e.g., "Claude API January 2026")
+    - "[technology] latest [month] [day] [year]" for cutting-edge
 [ ] Am I using the latest API version/endpoints?
 [ ] Am I using current model IDs (not deprecated)?
 [ ] Have new features been added I should use?
 [ ] Has the configuration format changed?
-
-WHY FULL DATE MATTERS:
-- AI models release every few weeks (not months)
-- APIs change frequently with new capabilities
-- A "2025" search could return info from January when we're in December
-- We're building the most capable AI platform - we need the NEWEST tools
 ```
-
-**Common Stale Knowledge Areas (change frequency):**
-- AI model IDs (every few WEEKS - not months!)
-- API authentication methods (monthly)
-- SDK method signatures (with each release)
-- Configuration file formats (varies)
-- Required vs optional parameters (with API updates)
-- Pricing and rate limits (frequently)
-- Platform capabilities (constantly expanding)
-
-**AI-Race Reality**: OpenAI, Anthropic, Google, and others release new models, features, and APIs on a near-weekly basis. What you knew last month may already be outdated.
 
 ### During Implementation
 1. After significant code, run build
@@ -963,106 +333,7 @@ WHY FULL DATE MATTERS:
 
 ---
 
-## ARCHITECTURAL DECISIONS (Preserved)
-
-| ID | Decision | Rationale |
-|----|----------|-----------|
-| AD001 | Preserve Turso SQLite | No new databases. Add tables via migrations. |
-| AD002 | Preserve OpenRouter | No new AI providers. Enhance model-router.ts. |
-| AD003 | Additive changes only | No breaking changes. Backward compatibility. |
-| AD004 | Feature flags | Gradual rollout, per-project/user enable. |
-| AD005 | Shared capabilities | Builder and Fix My App use same enhanced features. |
-| AD006 | Minimal UI mods | Add indicators, not overhaul. |
-
----
-
-## FEATURE STATUS SUMMARY
-
-**Total**: 66 features
-**Completed**: 51 (77%)
-**Pending**: 15
-
-### Pending Features (Phase 15-19)
-- F032: Micro Intent Lock (deferred)
-- F050: Notification Integrations (SMS/Slack specifics)
-- F051: Clone Mode Video Analyzer
-- F052: User Twin Persona Generator
-- F053: Market Fit Oracle
-- F054: Context Bridge Code Ingester
-- F055: Voice Architect
-- F056: API Autopilot Discovery Engine
-- F057: Enhanced Time Machine Timeline
-- F058-F059: Adaptive UI (Tracking + Optimizer)
-- F060: Universal Export Platform Adapters
-- F062-F064: Component Integration, Feature Flags
-
-### Recently Completed
-- F065: Feature Agent Command Center V2 + Tile Workflow
-- F066: Notifications System
-- C28-L1 to C28-L5: Autonomous Learning Engine (all 5 layers)
-
----
-
-## CONTEXT REFRESH PROTOCOL
-
-**NOTE**: Files in `.claude/rules/*.md` are AUTO-LOADED at session start. You don't need to manually read them.
-
-At the start of EVERY session:
-1. **AUTO-LOADED**: `.claude/rules/*.md` (session context, gotchas, architecture, etc.)
-2. Read `.cursor/memory/build_state.json` for current phase (if needed)
-3. Read `feature_list.json` for completion status (if working on features)
-4. Read `intent.json` for Sacred Contract (if making significant changes)
-
-After EVERY significant change:
-1. Update `.claude/rules/01-session-context.md` (auto-loaded by next agent)
-2. Update `.claude/memory/implementation_log.md` (detailed log)
-3. Note any new gotchas in `.claude/rules/02-gotchas.md` (auto-loaded by next agent)
-
----
-
-## SLASH COMMANDS
-
-Use these commands for common operations:
-- `/refresh` - Re-read all memory files, confirm understanding
-- `/status` - Report current build state and progress
-- `/verify` - Run full verification against anti-slop rules
-- `/complete` - Run completion checklist before marking done
-- `/intent-check` - Validate changes against Intent Lock
-- `/feature F0XX` - Look up specific feature details
-
----
-
-## FILE SIZE AWARENESS
-
-Large files requiring careful editing:
-- `src/pages/Builder.tsx` - 72KB (largest component)
-- `src/pages/FixMyApp.tsx` - 102KB (very complex)
-- `server/src/schema.ts` - 600+ lines
-- `src/store/useDeveloperModeStore.ts` - 25KB
-
-Consider splitting if adding significant code to these files.
-
----
-
-## HONESTY REQUIREMENTS
-
-**NEVER**:
-- Say "implemented" when it wasn't
-- Dismiss items from a prompt without explicit acknowledgment
-- Claim success when build is failing
-- Skip items and hope user won't notice
-
-**ALWAYS**:
-- List exactly what was completed vs what remains
-- Report build failures immediately
-- Acknowledge if something is harder than expected
-- Ask for clarification rather than guessing wrong
-
----
-
 ## AUTONOMOUS OPERATION PROTOCOL
-
-> This section defines how Claude Code operates autonomously - matching or exceeding Cursor 2.2's capabilities.
 
 ### Core Philosophy
 
@@ -1146,7 +417,6 @@ Claude Code in this project can:
 - Changing architecture
 - Removing functionality
 - Adding new dependencies
-- Modifying intent.json
 - Changes affecting multiple features
 - Anything that feels "risky"
 
@@ -1171,7 +441,194 @@ If auto-fix fails after 3 attempts:
 
 ---
 
-## SLASH COMMANDS AVAILABLE
+## MEMORY SYSTEM & AGENT HANDOFF PROTOCOL
+
+> **CRITICAL**: Memory files are how agents communicate across sessions. Without proper updates, the next agent starts blind.
+
+### The Handoff Problem
+
+Each Claude Code session is a NEW agent with NO memory of previous sessions. The ONLY way context survives is through these files. Treat memory updates as **mandatory handoff artifacts**.
+
+### Memory Files (AUTO-LOADED at session start)
+- `.claude/rules/00-NEXT-SESSION-START-HERE.md` - Quick start guide
+- `.claude/rules/01-session-context.md` - Current session focus
+- `.claude/rules/02-gotchas.md` - Known issues, workarounds
+- `.claude/rules/03-browser-integration.md` - Browser MCP tools guide
+- `.claude/rules/04-architecture.md` - System dependencies
+- `.claude/rules/05-pending-items.md` - Deferred or partial items
+
+### Manual Read Files
+- `.claude/KRIPTIK-PROJECT-CONTEXT.md` - Full project architecture
+- `.claude/memory/implementation_log.md` - What was built and why (detailed)
+
+### Reference Files
+- `feature_list.json` - Feature status
+- `intent.json` - Locked Intent Contract
+- `.mcp.json` - MCP server configuration
+
+### Agent Handoff Artifact Requirements
+
+**After EVERY session, update these for the next agent:**
+
+1. **session_context.md** - MANDATORY
+   ```markdown
+   ## What Was Done This Session
+   - [List specific changes with file paths]
+
+   ## What's In Progress (Incomplete)
+   - [List any partially completed work]
+
+   ## What Should Happen Next
+   - [List recommended next steps]
+
+   ## Blockers/Issues Discovered
+   - [List any problems found]
+   ```
+
+2. **implementation_log.md** - For significant code changes
+3. **gotchas.md** - When you discover something that could trip up future agents
+
+### Memory Update Triggers
+
+Update memory files when:
+- Completing a feature or significant change
+- Discovering a bug or workaround
+- Making architectural decisions
+- Leaving work incomplete
+- Finding something that "just works this way"
+- Before ending ANY session
+
+---
+
+## ANTI-SLOP DETECTION RULES
+
+> **Minimum Pass Score**: 85/100
+
+**7 Core Principles** (each scored 0-100):
+1. **Depth** - Real shadows, layers, glass effects (not flat)
+2. **Motion** - Meaningful animations, not decorative
+3. **Emoji Ban** - Zero tolerance in production UI
+4. **Typography** - Premium fonts, proper hierarchy (not generic)
+5. **Color** - Intentional palettes, not defaults
+6. **Layout** - Purposeful spacing, visual rhythm
+7. **App Soul** - Design matches app's essence
+
+**INSTANT FAIL Patterns**:
+- `from-purple-* to-pink-*` gradients
+- `from-blue-* to-purple-*` gradients
+- Emoji Unicode ranges (U+1F300-U+1F9FF)
+- "Coming soon", "TODO", "FIXME", "lorem ipsum"
+- `font-sans` without custom font override
+- `gray-200`, `gray-300`, `gray-400` without intent
+
+---
+
+## HONESTY REQUIREMENTS
+
+**NEVER**:
+- Say "implemented" when it wasn't
+- Dismiss items from a prompt without explicit acknowledgment
+- Claim success when build is failing
+- Skip items and hope user won't notice
+
+**ALWAYS**:
+- List exactly what was completed vs what remains
+- Report build failures immediately
+- Acknowledge if something is harder than expected
+- Ask for clarification rather than guessing wrong
+
+---
+
+## ENHANCED CAPABILITIES (January 2026)
+
+### 1. Model Capabilities (Claude Opus 4.5)
+- **Effort Parameter**: Control how much thinking per request (Opus only)
+- **Extended Thinking**: Up to 64K token thinking budget
+- **Compaction Control**: Efficient context management for long sessions
+- **Tool Search**: Dynamically discover tools from large libraries
+- **Thinking Preservation**: Maintains reasoning across multi-turn conversations
+- **80.9% SWE-bench**: Industry-leading coding performance
+
+### 2. Browser Integration (MCP)
+- **Chrome DevTools MCP** configured in `.mcp.json`
+- Take screenshots, read console logs, interact with pages
+- Launch Chrome with: `~/bin/chrome-dev`
+
+### 3. Web Search
+- Use `WebSearch` tool to get current information
+- ALWAYS use for external integrations
+- **Search with FULL DATE precision** - not just year!
+
+### 4. Agent Memory System
+- Memory files in `.claude/rules/` are AUTO-LOADED at session start
+- UPDATE `.claude/rules/01-session-context.md` before ending work
+- Next agent depends on your handoff artifacts in rules/
+
+### 5. Visual Verification
+- Use browser tools to verify UI changes
+- Don't claim UI is "fixed" without visual confirmation
+- Screenshot evidence > assumptions
+
+### 6. MCP Servers Available
+- **chrome-devtools**: Browser automation, screenshots, console logs
+- **github**: PR creation, issue management
+- **filesystem**: Enhanced file operations
+- **memory**: Persistent memory across sessions
+
+### 7. Claude Code 2.1 CLI Features
+- **Hooks System**: PreToolUse, PostToolUse, Stop logic for fine-grained control
+- **Hot Reload Skills**: New/updated skills in `.claude/skills` available immediately
+- **Forked Sub-Agent Context**: Skills run in isolated contexts via `context: fork`
+- **LSP Tool**: Go-to-definition, find-references, hover documentation
+- **Wildcard Permissions**: `Bash(npm *)`, `Bash(*-h*)` patterns
+- **Automatic Skill Discovery**: Skills from nested `.claude/skills` directories
+- **Real-Time Thinking Display**: See reasoning as it happens in Ctrl+O mode
+- **3x Memory Improvement**: Handles much larger conversations efficiently
+- **Clickable File Paths**: OSC 8 hyperlinks in supporting terminals (iTerm)
+- **/config Search**: Search and filter settings quickly
+- **/stats Date Filtering**: Filter usage statistics by date range
+
+### 8. Task Tool (Parallel Agents)
+- Spawn multiple async agents for parallel work
+- Available agent types: Explore, Plan, Bash, general-purpose, spec-* agents
+- Use for research, exploration, and parallel implementation tasks
+- Agents share context and can be resumed
+
+**USE THESE CAPABILITIES TO THEIR FULLEST!**
+
+---
+
+## CURSOR 2.2 PARITY CHECKLIST
+
+This configuration enables Claude Code to match/exceed Cursor 2.2's capabilities:
+
+| Cursor 2.2 Feature | Claude Code Implementation |
+|--------------------|---------------------------|
+| **Debug Mode** (hypothesis debugging) | WebSearch + Browser MCP console logs + iterative fixing |
+| **Shadow Workspace** (background compilation) | `npm run build` verification loop before claiming done |
+| **Autonomy slider** | Auto-act (errors, imports) vs Ask-first (architecture) protocol |
+| **Built-in browser with DevTools** | Chrome DevTools MCP (`~/bin/chrome-dev`) |
+| **Up to 8 parallel agents** | Task tool with parallel agent spawning |
+| Constant feedback loop | Browser MCP screenshot → verify → fix loop |
+| Auto error fixing | 3-attempt auto-fix before escalation |
+| Multi-file context | `.claude/rules/` auto-loaded + memory files |
+| Visual verification | `screenshot` + `get_console_logs` tools |
+| Knowledge currency | WebSearch with FULL DATE precision (month+year minimum) |
+| Quality gates | Build must pass + no placeholders + anti-slop 85+ |
+| Agent memory | Persistent via `.claude/rules/` updates |
+
+**Claude Code Advantages**:
+- **Hooks System**: PreToolUse, PostToolUse, Stop logic for fine-grained control
+- **Hot Reload Skills**: Instant skill availability without restart
+- **LSP Tool**: Go-to-definition, find-references, hover documentation
+- **Wildcard Permissions**: `Bash(npm *)` patterns for easier rules
+- **Real-Time Thinking Display**: See reasoning in Ctrl+O mode
+- **3x Memory Efficiency**: Much larger conversation handling
+- **Clickable Hyperlinks**: OSC 8 file paths in iTerm
+
+---
+
+## SLASH COMMANDS
 
 Use these for common workflows:
 
@@ -1190,73 +647,6 @@ Use these for common workflows:
 
 ---
 
-## ENHANCED CAPABILITIES AVAILABLE
-
-As of 2025-12-19, Claude Code in this project has:
-
-### 1. Browser Integration (MCP)
-- **Chrome DevTools MCP** configured in `.mcp.json`
-- Take screenshots, read console logs, interact with pages
-- Launch Chrome with: `~/bin/chrome-dev`
-- See `.claude/memory/browser-integration.md` for full guide
-
-### 2. Web Search
-- Use `WebSearch` tool to get current information
-- ALWAYS use for external integrations
-- **Search with FULL DATE precision** - not just year!
-  - Include month: "Claude API December 2025"
-  - Include day for cutting-edge: "OpenAI latest Dec 20 2025"
-  - Tech evolves daily in the AI race - a week-old search could miss major updates
-
-### 3. Agent Memory System
-- Memory files in `.claude/rules/` are AUTO-LOADED at session start
-- UPDATE `.claude/rules/01-session-context.md` before ending work
-- Next agent depends on your handoff artifacts in rules/
-
-### 4. Visual Verification
-- Use browser tools to verify UI changes
-- Don't claim UI is "fixed" without visual confirmation
-- Screenshot evidence > assumptions
-
-### 5. MCP Servers Available
-- **chrome-devtools**: Browser automation
-- **github**: PR creation, issue management
-- **filesystem**: Enhanced file operations
-- **memory**: Persistent memory across sessions
-
-### 6. Settings & Hooks
-- **Auto-permissions**: Common operations pre-approved
-- **Quality gates**: Build must pass, no placeholders
-- **Model**: Opus 4.5 with extended thinking (32K budget)
-
-**USE THESE CAPABILITIES TO THEIR FULLEST!**
-
----
-
-## CURSOR 2.2 PARITY CHECKLIST
-
-This configuration provides feature parity with Cursor 2.2:
-
-| Cursor Feature | KripTik Implementation |
-|----------------|------------------------|
-| Constant feedback loop | Browser MCP + auto-build verification |
-| Auto error fixing | 3-attempt auto-fix before escalation |
-| Multi-file context | Context includes all memory files |
-| Visual verification | Chrome DevTools screenshots |
-| Console error reading | Browser MCP `get_console_logs` |
-| Knowledge currency | WebSearch mandate before external integrations |
-| Quality gates | Build pass + anti-slop 85+ required |
-| Agent memory | `.claude/rules/` auto-loaded + memory files |
-| Parallel agents | Worktree architecture + MCP servers |
-
-**Additional KripTik Advantages**:
-- Intent Lock system (immutable contracts)
-- 6-agent verification swarm
-- 4-level error escalation
-- Anti-slop detection (85 minimum)
-- Premium design standards enforcement
-
----
-
-*This document is the source of truth for Claude Code operation within KripTik AI.*
-*Last updated: 2025-12-20*
+*This document is the source of truth for Claude Code operation.*
+*For project architecture, see `.claude/KRIPTIK-PROJECT-CONTEXT.md`.*
+*Last updated: 2026-01-20*

@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { getModelRouter } from './model-router.js';
 import { getImageToCodeService, type ImageToCodeResult } from './image-to-code.js';
+import { getVJEPA2Provider, type TemporalAnalysis, type KeyMoment } from '../embeddings/providers/runpod-vjepa2-provider.js';
 
 // Lazy-load ffmpeg to handle serverless environments where it's not available
 let ffmpegInstance: ((input?: string) => import('fluent-ffmpeg').FfmpegCommand) & {
@@ -84,11 +85,26 @@ export interface VideoFrame {
     similarity?: number; // similarity to previous frame
 }
 
+export type JourneyAction =
+    | 'view'
+    | 'navigate'
+    | 'click'
+    | 'scroll'
+    | 'type'
+    | 'hover'
+    | 'drag'
+    | 'swipe'
+    | 'error_encounter'    // V-JEPA 2: detected error state
+    | 'success_state'      // V-JEPA 2: detected success/completion
+    | 'navigation_change'  // V-JEPA 2: detected significant nav change
+    | 'key_interaction'    // V-JEPA 2: detected important interaction
+    | 'user_struggle';     // V-JEPA 2: detected user frustration
+
 export interface UserJourneyStep {
     id: string;
     frameId: string;
     timestamp: number;
-    action: string;
+    action: JourneyAction | string;
     description: string;
     targetElement?: string;
     expectedOutcome?: string;
@@ -131,6 +147,20 @@ export interface ComponentSuggestion {
     sourceFrames: string[];
 }
 
+export interface TemporalInsights {
+    patterns: string[];
+    keyMoments: Array<{
+        frameIndex: number;
+        timestamp: number;
+        type: 'error' | 'success' | 'pivot' | 'frustration' | 'breakthrough';
+        description: string;
+        confidence: number;
+    }>;
+    flowSummary?: string;
+    frameSimilarities: number[];
+    temporalEmbedding?: number[];
+}
+
 export interface VideoAnalysisResult {
     sessionId: string;
     frames: VideoFrame[];
@@ -138,11 +168,13 @@ export interface VideoAnalysisResult {
     userJourney: UserJourneyStep[];
     designDNA: DesignDNA;
     suggestedComponents: ComponentSuggestion[];
+    temporalInsights?: TemporalInsights;
     analysis: {
         screenCount: number;
         interactionCount: number;
         uniqueElementTypes: string[];
         estimatedComplexity: 'simple' | 'moderate' | 'complex';
+        temporalUnderstandingUsed: boolean;
     };
 }
 
@@ -175,10 +207,18 @@ export class VideoToCodeService extends EventEmitter {
     private tempDir: string;
     private router = getModelRouter();
     private imageToCode = getImageToCodeService();
+    private vjepa2 = getVJEPA2Provider();
 
     constructor() {
         super();
         this.tempDir = path.join(tmpdir(), 'kriptik-video');
+    }
+
+    /**
+     * Check if V-JEPA 2 temporal understanding is available
+     */
+    isTemporalUnderstandingAvailable(): boolean {
+        return this.vjepa2.isConfigured();
     }
 
     /**
@@ -216,15 +256,30 @@ export class VideoToCodeService extends EventEmitter {
             );
 
             // Step 3: Detect keyframes (significant UI changes)
+            // Use V-JEPA 2 for temporal understanding if available
             onProgress?.({
                 stage: 'analyzing',
                 progress: 30,
-                message: 'Detecting keyframes and UI changes...'
+                message: this.vjepa2.isConfigured()
+                    ? 'Using V-JEPA 2 for temporal analysis...'
+                    : 'Detecting keyframes and UI changes...'
             });
-            const frames = await this.detectKeyframes(
-                extractedFrames,
-                request.extractionOptions?.keyframeThreshold || 0.15
-            );
+
+            let temporalInsights: TemporalInsights | undefined;
+            let frames: VideoFrame[];
+
+            if (this.vjepa2.isConfigured() && extractedFrames.length >= 2) {
+                // Use V-JEPA 2 for superior temporal understanding
+                const temporalResult = await this.analyzeWithVJEPA2(extractedFrames);
+                temporalInsights = temporalResult.insights;
+                frames = temporalResult.frames;
+            } else {
+                // Fallback to simple keyframe detection
+                frames = await this.detectKeyframes(
+                    extractedFrames,
+                    request.extractionOptions?.keyframeThreshold || 0.15
+                );
+            }
 
             // Step 4: Analyze UI elements in each keyframe
             const analyzedFrames: VideoFrame[] = [];
@@ -256,8 +311,8 @@ export class VideoToCodeService extends EventEmitter {
                 ? await this.detectInteractions(analyzedFrames)
                 : [];
 
-            // Step 6: Build user journey
-            const userJourney = this.buildUserJourney(analyzedFrames, interactions);
+            // Step 6: Build user journey (enhanced with temporal insights if available)
+            const userJourney = this.buildUserJourney(analyzedFrames, interactions, temporalInsights);
 
             // Step 7: Extract Design DNA
             onProgress?.({
@@ -291,11 +346,13 @@ export class VideoToCodeService extends EventEmitter {
                 userJourney,
                 designDNA,
                 suggestedComponents,
+                temporalInsights,
                 analysis: {
                     screenCount: new Set(analyzedFrames.filter(f => f.keyframe).map(f => f.id)).size,
                     interactionCount: interactions.length,
                     uniqueElementTypes: [...new Set(analyzedFrames.flatMap(f => f.uiElements.map(e => e.type)))],
-                    estimatedComplexity: this.estimateComplexity(analyzedFrames, interactions)
+                    estimatedComplexity: this.estimateComplexity(analyzedFrames, interactions),
+                    temporalUnderstandingUsed: !!temporalInsights
                 }
             };
         } catch (error) {
@@ -521,6 +578,71 @@ export class VideoToCodeService extends EventEmitter {
     }
 
     /**
+     * Analyze frames using V-JEPA 2 for temporal understanding
+     */
+    private async analyzeWithVJEPA2(
+        frames: VideoFrame[]
+    ): Promise<{ frames: VideoFrame[]; insights: TemporalInsights }> {
+        // Extract base64 images from frames
+        const frameImages = frames.map(f => f.image);
+
+        try {
+            // Use V-JEPA 2 temporal sequence analysis
+            const analysis = await this.vjepa2.analyzeTemporalSequence(frameImages, {
+                context: 'UI screen recording analysis for Clone Mode',
+                maxFrames: Math.min(frames.length, 64), // V-JEPA 2 supports up to 64 frames
+            });
+
+            // Map key moments to keyframes
+            const keyMomentFrameIndices = new Set(
+                analysis.keyMoments.map(km => km.frameIndex)
+            );
+
+            // Mark keyframes based on V-JEPA 2 analysis
+            const updatedFrames = frames.map((frame, i) => ({
+                ...frame,
+                keyframe: i === 0 ||
+                          i === frames.length - 1 ||
+                          keyMomentFrameIndices.has(i) ||
+                          (analysis.frameSimilarities[i] !== undefined &&
+                           analysis.frameSimilarities[i] < 0.85), // Low similarity = significant change
+                similarity: analysis.frameSimilarities[i] ?? 1,
+            }));
+
+            // Build temporal insights
+            const insights: TemporalInsights = {
+                patterns: analysis.patterns,
+                keyMoments: analysis.keyMoments.map(km => ({
+                    frameIndex: km.frameIndex,
+                    timestamp: km.timestamp,
+                    type: km.type,
+                    description: km.description,
+                    confidence: km.confidence,
+                })),
+                flowSummary: analysis.flowSummary,
+                frameSimilarities: analysis.frameSimilarities,
+                temporalEmbedding: analysis.embedding,
+            };
+
+            console.log(`[VideoToCode] V-JEPA 2 analysis: ${analysis.keyMoments.length} key moments, ${analysis.patterns.length} patterns detected`);
+
+            return { frames: updatedFrames, insights };
+        } catch (error) {
+            console.warn('[VideoToCode] V-JEPA 2 analysis failed, falling back to simple detection:', error);
+            // Fallback to simple detection if V-JEPA 2 fails
+            const fallbackFrames = await this.detectKeyframes(frames, 0.15);
+            return {
+                frames: fallbackFrames,
+                insights: {
+                    patterns: [],
+                    keyMoments: [],
+                    frameSimilarities: [],
+                }
+            };
+        }
+    }
+
+    /**
      * Compare two frames for similarity (simple hash comparison)
      */
     private async compareFrames(frame1: VideoFrame, frame2: VideoFrame): Promise<number> {
@@ -648,26 +770,67 @@ Respond with JSON:
 
     /**
      * Build user journey from frames and interactions
+     * Enhanced with temporal insights from V-JEPA 2 when available
      */
     private buildUserJourney(
         frames: VideoFrame[],
-        interactions: InteractionDetection[]
+        interactions: InteractionDetection[],
+        temporalInsights?: TemporalInsights
     ): UserJourneyStep[] {
         const journey: UserJourneyStep[] = [];
         const keyframes = frames.filter(f => f.keyframe);
 
+        // Build a map of frame index to key moments for quick lookup
+        const keyMomentsByFrame = new Map<number, TemporalInsights['keyMoments'][0]>();
+        if (temporalInsights?.keyMoments) {
+            for (const moment of temporalInsights.keyMoments) {
+                keyMomentsByFrame.set(moment.frameIndex, moment);
+            }
+        }
+
         for (let i = 0; i < keyframes.length; i++) {
             const frame = keyframes[i];
+            const frameIndex = frames.indexOf(frame);
             const interaction = interactions.find(int =>
                 Math.abs(int.timestamp - frame.timestamp) < 1000
             );
+
+            // Check if V-JEPA 2 detected a key moment at this frame
+            const keyMoment = keyMomentsByFrame.get(frameIndex);
+
+            // Determine action based on temporal insights or interaction
+            let action = interaction?.type || (i === 0 ? 'view' : 'navigate');
+            let description = this.describeFrame(frame);
+
+            if (keyMoment) {
+                // Enhance description with V-JEPA 2 insight
+                description = keyMoment.description || description;
+                // Map key moment type to action
+                switch (keyMoment.type) {
+                    case 'error':
+                        action = 'error_encounter';
+                        break;
+                    case 'success':
+                        action = 'success_state';
+                        break;
+                    case 'pivot':
+                        action = 'navigation_change';
+                        break;
+                    case 'breakthrough':
+                        action = 'key_interaction';
+                        break;
+                    case 'frustration':
+                        action = 'user_struggle';
+                        break;
+                }
+            }
 
             journey.push({
                 id: uuidv4(),
                 frameId: frame.id,
                 timestamp: frame.timestamp,
-                action: interaction?.type || (i === 0 ? 'view' : 'navigate'),
-                description: this.describeFrame(frame),
+                action,
+                description,
                 targetElement: interaction?.elementId,
                 expectedOutcome: i < keyframes.length - 1
                     ? this.describeFrame(keyframes[i + 1])
@@ -976,7 +1139,15 @@ ${analysis.analysis.uniqueElementTypes.join(', ')}
 5. Add proper state management for interactions
 6. Include responsive design
 7. Use the exact color values from the design DNA
+${analysis.temporalInsights ? `
+### Temporal Analysis (V-JEPA 2):
+- Flow Pattern: ${analysis.temporalInsights.flowSummary || 'Standard navigation flow'}
+- Detected Patterns: ${analysis.temporalInsights.patterns.join(', ') || 'None'}
+- Key Moments: ${analysis.temporalInsights.keyMoments.length} significant transitions detected
+${analysis.temporalInsights.keyMoments.slice(0, 5).map(km => `  - ${km.type}: ${km.description} (confidence: ${(km.confidence * 100).toFixed(0)}%)`).join('\n')}
 
+Use these temporal insights to inform the interaction flow and state transitions.
+` : ''}
 Generate production-ready code that recreates this UI.`;
     }
 

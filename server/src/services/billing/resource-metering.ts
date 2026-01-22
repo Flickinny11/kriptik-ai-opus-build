@@ -274,10 +274,10 @@ export class ResourceMeteringService extends EventEmitter {
                 allocation.buildId
             );
 
-            if (!ceilingCheck.canProceed) {
+            if (!ceilingCheck.allowed) {
                 return {
                     success: false,
-                    error: `Would exceed credit ceiling. ${ceilingCheck.message}`,
+                    error: `Would exceed credit ceiling. ${ceilingCheck.reason || 'Ceiling limit reached'}`,
                 };
             }
         }
@@ -636,8 +636,9 @@ export class ResourceMeteringService extends EventEmitter {
             // Record to usage service
             await usageService.recordUsage({
                 userId: report.userId,
-                category: 'gpu_compute',
-                credits: report.totalCostCents, // 1 credit = 1 cent
+                category: 'deployment',
+                subcategory: 'gpu_compute',
+                creditsUsed: report.totalCostCents, // 1 credit = 1 cent
                 metadata: {
                     allocationId: report.allocationId,
                     buildId: report.buildId,

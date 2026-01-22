@@ -96,13 +96,16 @@ export interface IntegrationHookResult {
     timestamp: string;
 }
 
+// Local model type that includes embedding (mapped to multimodal for deployment)
+export type DeploymentModelType = 'llm' | 'image' | 'video' | 'audio' | 'embedding' | 'multimodal';
+
 // RunPod Deployment Types
 export interface RunPodDeploymentRequest {
     buildId: string;
     userId: string;
     projectId: string;
     modelUrl: string;
-    modelType: 'llm' | 'image' | 'video' | 'audio' | 'embedding' | 'multimodal';
+    modelType: DeploymentModelType;
     modelName?: string;
     gpuType?: string;
     scalingConfig?: {
@@ -112,6 +115,11 @@ export interface RunPodDeploymentRequest {
     };
     containerImage?: string;
     environmentVariables?: Record<string, string>;
+}
+
+// Helper to map deployment model type to ModelModality (embedding -> multimodal)
+function toModelModality(modelType: DeploymentModelType): 'llm' | 'image' | 'video' | 'audio' | 'multimodal' {
+    return modelType === 'embedding' ? 'multimodal' : modelType;
 }
 
 export interface RunPodDeploymentResult {
@@ -227,25 +235,13 @@ export class BuildIntegrationHooks extends EventEmitter {
         this.emit('orchestration_start', { buildId: context.buildId });
 
         try {
-            // Get credentials from vault
-            const vault = getCredentialVault();
-            const credentials: Record<string, string> = {};
-
-            for (const integrationId of context.requiredIntegrations) {
-                const cred = await vault.getCredentials(context.userId, integrationId);
-                if (cred) {
-                    Object.assign(credentials, cred);
-                }
-            }
-
-            // Create orchestration context
+            // Create orchestration context (orchestrator fetches credentials as needed)
             const orchContext: BuildIntegrationContext = {
                 buildId: context.buildId,
                 projectId: context.projectId,
                 userId: context.userId,
                 requiredIntegrations: context.requiredIntegrations,
-                credentials,
-                projectPath: `/tmp/builds/${context.buildId}`,
+                detectedFeatures: [],
             };
 
             // Run orchestration
@@ -254,8 +250,8 @@ export class BuildIntegrationHooks extends EventEmitter {
             this.emit('orchestration_complete', {
                 buildId: context.buildId,
                 results,
-                successCount: results.filter(r => r.success).length,
-                failCount: results.filter(r => !r.success).length,
+                successCount: results.filter(r => r.status === 'success').length,
+                failCount: results.filter(r => r.status === 'failed').length,
             });
 
             return results;
@@ -267,8 +263,7 @@ export class BuildIntegrationHooks extends EventEmitter {
 
             return [{
                 integrationId: 'orchestration',
-                success: false,
-                actions: [],
+                status: 'failed',
                 error: errorMsg,
             }];
         }
@@ -325,13 +320,13 @@ export class BuildIntegrationHooks extends EventEmitter {
                 resourceId: recommendation.resource.id,
                 resourceName: `${recommendation.resource.gpuType} (${recommendation.resource.provider})`,
                 pricePerHour: recommendation.resource.pricePerHour,
-                estimatedDurationMinutes: recommendation.estimatedDurationMinutes,
-                operationType: context.modelRequirements?.operationType || 'training',
+                estimatedDurationMinutes: context.modelRequirements?.estimatedDurationMinutes || 60,
+                operationType: 'training',
                 isUserInitiated: true,
                 metadata: {
                     vram: recommendation.resource.vramGb,
                     region: recommendation.resource.region,
-                    matchScore: recommendation.matchScore,
+                    score: recommendation.score,
                     buildId: context.buildId,
                 },
             });
@@ -388,10 +383,10 @@ export class BuildIntegrationHooks extends EventEmitter {
     async initializeRunPodDeployer(userId: string): Promise<boolean> {
         try {
             const vault = getCredentialVault();
-            const credentials = await vault.getCredentials(userId, 'runpod');
+            const credential = await vault.getCredential(userId, 'runpod');
 
-            if (credentials?.apiKey) {
-                this.runpodDeployer.initialize(credentials.apiKey);
+            if (credential?.data?.apiKey && typeof credential.data.apiKey === 'string') {
+                this.runpodDeployer.initialize(credential.data.apiKey);
                 return true;
             }
 
@@ -481,7 +476,7 @@ export class BuildIntegrationHooks extends EventEmitter {
                 resourceName: `RunPod ${recommendedGPU.displayName}`,
                 pricePerHour: recommendedGPU.pricePerHour,
                 estimatedDurationMinutes,
-                operationType: 'deployment',
+                operationType: 'inference',  // Deployment is for serving inference
                 isUserInitiated: true,
                 metadata: {
                     modelUrl: request.modelUrl,
@@ -551,7 +546,7 @@ export class BuildIntegrationHooks extends EventEmitter {
             const deployConfig: RunPodDeployConfig = {
                 userId: request.userId,
                 modelUrl: request.modelUrl,
-                modelType: request.modelType,
+                modelType: toModelModality(request.modelType),
                 gpuType: gpu.name,
                 modelName: request.modelName,
                 scalingConfig: request.scalingConfig || {
@@ -574,7 +569,7 @@ export class BuildIntegrationHooks extends EventEmitter {
             // Generate inference code
             const inferenceCode = this.runpodDeployer.generateInferenceCode(
                 result.endpointId,
-                request.modelType
+                toModelModality(request.modelType)
             );
 
             this.emit('runpod_deployment_complete', {

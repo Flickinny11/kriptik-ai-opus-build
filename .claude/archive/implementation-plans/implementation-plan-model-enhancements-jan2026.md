@@ -12,7 +12,7 @@
 This analysis compares:
 1. **KripTik AI's current architecture** (dual Anthropic + OpenAI SDKs)
 2. **research.md capabilities** (47 advances across 10 domains)
-3. **Latest OpenAI updates** (January 2026 - o3/o4-mini, GPT-5.2-Codex, Responses API)
+3. **Latest OpenAI updates** (January 2026 - NOT NOT NOT using o3/o4-mini or anything from openai that is o3 and o4 series, but will websearch to find newer models as of today january 19, 2026., GPT-5.2-Codex, Responses API)
 4. **Latest Anthropic updates** (January 2026 - effort parameter, extended thinking, interleaved thinking)
 
 ### What Already Exists in KripTik (No Action Needed)
@@ -34,8 +34,8 @@ This analysis compares:
 ### What Needs Enhancement/Implementation
 | Priority | Enhancement | Source | Impact |
 |----------|-------------|--------|--------|
-| P0 | OpenAI Responses API | OpenAI Jan 2026 | 3% SWE-bench improvement, 40-80% cache savings |
-| P0 | o3/o4-mini Reasoning Effort | OpenAI Jan 2026 | xhigh effort for critical phases |
+| P0 | OpenAI Responses API | OpenAI Jan 2026 | % SWE-bench improvement, % cache savings |
+| P0 | *NOT using o3/o4-mini Reasoning Effort, but instead will websearch to find the newest, most capable models from openai because we will NOT NOT NOT use o3 and o4 series of any kind | OpenAI Jan 2026 | xhigh effort for critical phases |
 | P0 | Interleaved Thinking Beta | Anthropic Jan 2026 | Think between tool calls |
 | P1 | Context Compaction | GPT-5.2-Codex | 24-hour coding sessions |
 | P1 | Preserved Thinking Blocks | Claude Opus 4.5 | Maintain reasoning across turns |
@@ -127,17 +127,15 @@ Phase 6: BROWSER DEMO - Show user working app
 ### New Models Available
 | Model | Capability | Pricing |
 |-------|------------|---------|
-| o3 | Smartest reasoning (87.7% GPQA Diamond) | Premium |
-| o3-pro | Extended reasoning with consistency | Premium+ |
-| o4-mini | Fast, cost-efficient reasoning | Standard |
+| Do not use gpt-o3 OR 4 series variations -- only use the best models for this use-case as of today january 19, 2026, and they are NOT o4 or o3, and we will not use o3 or 4 series from gpt.
 | GPT-5.2-Codex | Context compaction, 24-hr sessions, 56.4% SWE-Bench Pro | $1.75/$14 per 1M |
 
 ### New API Features
 1. **Responses API** (replaces Chat Completions for agentic tasks)
    - Reasoning summaries for transparency
    - Preserved reasoning tokens around function calls
-   - 3% SWE-bench improvement
-   - 40-80% cache utilization improvement
+   - % SWE-bench improvement
+   - % cache utilization improvement
 
 2. **Reasoning Effort Parameter** (o3, o4-mini)
    - `minimal` (effort_ratio: 0.10)
@@ -166,8 +164,8 @@ Phase 6: BROWSER DEMO - Show user working app
    - `high` - Exceeds Sonnet by 4.3% with 48% fewer tokens
 
 2. **Extended Thinking Improvements**
-   - Minimum budget: 1,024 tokens
-   - Maximum budget: 64,000 tokens (batch for 32K+)
+   - Minimum budget: websearch using today's date january 19, 2026
+   - Maximum budget: " "
    - Preserved thinking blocks across turns (new default in Opus 4.5)
 
 3. **Interleaved Thinking Beta** (`interleaved-thinking-2025-05-14`)
@@ -196,7 +194,7 @@ Each prompt below is designed for direct paste into Claude Code or Cursor 2.2.
 ```
 TASK: Implement OpenAI Responses API for reasoning models in KripTik AI
 
-CONTEXT: OpenAI's Responses API provides 3% SWE-bench improvement and 40-80% cache savings over Chat Completions for agentic tasks. It supports reasoning summaries and preserved reasoning tokens around function calls.
+CONTEXT: OpenAI's Responses API provides increase % SWE-bench improvement and % cache savings - do NOT use gpt o3 or 4 series, use newer openai gpt models as of today january 19, 2026 that you find in websearch, over Chat Completions for agentic tasks. It supports reasoning summaries and preserved reasoning tokens around function calls.
 
 REQUIREMENTS:
 1. Create new file: server/src/services/ai/openai-responses-client.ts
@@ -226,10 +224,7 @@ IMPLEMENTATION DETAILS:
 ```typescript
 // openai-responses-client.ts structure
 interface ResponsesAPIConfig {
-  model: 'o3' | 'o3-pro' | 'o4-mini';
-  reasoning: {
-    effort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
-    summary: 'auto' | 'none';
+ not gpt-o3, not gpt-4 series, but instead websearch to find the newer models as of today january 19, 2026
   };
   max_output_tokens: number;
   tools?: ToolDefinition[];
@@ -273,7 +268,7 @@ STYLE REQUIREMENTS:
 ```
 TASK: Add xhigh reasoning effort level for critical phases in KripTik AI
 
-CONTEXT: OpenAI's o3 and o4-mini models now support 'xhigh' effort level (effort_ratio: 0.95) for maximum reasoning depth. This should be used for the most critical phases.
+CONTEXT: OpenAI's o3 and o4-mini models are not suitabe given they are outdated. Other openai models that you will find in websearch now support 'xhigh' effort level for maximum reasoning depth. This should be used for the most critical phases.
 
 REQUIREMENTS:
 1. Modify: server/src/services/ai/openrouter-client.ts
@@ -298,10 +293,7 @@ export type EffortLevel = 'low' | 'medium' | 'high' | 'xhigh';
     effort: 'high',
     thinkingBudget: 64000,
     description: 'Critical gate - Opus 4.5 maximum reasoning',
-    verificationModel: OPENAI_MODELS.O3,  // o3 for verification
-    verificationEffort: 'xhigh',          // Maximum effort for critical gate
-},
-```
+    use openai 5.2 models - search to find them because today is january 19, 2-26 - do NOT use gpt-4 series or o3 series.
 
 VERIFICATION:
 - npm run build must pass
@@ -833,7 +825,7 @@ CONTEXT: Model IDs and capabilities have been updated. KripTik needs current mod
 REQUIREMENTS:
 1. Modify: server/src/services/ai/openrouter-client.ts
    - Update ANTHROPIC_MODELS with correct IDs
-   - Update OPENAI_MODELS with o3-pro, o4-mini-high variants
+   - Update OPENAI_MODELS with NOT NOT NOT o3-pro, o4-mini-high variants, will NEVER use gpt o3 or o4 series, but will use more recent, current models using today's date, january 19, 2026 in a websearch to find the newer more capable and better models.
    - Add model info for new models
 
 2. Modify: server/src/services/ai/model-router.ts
@@ -843,19 +835,13 @@ REQUIREMENTS:
 CURRENT MODEL IDs (January 2026):
 ```typescript
 export const ANTHROPIC_MODELS = {
-    OPUS_4_5: 'claude-opus-4-5-20251101',
-    SONNET_4_5: 'claude-sonnet-4-5-20241022',
-    SONNET_4: 'claude-sonnet-4-20250514',
-    HAIKU_3_5: 'claude-3-5-haiku-20241022',
+    OPUS_4_5: 'claude-opus 4.5, thinking and extended thinking (websearch to use correct names)
+    SONNET_4: 'claude-sonnet-4.5-20250514' (thinking models and variants are available, websearch to find right model names),
+    HAIKU_3_5: 'claude-4-5-haiku-20241022' (fid right model names),
 } as const;
 
 export const OPENAI_MODELS = {
     // Reasoning models
-    O3: 'o3',
-    O3_PRO: 'o3-pro',
-    O3_MINI: 'o3-mini',
-    O4_MINI: 'o4-mini',
-    O4_MINI_HIGH: 'o4-mini-high',
 
     // GPT-5.2 Series
     GPT_5_2_PRO: 'gpt-5.2-pro',
@@ -863,11 +849,7 @@ export const OPENAI_MODELS = {
     GPT_5_2_INSTANT: 'gpt-5.2-instant',
     GPT_5_2_CODEX: 'gpt-5.2-codex',
     GPT_5_2_CODEX_PRO: 'gpt-5.2-codex-pro',
-
-    // Legacy
-    GPT_4O: 'gpt-4o',
-    GPT_4O_MINI: 'gpt-4o-mini',
-} as const;
+**will not use gpt-4, not use gpt-o3 - today is january 19, 2026, so make the models the best current to the day.
 ```
 
 PRICING UPDATES:
@@ -875,8 +857,6 @@ PRICING UPDATES:
 |-------|----------------|-----------------|
 | Opus 4.5 | $5 | $25 |
 | Sonnet 4.5 | $3 | $15 |
-| o3 | TBD | TBD |
-| o4-mini | ~$1 | ~$4 |
 | GPT-5.2-Codex | $1.75 | $14 |
 
 VERIFICATION:

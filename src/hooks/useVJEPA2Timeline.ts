@@ -79,7 +79,8 @@ async function stopMonitoringSession(sessionId: string): Promise<void> {
   });
 }
 
-async function processFrame(
+// Exported for use when auto-capture is implemented with screen capture API
+export async function processFrame(
   sessionId: string,
   screenshotBase64: string
 ): Promise<{

@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================================================
 // PREMIUM DESIGN TOKENS
@@ -274,7 +274,7 @@ const TimelineScrubber: React.FC<{
         }}
       >
         {/* Frame markers */}
-        {frames.map((frame, i) => {
+        {frames.map((frame) => {
           const position = frame.timestamp / duration;
           const isError = frame.state === 'error';
           const isPredicted = frame.state === 'predicted';
@@ -742,7 +742,7 @@ function formatTime(ms: number): string {
 
 export const MediaDeck: React.FC<MediaDeckProps> = ({
   frames,
-  transitions = [],
+  transitions: _transitions = [],
   currentTime = 0,
   duration = 0,
   onFrameSelect,

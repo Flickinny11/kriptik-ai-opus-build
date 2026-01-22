@@ -27,6 +27,20 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory"],
       "description": "Persistent memory across sessions"
+    },
+    "openmemory": {
+      "command": "npx",
+      "args": ["-y", "@openmemory/mcp@latest"],
+      "env": {
+        "OPENMEMORY_API_URL": "http://localhost:8765",
+        "USER_ID": "loganbaird"
+      },
+      "description": "Unified memory layer - persistent context across all AI tools"
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "ctx7sk-8764376d-6570-4bbf-9be8-cfdec4da696f"],
+      "description": "Up-to-date library documentation - use 'use context7' in prompts for current API docs"
     }
   }
 }

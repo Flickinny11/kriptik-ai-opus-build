@@ -16,4 +16,14 @@ export { SarcasticNotifier, createSarcasticNotifier } from './sarcastic-notifier
 export { ImportController, createImportController } from './import-controller.js';
 export { ContextStore, createContextStore } from './context-store.js';
 export { BrowserExtractorService, createBrowserExtractor } from './browser-extractor.js';
+export {
+    ConversationAnalyzerService,
+    createConversationAnalyzer,
+    getConversationAnalyzer,
+    removeConversationAnalyzer,
+    type ScreenshotCapture,
+    type ConversationCaptureProgress,
+    type ExtractedConversationContext,
+    type VisualIntentExtraction,
+} from './conversation-analyzer.js';
 
