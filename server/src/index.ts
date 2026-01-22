@@ -735,6 +735,7 @@ import semanticIntentRouter from './routes/semantic-intent.js';
 import semanticSatisfactionRouter from './routes/semantic-satisfaction.js';
 import visualUnderstandingRouter from './routes/visual-understanding.js';
 import hyperThinkingRouter from './routes/hyper-thinking.js';
+import visualSemanticRouter from './routes/visual-semantic.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -763,6 +764,9 @@ app.use("/api/visual", aiRateLimiter, requireCredits(20), visualUnderstandingRou
 
 // Hyper-Thinking API (Advanced Multi-Model Reasoning) - 25 credits per request
 app.use("/api/hyper-thinking", aiRateLimiter, requireCredits(25), hyperThinkingRouter);
+
+// Visual-Semantic API (VL-JEPA + V-JEPA 2 hybrid analysis) - 30 credits per request
+app.use("/api/visual-semantic", aiRateLimiter, requireCredits(30), visualSemanticRouter);
 
 // Implementation planning
 app.use("/api/plan", planRouter);
