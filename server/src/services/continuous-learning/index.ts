@@ -92,5 +92,17 @@ export {
   type OptimizedConfig,
 } from './vl-jepa-feedback.js';
 
+// V-JEPA 2 Feedback Loop - Temporal understanding improvement over time
+export {
+  VJEPA2FeedbackLoop,
+  getVJEPA2FeedbackLoop,
+  createVJEPA2FeedbackLoop,
+  resetVJEPA2FeedbackLoop,
+  type TemporalFeedbackData,
+  type TemporalPattern,
+  type PredictionImprovement,
+  type OptimizedTemporalConfig,
+} from './vjepa2-feedback.js';
+
 // Types
 export * from './types.js';
