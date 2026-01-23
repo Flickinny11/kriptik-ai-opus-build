@@ -82,3 +82,6 @@ export { default as visualEditorRouter } from './visual-editor.js';
 
 // Inference Gateway (Private Endpoints - Auto-Deploy)
 export { default as inferenceRouter } from './api/inference.js';
+
+// Design Mode (UI Mockup Generation, Blueprints, Semantic Analysis)
+export { default as designModeRouter } from './design-mode.js';

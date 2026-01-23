@@ -55,6 +55,54 @@ export interface DesignAnalysis {
 }
 
 /**
+ * Result of comparing generated UI against Design Mode mockup
+ */
+export interface MockupComparisonResult {
+    /** Overall similarity score (0-1) */
+    similarityScore: number;
+    /** Does generated UI match mockup? */
+    matchesMockup: boolean;
+    /** Element-by-element comparison */
+    elementMatches: Array<{
+        mockupElement: string;
+        generatedElement: string | null;
+        matchScore: number;
+        status: 'matched' | 'partial' | 'missing' | 'extra';
+    }>;
+    /** Layout comparison */
+    layoutMatch: {
+        score: number;
+        differences: string[];
+    };
+    /** Style comparison */
+    styleMatch: {
+        score: number;
+        colorDifferences: string[];
+        typographyDifferences: string[];
+    };
+    /** Recommended improvements */
+    improvements: string[];
+    /** Raw analysis text */
+    analysis: string;
+}
+
+/**
+ * Design Mode mockup data for tethering
+ */
+export interface DesignModeMockup {
+    id: string;
+    viewName: string;
+    imageBase64: string;
+    elements: Array<{
+        id: string;
+        type: string;
+        label: string;
+        boundingBox?: { x: number; y: number; width: number; height: number };
+    }>;
+    embedding?: number[];
+}
+
+/**
  * Visual Verification Service
  * Analyzes screenshots and verifies UI quality using AI vision
  */
@@ -483,6 +531,139 @@ Respond with JSON:
             screenshot,
             issues: result.issues,
         };
+    }
+
+    /**
+     * Compare generated UI screenshot against Design Mode mockup
+     * Uses VL-JEPA embedding similarity for element matching
+     */
+    async compareWithMockup(
+        screenshot: string,
+        mockup: DesignModeMockup
+    ): Promise<MockupComparisonResult> {
+        const prompt = `You are an expert UI designer comparing a generated UI (SCREENSHOT) against a design mockup (MOCKUP).
+
+MOCKUP VIEW: "${mockup.viewName}"
+MOCKUP ELEMENTS: ${mockup.elements.map(e => `${e.type}: "${e.label}"`).join(', ')}
+
+Analyze how well the generated UI matches the design mockup:
+
+1. **Element Matching** (0-100 per element)
+   - For each mockup element, find the corresponding element in the screenshot
+   - Rate the match quality (position, style, appearance)
+   - Note any missing or extra elements
+
+2. **Layout Matching** (0-100)
+   - Compare overall layout structure
+   - Check element positioning and alignment
+   - Verify spacing and proportions
+
+3. **Style Matching** (0-100)
+   - Compare color schemes
+   - Check typography (fonts, sizes, weights)
+   - Verify visual depth (shadows, gradients)
+   - Compare interactive element styling
+
+4. **Overall Similarity** (0-100)
+   - Weight: Elements 40%, Layout 30%, Style 30%
+   - Consider the mockup is the "source of truth"
+
+Respond with JSON:
+{
+    "similarityScore": number (0-100),
+    "matchesMockup": boolean (true if score >= 75),
+    "elementMatches": [
+        {
+            "mockupElement": "element from mockup",
+            "generatedElement": "matching element or null",
+            "matchScore": number (0-100),
+            "status": "matched" | "partial" | "missing" | "extra"
+        }
+    ],
+    "layoutMatch": {
+        "score": number (0-100),
+        "differences": ["list of layout differences"]
+    },
+    "styleMatch": {
+        "score": number (0-100),
+        "colorDifferences": ["list of color differences"],
+        "typographyDifferences": ["list of typography differences"]
+    },
+    "improvements": ["specific changes to match mockup better"],
+    "analysis": "detailed comparison analysis"
+}`;
+
+        const response = await this.claudeService.generate(prompt, {
+            model: CLAUDE_MODELS.SONNET_4_5,
+            maxTokens: 16000,
+            useExtendedThinking: true,
+            thinkingBudgetTokens: 12000,
+        });
+
+        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error('Failed to parse mockup comparison response');
+        }
+
+        const result = JSON.parse(jsonMatch[0]);
+
+        return {
+            similarityScore: result.similarityScore / 100,
+            matchesMockup: result.matchesMockup ?? result.similarityScore >= 75,
+            elementMatches: result.elementMatches || [],
+            layoutMatch: {
+                score: (result.layoutMatch?.score || 0) / 100,
+                differences: result.layoutMatch?.differences || [],
+            },
+            styleMatch: {
+                score: (result.styleMatch?.score || 0) / 100,
+                colorDifferences: result.styleMatch?.colorDifferences || [],
+                typographyDifferences: result.styleMatch?.typographyDifferences || [],
+            },
+            improvements: result.improvements || [],
+            analysis: result.analysis || '',
+        };
+    }
+
+    /**
+     * Batch compare multiple views against their mockups
+     */
+    async batchCompareWithMockups(
+        screenshots: Map<string, string>,
+        mockups: DesignModeMockup[]
+    ): Promise<Map<string, MockupComparisonResult>> {
+        const results = new Map<string, MockupComparisonResult>();
+
+        for (const mockup of mockups) {
+            const screenshot = screenshots.get(mockup.viewName);
+            if (screenshot) {
+                try {
+                    const comparison = await this.compareWithMockup(screenshot, mockup);
+                    results.set(mockup.viewName, comparison);
+                } catch (error) {
+                    console.error(`[VisualVerifier] Failed to compare ${mockup.viewName}:`, error);
+                }
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Calculate tethering confidence score
+     * Uses element match rates and layout similarity
+     */
+    calculateTetheringConfidence(comparison: MockupComparisonResult): number {
+        const elementScore = comparison.elementMatches.reduce(
+            (sum, e) => sum + (e.status === 'matched' ? 1 : e.status === 'partial' ? 0.5 : 0),
+            0
+        ) / Math.max(comparison.elementMatches.length, 1);
+
+        const layoutScore = comparison.layoutMatch.score;
+        const styleScore = comparison.styleMatch.score;
+
+        // Weighted confidence: 50% elements, 30% layout, 20% style
+        return elementScore * 0.5 + layoutScore * 0.3 + styleScore * 0.2;
     }
 
     /**

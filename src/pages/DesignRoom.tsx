@@ -6,9 +6,11 @@
  * - Whiteboard for generated images
  * - Design theme customizer with 35+ trends
  * - Drag-drop, select, assign to projects
+ * - Real AI mockup generation via RunPod Serverless
+ * - VL-JEPA semantic element extraction
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,6 +24,7 @@ import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { useProjectStore } from '../store/useProjectStore';
 import { cn } from '@/lib/utils';
+import { API_URL, authenticatedFetch } from '@/lib/api-config';
 import '../styles/realistic-glass.css';
 
 // Design themes
@@ -40,13 +43,27 @@ const DESIGN_THEMES = [
     { id: 'matrix', name: 'Matrix', colors: ['#000000', '#00ff00', '#003300'] },
 ];
 
-// Generated image item
+// Semantic element from VL-JEPA analysis
+interface SemanticElement {
+    id: string;
+    type: string;
+    label: string;
+    boundingBox?: { x: number; y: number; width: number; height: number };
+    confidence?: number;
+}
+
+// Generated image item with semantic data
 interface GeneratedImage {
     id: string;
     prompt: string;
     url: string;
+    imageBase64?: string;
     timestamp: Date;
     liked: boolean;
+    elements?: SemanticElement[];
+    matchRate?: number;
+    inferenceTime?: number;
+    viewName?: string;
 }
 
 // Chat message
@@ -71,7 +88,9 @@ export default function DesignRoom() {
     const [showProjectSelector, setShowProjectSelector] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
-    const handleGenerate = async () => {
+    const [generationError, setGenerationError] = useState<string | null>(null);
+
+    const handleGenerate = useCallback(async () => {
         if (!prompt.trim() || isGenerating) return;
 
         // Add user message
@@ -81,31 +100,96 @@ export default function DesignRoom() {
             content: prompt,
         };
         setMessages(prev => [...prev, userMessage]);
+        const currentPrompt = prompt;
         setPrompt('');
         setIsGenerating(true);
+        setGenerationError(null);
 
-        // Simulate generation (replace with real API call)
-        setTimeout(() => {
+        try {
+            // Extract view name from prompt (first line or first sentence)
+            const viewName = currentPrompt.split(/[.\n]/)[0].slice(0, 50) || 'Generated View';
+
+            // Get active theme's style preferences
+            const theme = DESIGN_THEMES.find(t => t.id === activeTheme);
+            const stylePreferences = theme ? {
+                colorScheme: theme.id.includes('dark') || theme.id.includes('neon') || theme.id.includes('matrix')
+                    ? 'dark' as const
+                    : 'light' as const,
+                primaryColor: theme.colors[1],
+                typography: theme.id.includes('retro') || theme.id.includes('cyber')
+                    ? 'playful' as const
+                    : 'modern' as const,
+            } : undefined;
+
+            // Call the real Design Mode API
+            const response = await authenticatedFetch(`${API_URL}/api/design-mode/mockup/generate`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    prompt: currentPrompt,
+                    viewName,
+                    platform: 'web',
+                    stylePreferences,
+                    styleDescription: theme?.name || 'modern minimal',
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Generation failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.success || !data.mockup) {
+                throw new Error('Invalid response from server');
+            }
+
+            const { mockup } = data;
+
+            // Create the generated image with semantic elements
             const newImage: GeneratedImage = {
-                id: crypto.randomUUID(),
-                prompt: userMessage.content,
-                url: `https://picsum.photos/seed/${Date.now()}/800/600`, // Placeholder
-                timestamp: new Date(),
+                id: mockup.id,
+                prompt: currentPrompt,
+                url: mockup.imageBase64
+                    ? `data:image/png;base64,${mockup.imageBase64}`
+                    : `https://picsum.photos/seed/${Date.now()}/800/600`, // Fallback
+                imageBase64: mockup.imageBase64,
+                timestamp: new Date(mockup.generatedAt || Date.now()),
                 liked: false,
+                elements: mockup.elements || [],
+                matchRate: mockup.matchRate,
+                inferenceTime: mockup.inferenceTime,
+                viewName: mockup.viewName,
             };
 
             const assistantMessage: ChatMessage = {
                 id: crypto.randomUUID(),
                 role: 'assistant',
-                content: 'Here\'s your design based on the prompt:',
+                content: mockup.inferenceTime
+                    ? `Generated "${mockup.viewName}" in ${(mockup.inferenceTime / 1000).toFixed(1)}s with ${mockup.elements?.length || 0} UI elements detected:`
+                    : 'Here\'s your design based on the prompt:',
                 images: [newImage],
             };
 
             setMessages(prev => [...prev, assistantMessage]);
             setGeneratedImages(prev => [...prev, newImage]);
+
+        } catch (error) {
+            console.error('[DesignRoom] Generation failed:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            setGenerationError(errorMessage);
+
+            // Add error message to chat
+            const errorAssistantMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                content: `Generation failed: ${errorMessage}. Please try again or check if the server is running.`,
+            };
+            setMessages(prev => [...prev, errorAssistantMessage]);
+        } finally {
             setIsGenerating(false);
-        }, 2000);
-    };
+        }
+    }, [prompt, isGenerating, activeTheme]);
 
     const toggleImageSelection = (imageId: string) => {
         const newSelection = new Set(selectedImages);
@@ -122,10 +206,21 @@ export default function DesignRoom() {
         const selectedImageData = generatedImages.filter(img => selectedImages.has(img.id));
         if (selectedImageData.length === 0) return;
 
-        // Navigate to builder with image context for AI code generation
-        const imageUrls = selectedImageData.map(img => img.url).join(',');
+        // Prepare Design Mode mockups for tethering
+        const mockups = selectedImageData.map(img => ({
+            id: img.id,
+            viewName: img.viewName || img.prompt.slice(0, 50),
+            imageBase64: img.imageBase64 || '',
+            elements: img.elements || [],
+        }));
+
+        // Store mockups in sessionStorage for the builder to pick up
+        sessionStorage.setItem('designModeMockups', JSON.stringify(mockups));
+
+        // Navigate to builder with Design Mode enabled and image context
         const prompts = selectedImageData.map(img => img.prompt).join('; ');
-        navigate(`/builder/new?designRef=${encodeURIComponent(imageUrls)}&context=${encodeURIComponent(prompts)}`);
+        const viewNames = selectedImageData.map(img => img.viewName || 'View').join(',');
+        navigate(`/builder/new?designMode=true&views=${encodeURIComponent(viewNames)}&context=${encodeURIComponent(prompts)}`);
     };
 
     const handleAddToProject = () => {
@@ -136,11 +231,23 @@ export default function DesignRoom() {
     const handleSelectProject = (projectId: string) => {
         // Get selected image data
         const selectedImageData = generatedImages.filter(img => selectedImages.has(img.id));
-        const imageUrls = selectedImageData.map(img => img.url).join(',');
-        const prompts = selectedImageData.map(img => img.prompt).join('; ');
 
-        // Navigate to the selected project with design context
-        navigate(`/builder/${projectId}?designRef=${encodeURIComponent(imageUrls)}&context=${encodeURIComponent(prompts)}`);
+        // Prepare Design Mode mockups for tethering
+        const mockups = selectedImageData.map(img => ({
+            id: img.id,
+            viewName: img.viewName || img.prompt.slice(0, 50),
+            imageBase64: img.imageBase64 || '',
+            elements: img.elements || [],
+        }));
+
+        // Store mockups in sessionStorage for the builder to pick up
+        sessionStorage.setItem('designModeMockups', JSON.stringify(mockups));
+
+        const prompts = selectedImageData.map(img => img.prompt).join('; ');
+        const viewNames = selectedImageData.map(img => img.viewName || 'View').join(',');
+
+        // Navigate to the selected project with Design Mode enabled
+        navigate(`/builder/${projectId}?designMode=true&views=${encodeURIComponent(viewNames)}&context=${encodeURIComponent(prompts)}`);
         setShowProjectSelector(false);
     };
 
@@ -266,11 +373,33 @@ export default function DesignRoom() {
 
                             {isGenerating && (
                                 <div className="flex items-center gap-2" style={{ color: '#666' }}>
-                                    <div
-                                        className="w-2 h-2 rounded-full animate-pulse"
-                                        style={{ background: '#c25a00' }}
-                                    />
-                                    <span className="text-sm">Generating...</span>
+                                    <div className="flex gap-1">
+                                        <div
+                                            className="w-2 h-2 rounded-full animate-pulse"
+                                            style={{ background: '#c25a00', animationDelay: '0ms' }}
+                                        />
+                                        <div
+                                            className="w-2 h-2 rounded-full animate-pulse"
+                                            style={{ background: '#c25a00', animationDelay: '150ms' }}
+                                        />
+                                        <div
+                                            className="w-2 h-2 rounded-full animate-pulse"
+                                            style={{ background: '#c25a00', animationDelay: '300ms' }}
+                                        />
+                                    </div>
+                                    <span className="text-sm">Generating via RunPod Serverless...</span>
+                                </div>
+                            )}
+                            {generationError && !isGenerating && (
+                                <div
+                                    className="p-3 rounded-xl text-sm"
+                                    style={{
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        color: '#dc2626',
+                                    }}
+                                >
+                                    {generationError}
                                 </div>
                             )}
                             <div ref={chatEndRef} />
@@ -401,7 +530,7 @@ export default function DesignRoom() {
                                             initial={{ opacity: 0, scale: 0.9 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             className={cn(
-                                                "relative rounded-xl overflow-hidden cursor-pointer",
+                                                "relative rounded-xl overflow-hidden cursor-pointer group",
                                                 "border-2 transition-all glass-panel"
                                             )}
                                             style={{
@@ -420,6 +549,37 @@ export default function DesignRoom() {
                                                 className="w-full h-auto"
                                             />
 
+                                            {/* Semantic element overlays on hover */}
+                                            {image.elements && image.elements.length > 0 && (
+                                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                    {image.elements.map((element) => element.boundingBox && (
+                                                        <div
+                                                            key={element.id}
+                                                            className="absolute border-2 rounded"
+                                                            style={{
+                                                                left: `${element.boundingBox.x}%`,
+                                                                top: `${element.boundingBox.y}%`,
+                                                                width: `${element.boundingBox.width}%`,
+                                                                height: `${element.boundingBox.height}%`,
+                                                                borderColor: 'rgba(194, 90, 0, 0.7)',
+                                                                background: 'rgba(194, 90, 0, 0.1)',
+                                                            }}
+                                                        >
+                                                            <span
+                                                                className="absolute -top-5 left-0 text-xs px-1 rounded whitespace-nowrap"
+                                                                style={{
+                                                                    background: 'rgba(194, 90, 0, 0.9)',
+                                                                    color: '#fff',
+                                                                    fontSize: '10px',
+                                                                }}
+                                                            >
+                                                                {element.type}: {element.label}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
                                             {/* Selection indicator */}
                                             {selectedImages.has(image.id) && (
                                                 <div
@@ -430,32 +590,83 @@ export default function DesignRoom() {
                                                 </div>
                                             )}
 
+                                            {/* Element count badge */}
+                                            {image.elements && image.elements.length > 0 && (
+                                                <div
+                                                    className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs"
+                                                    style={{
+                                                        background: 'rgba(0, 0, 0, 0.7)',
+                                                        color: '#fff',
+                                                    }}
+                                                >
+                                                    {image.elements.length} elements
+                                                </div>
+                                            )}
+
+                                            {/* View name label */}
+                                            {image.viewName && (
+                                                <div
+                                                    className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    style={{
+                                                        background: 'rgba(0, 0, 0, 0.8)',
+                                                        color: '#fff',
+                                                    }}
+                                                >
+                                                    {image.viewName}
+                                                </div>
+                                            )}
+
                                             {/* Actions overlay */}
                                             <div
-                                                className="absolute inset-x-0 bottom-0 p-2 opacity-0 hover:opacity-100 transition-opacity"
+                                                className="absolute inset-x-0 bottom-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 style={{
                                                     background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
                                                 }}
                                             >
-                                                <div className="flex gap-1">
-                                                    <button
-                                                        className="p-1.5 rounded transition-colors"
-                                                        style={{ background: 'rgba(255,255,255,0.2)' }}
-                                                    >
-                                                        <HeartIcon size={14} style={{ color: '#fff' }} />
-                                                    </button>
-                                                    <button
-                                                        className="p-1.5 rounded transition-colors"
-                                                        style={{ background: 'rgba(255,255,255,0.2)' }}
-                                                    >
-                                                        <DownloadIcon size={14} style={{ color: '#fff' }} />
-                                                    </button>
-                                                    <button
-                                                        className="p-1.5 rounded transition-colors"
-                                                        style={{ background: 'rgba(255,255,255,0.2)' }}
-                                                    >
-                                                        <TrashIcon size={14} style={{ color: '#fff' }} />
-                                                    </button>
+                                                <div className="flex gap-1 items-center justify-between">
+                                                    <div className="flex gap-1">
+                                                        <button
+                                                            className="p-1.5 rounded transition-colors hover:bg-white/30"
+                                                            style={{ background: 'rgba(255,255,255,0.2)' }}
+                                                            onClick={(e) => { e.stopPropagation(); }}
+                                                        >
+                                                            <HeartIcon size={14} style={{ color: '#fff' }} />
+                                                        </button>
+                                                        <button
+                                                            className="p-1.5 rounded transition-colors hover:bg-white/30"
+                                                            style={{ background: 'rgba(255,255,255,0.2)' }}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // Download image
+                                                                const link = document.createElement('a');
+                                                                link.href = image.url;
+                                                                link.download = `${image.viewName || 'design'}-${image.id}.png`;
+                                                                link.click();
+                                                            }}
+                                                        >
+                                                            <DownloadIcon size={14} style={{ color: '#fff' }} />
+                                                        </button>
+                                                        <button
+                                                            className="p-1.5 rounded transition-colors hover:bg-white/30"
+                                                            style={{ background: 'rgba(255,255,255,0.2)' }}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setGeneratedImages(prev => prev.filter(i => i.id !== image.id));
+                                                                setSelectedImages(prev => {
+                                                                    const next = new Set(prev);
+                                                                    next.delete(image.id);
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                        >
+                                                            <TrashIcon size={14} style={{ color: '#fff' }} />
+                                                        </button>
+                                                    </div>
+                                                    {image.matchRate !== undefined && (
+                                                        <span className="text-xs" style={{ color: '#fff' }}>
+                                                            {Math.round(image.matchRate * 100)}% match
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </motion.div>

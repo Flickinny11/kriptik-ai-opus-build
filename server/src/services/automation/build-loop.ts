@@ -115,6 +115,8 @@ import {
 import {
     VisualVerificationService,
     createVisualVerificationService,
+    type DesignModeMockup,
+    type MockupComparisonResult,
 } from './visual-verifier.js';
 import {
     SandboxService,
@@ -614,6 +616,28 @@ export interface BuildLoopOptions {
      * Defaults to claude-sonnet-4.5 if not specified.
      */
     modelId?: string;
+    /**
+     * DESIGN MODE: Enable visual mockup tethering for code generation.
+     * When true, generated UI will be compared against approved mockups.
+     */
+    designModeEnabled?: boolean;
+    /**
+     * DESIGN MODE: Approved mockups from the DesignModeOverlay.
+     * Each mockup contains the view name, image, and semantic elements.
+     * Used for VL-JEPA tethering during visual verification.
+     */
+    designModeMockups?: Array<{
+        id: string;
+        viewName: string;
+        imageBase64: string;
+        elements: Array<{
+            id: string;
+            type: string;
+            label: string;
+            boundingBox?: { x: number; y: number; width: number; height: number };
+        }>;
+        embedding?: number[];
+    }>;
 }
 
 export interface BuildLoopState {
@@ -657,10 +681,21 @@ export interface BuildLoopState {
 
     // PHASE 1: Live Preview Sandbox URL
     sandboxUrl?: string;
-    
+
     // Multi-sandbox orchestration mode (N parallel sandboxes for faster builds)
     multiSandboxMode?: boolean;
     multiSandboxConfig?: Partial<MultiSandboxConfig>;
+
+    // DESIGN MODE: Visual mockup tethering state
+    designModeEnabled?: boolean;
+    designModeMockups?: BuildLoopOptions['designModeMockups'];
+    mockupComparisonResults?: Map<string, {
+        viewName: string;
+        similarityScore: number;
+        matchesMockup: boolean;
+        tetheringConfidence: number;
+        lastComparedAt: Date;
+    }>;
 }
 
 export interface BuildLoopEvent {
@@ -704,7 +739,9 @@ export interface BuildLoopEvent {
         // Credential workflow events (Implementation Plan Phase 2)
         | 'credentials_required' | 'credentials_received' | 'credentials_available' | 'build_resuming'
         // VL-JEPA Semantic Intent events (Phase 0-C)
-        | 'intent_clarification_needed' | 'semantic_drift_detected' | 'vl_jepa_visual_analysis';
+        | 'intent_clarification_needed' | 'semantic_drift_detected' | 'vl_jepa_visual_analysis'
+        // Design Mode mockup tethering events
+        | 'design_mode_mockup_comparison' | 'design_mode_tethering_update';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -1118,7 +1155,16 @@ export class BuildLoopOrchestrator extends EventEmitter {
             escalationLevel: 0,
             lastCheckpointId: null,
             checkpointCount: 0,
+            // DESIGN MODE: Initialize from options
+            designModeEnabled: options?.designModeEnabled ?? false,
+            designModeMockups: options?.designModeMockups,
+            mockupComparisonResults: options?.designModeEnabled ? new Map() : undefined,
         };
+
+        // Log Design Mode status
+        if (this.state.designModeEnabled) {
+            console.log(`[BuildLoop] Design Mode ENABLED with ${this.state.designModeMockups?.length || 0} mockups`);
+        }
 
         this.intentEngine = createIntentLockEngine(userId, projectId);
         this.featureManager = createFeatureListManager(projectId, orchestrationRunId, userId);
@@ -6165,6 +6211,87 @@ Generate production-ready code for this feature.`;
                         description: `${slop.severity}: ${slop.description}`,
                     });
                 }
+
+                // DESIGN MODE: Compare against approved mockups if enabled
+                if (this.state.designModeEnabled && this.state.designModeMockups?.length) {
+                    console.log(`[BuildLoop] Design Mode: Comparing against ${this.state.designModeMockups.length} mockups`);
+
+                    // Determine current view name from URL or route
+                    const currentUrl = await this.browserService.getCurrentUrl?.() || sandbox.url;
+                    const urlPath = new URL(currentUrl).pathname;
+                    const currentViewName = this.inferViewNameFromPath(urlPath);
+
+                    // Find matching mockup for current view
+                    const matchingMockup = this.state.designModeMockups.find(
+                        m => m.viewName.toLowerCase() === currentViewName.toLowerCase() ||
+                             m.viewName.toLowerCase().includes(currentViewName.toLowerCase()) ||
+                             currentViewName.toLowerCase().includes(m.viewName.toLowerCase())
+                    );
+
+                    if (matchingMockup) {
+                        try {
+                            const comparison = await this.visualVerifier.compareWithMockup(
+                                screenshot,
+                                matchingMockup as DesignModeMockup
+                            );
+
+                            const tetheringConfidence = this.visualVerifier.calculateTetheringConfidence(comparison);
+
+                            // Store comparison result
+                            if (!this.state.mockupComparisonResults) {
+                                this.state.mockupComparisonResults = new Map();
+                            }
+                            this.state.mockupComparisonResults.set(matchingMockup.viewName, {
+                                viewName: matchingMockup.viewName,
+                                similarityScore: comparison.similarityScore,
+                                matchesMockup: comparison.matchesMockup,
+                                tetheringConfidence,
+                                lastComparedAt: new Date(),
+                            });
+
+                            // Emit comparison event
+                            this.emitEvent('cursor21_visual_check', {
+                                viewName: matchingMockup.viewName,
+                                similarityScore: comparison.similarityScore,
+                                matchesMockup: comparison.matchesMockup,
+                                tetheringConfidence,
+                                elementMatches: comparison.elementMatches.length,
+                                improvements: comparison.improvements,
+                            });
+
+                            // Add issues for low similarity or missing elements
+                            if (!comparison.matchesMockup) {
+                                issues.push({
+                                    type: 'mockup_mismatch',
+                                    description: `Design Mode: View "${matchingMockup.viewName}" has ${Math.round(comparison.similarityScore * 100)}% similarity to mockup (threshold: 75%)`,
+                                });
+                            }
+
+                            // Report missing elements
+                            const missingElements = comparison.elementMatches.filter(e => e.status === 'missing');
+                            for (const missing of missingElements) {
+                                issues.push({
+                                    type: 'mockup_element_missing',
+                                    description: `Design Mode: Missing element "${missing.mockupElement}" from mockup`,
+                                });
+                            }
+
+                            // Report style differences
+                            if (comparison.styleMatch.score < 0.7) {
+                                for (const diff of comparison.styleMatch.colorDifferences.slice(0, 3)) {
+                                    issues.push({
+                                        type: 'mockup_style_mismatch',
+                                        description: `Design Mode: Style difference - ${diff}`,
+                                    });
+                                }
+                            }
+
+                            console.log(`[BuildLoop] Design Mode comparison for "${matchingMockup.viewName}": ${Math.round(comparison.similarityScore * 100)}% similarity, tethering confidence: ${Math.round(tetheringConfidence * 100)}%`);
+                        } catch (comparisonError) {
+                            console.error(`[BuildLoop] Design Mode comparison failed:`, comparisonError);
+                        }
+                    }
+                }
             }
 
             // Clear logs for next check
@@ -6182,6 +6309,47 @@ Generate production-ready code for this feature.`;
         }
 
         return issues;
+    }
+
+    /**
+     * Infer view name from URL path for Design Mode mockup matching
+     */
+    private inferViewNameFromPath(urlPath: string): string {
+        // Remove leading/trailing slashes and get segments
+        const segments = urlPath.replace(/^\/|\/$/g, '').split('/').filter(Boolean);
+
+        if (segments.length === 0) {
+            return 'Home';
+        }
+
+        // Convert path segment to view name (e.g., "user-profile" -> "User Profile")
+        const lastSegment = segments[segments.length - 1];
+
+        // Handle dynamic routes (remove numeric IDs or UUIDs)
+        const cleanSegment = lastSegment
+            .replace(/^[0-9a-f-]{36}$/i, '') // UUID
+            .replace(/^\d+$/, '') // numeric ID
+            .replace(/[-_]/g, ' ')
+            .trim();
+
+        if (!cleanSegment) {
+            // If last segment was an ID, use the parent
+            const parentSegment = segments[segments.length - 2];
+            if (parentSegment) {
+                return parentSegment
+                    .replace(/[-_]/g, ' ')
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+            }
+            return 'Detail';
+        }
+
+        // Title case the view name
+        return cleanSegment
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 
     private async fixIntegrationIssue(issue: { type: string; description: string }): Promise<void> {

@@ -736,6 +736,7 @@ import semanticSatisfactionRouter from './routes/semantic-satisfaction.js';
 import visualUnderstandingRouter from './routes/visual-understanding.js';
 import hyperThinkingRouter from './routes/hyper-thinking.js';
 import visualSemanticRouter from './routes/visual-semantic.js';
+import designModeRouter from './routes/design-mode.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -767,6 +768,9 @@ app.use("/api/hyper-thinking", aiRateLimiter, requireCredits(25), hyperThinkingR
 
 // Visual-Semantic API (VL-JEPA + V-JEPA 2 hybrid analysis) - 30 credits per request
 app.use("/api/visual-semantic", aiRateLimiter, requireCredits(30), visualSemanticRouter);
+
+// Design Mode API (UI Mockup Generation, Blueprints, Semantic Analysis) - 40 credits per request
+app.use("/api/design-mode", aiRateLimiter, requireCredits(40), designModeRouter);
 
 // Implementation planning
 app.use("/api/plan", planRouter);

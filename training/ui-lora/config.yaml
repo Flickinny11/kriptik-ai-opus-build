@@ -1,0 +1,153 @@
+# =============================================================================
+# KripTik UI-Design-LoRA Training Configuration
+# =============================================================================
+# SimpleTuner configuration for fine-tuning FLUX.2-dev on UI design datasets.
+# Produces a LoRA model optimized for generating professional UI mockups.
+#
+# Training Data Sources:
+# - UIClip BetterApp subset (1,200 human-rated quality UIs)
+# - Enrico (1,460 human-supervised UIs, 20 topics)
+# - Gridaco UI Dataset (20K+ screenshots with labeled components)
+#
+# Run with: python train.py --config training/ui-lora/config.yaml
+# =============================================================================
+
+# Model Configuration
+model:
+  base_model: "black-forest-labs/FLUX.1-dev"
+  model_type: "flux"
+  revision: "main"
+  variant: "fp16"
+
+  # LoRA Configuration
+  lora:
+    rank: 64                    # Higher rank = more capacity, more VRAM
+    alpha: 64                   # Usually equal to rank for stable training
+    dropout: 0.0                # No dropout for LoRA
+    target_modules:             # FLUX-specific target modules
+      - "to_q"
+      - "to_k"
+      - "to_v"
+      - "to_out.0"
+      - "proj_in"
+      - "proj_out"
+      - "ff.net.0.proj"
+      - "ff.net.2"
+
+# Dataset Configuration
+dataset:
+  instance_data_dir: "./dataset/images"
+  caption_dir: "./dataset/captions"
+  caption_extension: ".txt"
+
+  # Resolution settings
+  resolution: 1024
+  center_crop: true
+  random_flip: false            # UI elements shouldn't be flipped
+
+  # Caption handling
+  caption_column: null          # Using .txt files instead
+  repeats: 1                    # Each image seen once per epoch
+
+  # Trigger word for activation
+  trigger_word: "kriptik_ui"
+  prepend_trigger_word: true    # Auto-prepend to all captions
+
+# Training Configuration
+training:
+  output_dir: "./output/ui-design-lora"
+
+  # Training parameters
+  train_batch_size: 1           # Limited by VRAM on consumer GPUs
+  gradient_accumulation_steps: 4 # Effective batch size = 4
+  gradient_checkpointing: true  # Reduce VRAM usage
+  mixed_precision: "bf16"       # Best for FLUX on modern GPUs
+
+  # Learning rate
+  learning_rate: 1.0e-4
+  lr_scheduler: "cosine"
+  lr_warmup_steps: 100
+
+  # Training duration
+  max_train_steps: 3000         # ~100 steps per unique training image
+  checkpointing_steps: 500
+  validation_steps: 250
+
+  # Optimizer
+  optimizer: "adamw_bf16"
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 0.01
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+
+  # Noise and sampling
+  noise_offset: 0.0
+  snr_gamma: null               # Min-SNR weighting disabled
+
+  # Seed for reproducibility
+  seed: 42
+
+# Validation Configuration
+validation:
+  validation_prompts:
+    - "kriptik_ui, mobile app login screen, email and password fields, sign in button, forgot password link, clean modern interface"
+    - "kriptik_ui, dashboard UI design, sidebar navigation, data cards, charts, professional dark theme"
+    - "kriptik_ui, e-commerce product page, product image, price, add to cart button, reviews section"
+    - "kriptik_ui, settings page design, toggle switches, dropdown menus, save button, mobile app"
+    - "kriptik_ui, chat messaging interface, conversation bubbles, text input, send button, user avatars"
+  validation_epochs: 1
+  num_validation_images: 2
+
+# Inference Configuration (for validation)
+inference:
+  guidance_scale: 3.5           # FLUX works well with lower CFG
+  num_inference_steps: 28       # Standard for FLUX.1-dev
+
+# Hardware Configuration
+accelerator:
+  mixed_precision: "bf16"
+  gradient_checkpointing: true
+
+  # Multi-GPU settings (optional)
+  num_processes: 1
+
+  # Memory optimization
+  enable_xformers: true
+  allow_tf32: true
+
+# Logging Configuration
+logging:
+  report_to: "tensorboard"
+  logging_dir: "./output/ui-design-lora/logs"
+
+# Hub Configuration (optional - for uploading to HuggingFace)
+hub:
+  push_to_hub: false
+  hub_model_id: "kriptik/ui-design-lora"
+  hub_token: null               # Set via environment variable HF_TOKEN
+
+# =============================================================================
+# Training Notes
+# =============================================================================
+#
+# VRAM Requirements:
+# - RTX 4090 (24GB): batch_size=1, gradient_accumulation=4 ✓
+# - A100 40GB: batch_size=2, gradient_accumulation=2 ✓
+# - A100 80GB: batch_size=4, gradient_accumulation=1 ✓
+#
+# Expected Training Time:
+# - RTX 4090: ~45-60 minutes for 3000 steps
+# - A100 40GB: ~30-40 minutes for 3000 steps
+# - A100 80GB: ~20-30 minutes for 3000 steps
+#
+# Quality Checkpoints:
+# - 500 steps: Basic style transfer
+# - 1000 steps: Good UI layouts
+# - 2000 steps: Refined text rendering
+# - 3000 steps: Production quality
+#
+# Recommended RunPod GPU Pod:
+# - RTX 4090 @ $0.44/hr = ~$0.44 for full training
+# - A100 40GB @ $1.09/hr = ~$0.55 for full training
+# =============================================================================

@@ -621,6 +621,115 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
     return suggestions;
   }
 
+  // ============================================================================
+  // UI Element Analysis (for Design Mode tethering)
+  // ============================================================================
+
+  /**
+   * Analyze UI elements from an image using Gemini vision
+   * Used for VL-JEPA style semantic element extraction
+   */
+  async analyzeUIElements(imageBase64: string): Promise<Array<{
+    id: string;
+    type: string;
+    label: string;
+    boundingBox: { x: number; y: number; width: number; height: number };
+    confidence: number;
+  }>> {
+    if (!this.apiKey) {
+      console.warn('[VisualUnderstanding] No API key for UI element analysis');
+      return [];
+    }
+
+    const prompt = `Analyze this UI screenshot and identify all interactive UI elements.
+For each element, provide:
+1. type: button | input | nav | card | form | image | text | list | modal | header | footer | sidebar
+2. label: The text content or description of the element
+3. boundingBox: Approximate position as percentages {x, y, width, height} where (0,0) is top-left
+4. confidence: How confident you are in this detection (0-1)
+
+Respond with JSON array only:
+[
+  {"id": "el-1", "type": "button", "label": "Login", "boundingBox": {"x": 80, "y": 5, "width": 10, "height": 4}, "confidence": 0.95},
+  ...
+]`;
+
+    try {
+      const response = await fetch(
+        `${CONFIG.geminiApiUrl}/${CONFIG.geminiModel}:generateContent?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: 'image/png', data: imageBase64.replace(/^data:image\/\w+;base64,/, '') } },
+              ],
+            }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 4096 },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('[VisualUnderstanding] Gemini API error:', await response.text());
+        return [];
+      }
+
+      const data = await response.json();
+      const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      const jsonMatch = textContent.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const elements = JSON.parse(jsonMatch[0]);
+        return elements.map((e: Record<string, unknown>, i: number) => ({
+          id: String(e.id || `el-${i}`),
+          type: String(e.type || 'unknown'),
+          label: String(e.label || ''),
+          boundingBox: {
+            x: Number((e.boundingBox as Record<string, number>)?.x || 0),
+            y: Number((e.boundingBox as Record<string, number>)?.y || 0),
+            width: Number((e.boundingBox as Record<string, number>)?.width || 10),
+            height: Number((e.boundingBox as Record<string, number>)?.height || 5),
+          },
+          confidence: Number(e.confidence || 0.5),
+        }));
+      }
+
+      return [];
+    } catch (error) {
+      console.error('[VisualUnderstanding] UI element analysis failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Generate embedding for an image using the embedding service
+   * Used for VL-JEPA style visual similarity comparison
+   */
+  async generateEmbedding(
+    imageBase64: string,
+    userId: string = 'system'
+  ): Promise<number[]> {
+    try {
+      const result = await this.embeddingService.embed({
+        content: 'UI screenshot embedding',
+        type: 'visual',
+        userId,
+        options: {
+          imageBase64,
+        },
+      });
+
+      return result.embeddings[0] || [];
+    } catch (error) {
+      console.error('[VisualUnderstanding] Embedding generation failed:', error);
+      return [];
+    }
+  }
+
   /**
    * Health check
    */

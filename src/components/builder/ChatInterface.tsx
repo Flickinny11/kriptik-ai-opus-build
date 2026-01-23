@@ -49,6 +49,8 @@ import { useUserStore } from '../../store/useUserStore';
 import TournamentModeToggle from './TournamentModeToggle';
 import TournamentStreamResults, { type TournamentStreamData } from './TournamentStreamResults';
 import { ImplementationPlan } from './ImplementationPlan';
+import { ImplementationPlanPopout } from './ImplementationPlanPopout';
+import { DesignModeOverlay } from './DesignModeOverlay';
 import { CredentialsCollectionView } from '../feature-agent/CredentialsCollectionView';
 import { ProvisioningStatus } from '../provisioning/ProvisioningStatus';
 import { IntentContractDisplay, type IntentContract } from './IntentContractDisplay';
@@ -83,6 +85,15 @@ interface PlanPhase {
     steps: PlanStep[];
     order: number;
     approved: boolean;
+}
+
+// Simplified phase type from ImplementationPlanPopout
+interface PopoutPlanPhase {
+    id: string;
+    title: string;
+    description: string;
+    type: 'frontend' | 'backend' | 'infrastructure' | 'testing';
+    tasks: Array<{ id: string; content: string }>;
 }
 
 interface PlanStep {
@@ -442,6 +453,24 @@ export default function ChatInterface({
     const [tournamentEnabled, setTournamentEnabled] = useState(false);
     const [tournamentData, setTournamentData] = useState<TournamentStreamData | null>(null);
 
+    // Design Mode state (generates UI mockups before building)
+    const [designModeEnabled, setDesignModeEnabled] = useState(false);
+    const [showPlanPopout, setShowPlanPopout] = useState(false);
+    const [showDesignOverlay, setShowDesignOverlay] = useState(false);
+    const [approvedPlanPhases, setApprovedPlanPhases] = useState<PopoutPlanPhase[]>([]);
+    // Design Mode mockups from DesignRoom for VL-JEPA tethering
+    const [designModeMockups, setDesignModeMockups] = useState<Array<{
+        id: string;
+        viewName: string;
+        imageBase64: string;
+        elements: Array<{
+            id: string;
+            type: string;
+            label: string;
+            boundingBox?: { x: number; y: number; width: number; height: number };
+        }>;
+    }> | null>(null);
+
     // Build Workflow state (P0: Plan approval + Credentials collection like Feature Agent)
     const [buildWorkflowPhase, setBuildWorkflowPhase] = useState<BuildWorkflowPhase>('idle');
     const [currentPlan, setCurrentPlan] = useState<BuildPlan | null>(null);
@@ -513,6 +542,38 @@ export default function ChatInterface({
             handleTakeControl,
         };
     }, [demoReady, demoUrl, demoScreenshot, visualScore, currentBuildPhase, intentContract, handleTakeControl]);
+
+    // Load Design Mode mockups from sessionStorage when coming from DesignRoom
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const designModeParam = urlParams.get('designMode');
+
+        if (designModeParam === 'true') {
+            setDesignModeEnabled(true);
+
+            // Try to load mockups from sessionStorage
+            try {
+                const storedMockups = sessionStorage.getItem('designModeMockups');
+                if (storedMockups) {
+                    const mockups = JSON.parse(storedMockups);
+                    setDesignModeMockups(mockups);
+                    console.log('[ChatInterface] Loaded Design Mode mockups from DesignRoom:', mockups.length);
+
+                    // Clear from sessionStorage after loading
+                    sessionStorage.removeItem('designModeMockups');
+                }
+            } catch (e) {
+                console.error('[ChatInterface] Failed to load Design Mode mockups:', e);
+            }
+
+            // Log the context info
+            const viewsParam = urlParams.get('views');
+            const contextParam = urlParams.get('context');
+            if (viewsParam || contextParam) {
+                console.log('[ChatInterface] Design Mode context:', { views: viewsParam, context: contextParam });
+            }
+        }
+    }, []);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -831,17 +892,34 @@ export default function ChatInterface({
                 // Notify parent that build is starting
                 onBuildStart?.();
 
+                // Build request body with optional Design Mode context
+                const planRequestBody: {
+                    userId: string;
+                    projectId: string;
+                    prompt: string;
+                    buildMode: typeof effectiveBuildMode;
+                    designModeEnabled?: boolean;
+                    designModeViews?: string[];
+                } = {
+                    userId,
+                    projectId: currentProjectId,
+                    prompt,
+                    buildMode: effectiveBuildMode, // Phase F: Use selected build mode from modal
+                };
+
+                // Include Design Mode context if enabled
+                if (designModeEnabled && designModeMockups && designModeMockups.length > 0) {
+                    planRequestBody.designModeEnabled = true;
+                    planRequestBody.designModeViews = designModeMockups.map(m => m.viewName);
+                    console.log('[ChatInterface] Including Design Mode views in plan:', planRequestBody.designModeViews);
+                }
+
                 // Use streaming plan endpoint for real-time feedback
                 const response = await fetch(`${API_URL}/api/execute/plan/stream`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({
-                        userId,
-                        projectId: currentProjectId,
-                        prompt,
-                        buildMode: effectiveBuildMode, // Phase F: Use selected build mode from modal
-                    }),
+                    body: JSON.stringify(planRequestBody),
                 });
 
                 if (!response.ok) {
@@ -1026,11 +1104,25 @@ export default function ChatInterface({
         setIsTyping(true);
 
         try {
+            // Build the request body with optional Design Mode mockups
+            const requestBody: {
+                credentials: Record<string, string>;
+                designModeEnabled?: boolean;
+                designModeMockups?: typeof designModeMockups;
+            } = { credentials };
+
+            // Include Design Mode mockups if enabled
+            if (designModeEnabled && designModeMockups && designModeMockups.length > 0) {
+                requestBody.designModeEnabled = true;
+                requestBody.designModeMockups = designModeMockups;
+                console.log('[ChatInterface] Including Design Mode mockups in build:', designModeMockups.length);
+            }
+
             const response = await fetch(`${API_URL}/api/execute/plan/${buildSessionId}/credentials`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include', // Include cookies for auth
-                body: JSON.stringify({ credentials }),
+                body: JSON.stringify(requestBody),
             });
 
             const data = await response.json();
@@ -2329,6 +2421,57 @@ export default function ChatInterface({
                     </div>
                 </div>
 
+                {/* Design Mode Toggle */}
+                <div className="flex items-center justify-between px-1 mb-2">
+                    <button
+                        onClick={() => setDesignModeEnabled(!designModeEnabled)}
+                        disabled={globalStatus !== 'idle' || buildWorkflowPhase !== 'idle'}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 group"
+                        style={{
+                            background: designModeEnabled
+                                ? 'linear-gradient(145deg, rgba(245,168,108,0.15) 0%, rgba(245,168,108,0.08) 100%)'
+                                : 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.15) 100%)',
+                            border: designModeEnabled
+                                ? '1px solid rgba(245,168,108,0.4)'
+                                : '1px solid rgba(0,0,0,0.08)',
+                            opacity: (globalStatus !== 'idle' || buildWorkflowPhase !== 'idle') ? 0.5 : 1,
+                            cursor: (globalStatus !== 'idle' || buildWorkflowPhase !== 'idle') ? 'not-allowed' : 'pointer',
+                        }}
+                    >
+                        {/* Toggle Switch */}
+                        <div
+                            className="relative w-8 h-4 rounded-full transition-colors duration-200"
+                            style={{
+                                background: designModeEnabled
+                                    ? 'linear-gradient(145deg, rgba(245,168,108,0.8) 0%, rgba(234,88,12,0.8) 100%)'
+                                    : 'linear-gradient(145deg, rgba(150,150,150,0.3) 0%, rgba(120,120,120,0.3) 100%)',
+                            }}
+                        >
+                            <div
+                                className="absolute top-0.5 w-3 h-3 rounded-full transition-transform duration-200"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(240,240,240,0.9) 100%)',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                    transform: designModeEnabled ? 'translateX(16px)' : 'translateX(2px)',
+                                }}
+                            />
+                        </div>
+                        <span
+                            className="text-xs font-medium"
+                            style={{
+                                color: designModeEnabled ? '#c25a00' : '#666',
+                            }}
+                        >
+                            Design Mode
+                        </span>
+                    </button>
+                    {designModeEnabled && (
+                        <span className="text-[10px] text-slate-400" style={{ color: '#999' }}>
+                            AI mockups will be generated before building
+                        </span>
+                    )}
+                </div>
+
                 {/* Glass Input Container */}
                 <div
                     className="rounded-2xl p-3 transition-all duration-300"
@@ -2446,6 +2589,44 @@ export default function ChatInterface({
                     <span style={{ color: '#888' }}>6-Phase Orchestration</span>
                 </div>
             </div>
+
+            {/* Implementation Plan Popout (Enhanced) */}
+            <ImplementationPlanPopout
+                isOpen={showPlanPopout}
+                onClose={() => setShowPlanPopout(false)}
+                onApprove={(phases) => {
+                    setApprovedPlanPhases(phases);
+                    setShowPlanPopout(false);
+                    if (designModeEnabled) {
+                        // Show design mode overlay to generate mockups
+                        setShowDesignOverlay(true);
+                    } else {
+                        // Proceed directly to build
+                        setBuildWorkflowPhase('building');
+                    }
+                }}
+                prompt={lockedIntentPrompt || input}
+                projectId={buildProjectId || projectId}
+                designModeEnabled={designModeEnabled}
+            />
+
+            {/* Design Mode Overlay */}
+            <DesignModeOverlay
+                isOpen={showDesignOverlay}
+                onClose={() => setShowDesignOverlay(false)}
+                onApprove={(mockups) => {
+                    // Store mockups and proceed to build
+                    console.log('[ChatInterface] Design mockups approved:', mockups.length);
+                    setShowDesignOverlay(false);
+                    setBuildWorkflowPhase('building');
+                }}
+                phases={approvedPlanPhases}
+                projectId={buildProjectId || projectId}
+                stylePreferences={{
+                    colorScheme: 'dark',
+                    typography: 'modern',
+                }}
+            />
         </div>
     );
 }
