@@ -1,0 +1,38 @@
+
+# SimpleTuner config for KripTik UI-LoRA
+[model]
+pretrained_model_name_or_path = "black-forest-labs/FLUX.1-dev"
+model_family = "flux"
+
+[dataset]
+instance_data_dir = "/workspace/dataset/images"
+caption_strategy = "textfile"
+caption_extension = ".txt"
+repeats = 1
+
+[training]
+output_dir = "/workspace/output"
+train_batch_size = 1
+gradient_accumulation_steps = 4
+gradient_checkpointing = true
+mixed_precision = "bf16"
+learning_rate = 0.0001
+lr_scheduler = "cosine"
+lr_warmup_steps = 100
+max_train_steps = 3000
+checkpointing_steps = 500
+validation_steps = 500
+seed = 42
+
+[lora]
+use_lora = true
+lora_rank = 64
+lora_alpha = 64
+
+[validation]
+validation_prompts = [
+  "kriptik_ui, mobile app login screen, email and password inputs, sign in button, modern design",
+  "kriptik_ui, dashboard interface, data cards, charts, dark theme, professional layout",
+  "kriptik_ui, iOS settings page, toggle switches, Apple design, clean minimal interface"
+]
+validation_num_images = 2
