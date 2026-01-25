@@ -1,0 +1,199 @@
+# =============================================================================
+# KripTik UI-Design-LoRA PREMIUM Training Configuration
+# =============================================================================
+# Enhanced SimpleTuner configuration for FLUX.1-dev trained on premium UI data.
+# Uses curated Awwwards, FWA, Codrops, and elite studio designs.
+#
+# TRAINING DATA SOURCES (Premium Only - NO AI Slop):
+# TIER 1: Award Platforms
+#   - Awwwards SOTY/Three.js/GSAP collections
+#   - CSS Design Awards WOTD/WOTM winners
+#   - FWA Award winners
+#
+# TIER 2: Elite Studios
+#   - Lusion, Active Theory, Studio Freight portfolios
+#   - Bruno Simon, Samsy WebGPU portfolios
+#
+# TIER 3: Tutorial Excellence
+#   - Codrops WebGL/GSAP tutorials with code
+#   - R3F official examples
+#   - Three.js Journey examples
+#
+# TIER 4: iOS/Mobile Premium
+#   - Apple HIG examples
+#   - ScreensDesign curated patterns
+#   - LaudableApps iOS showcases
+#
+# Run with: python train.py --config training/ui-lora/premium-config.yaml
+# =============================================================================
+
+# Model Configuration
+model:
+  base_model: "black-forest-labs/FLUX.1-dev"
+  model_type: "flux"
+  revision: "main"
+  variant: "fp16"
+
+  # LoRA Configuration - Same rank, optimized for premium data
+  lora:
+    rank: 64                    # Maintain rank for consistent quality
+    alpha: 64                   # Equal to rank for stable training
+    dropout: 0.0                # No dropout for LoRA
+    target_modules:             # FLUX-specific target modules
+      - "to_q"
+      - "to_k"
+      - "to_v"
+      - "to_out.0"
+      - "proj_in"
+      - "proj_out"
+      - "ff.net.0.proj"
+      - "ff.net.2"
+
+# Dataset Configuration - Premium sources
+dataset:
+  instance_data_dir: "../premium-data-capture/output/screenshots"
+  caption_dir: "../premium-data-capture/output/captions"
+  caption_extension: ".txt"
+
+  # Resolution settings
+  resolution: 1024
+  center_crop: true
+  random_flip: false            # UI elements shouldn't be flipped
+
+  # Caption handling
+  caption_column: null          # Using .txt files instead
+  repeats: 1                    # Each image seen once per epoch
+
+  # Trigger word for activation - SAME trigger for continuity
+  trigger_word: "kriptik_ui"
+  prepend_trigger_word: true    # Auto-prepend to all captions
+
+# Training Configuration - Enhanced for premium data
+training:
+  output_dir: "./output/premium-ui-design-lora"
+
+  # Training parameters
+  train_batch_size: 1           # Limited by VRAM on consumer GPUs
+  gradient_accumulation_steps: 4 # Effective batch size = 4
+  gradient_checkpointing: true  # Reduce VRAM usage
+  mixed_precision: "bf16"       # Best for FLUX on modern GPUs
+
+  # Learning rate - slightly lower for fine details
+  learning_rate: 8.0e-5         # Reduced from 1e-4 for premium refinement
+  lr_scheduler: "cosine"
+  lr_warmup_steps: 200          # More warmup for stability
+
+  # Training duration - Extended for premium quality
+  max_train_steps: 5000         # Increased from 3000 for premium data
+  checkpointing_steps: 500
+  validation_steps: 250
+
+  # Optimizer
+  optimizer: "adamw_bf16"
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 0.01
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+
+  # Noise and sampling
+  noise_offset: 0.0
+  snr_gamma: null               # Min-SNR weighting disabled
+
+  # Seed for reproducibility
+  seed: 42
+
+# Validation Configuration - Premium design tests
+validation:
+  validation_prompts:
+    # TIER 1: Award-quality web designs
+    - "kriptik_ui, awwwards site of the day, immersive WebGL experience, Three.js shader effects, GSAP ScrollTrigger pinned sections, glassmorphism with backdrop-blur-xl, kinetic typography, dark mode with accent gradients, 60fps smooth scroll"
+    - "kriptik_ui, FWA award winner, creative agency landing page, bento grid layout, liquid glass effects, parallax depth layers, professional web design"
+
+    # TIER 2: Studio-quality interfaces
+    - "kriptik_ui, Lusion-style WebGL interface, custom GLSL shaders, interactive 3D elements, premium visual effects, high-fidelity mockup"
+    - "kriptik_ui, Bruno Simon portfolio style, car-driving 3D experience, immersive Three.js scene, creative navigation"
+
+    # TIER 3: Modern web application
+    - "kriptik_ui, SaaS dashboard design, bento grid data cards, glassmorphism panels, kinetic charts, GSAP stagger animations, dark theme with indigo accent"
+    - "kriptik_ui, e-commerce product page, premium shopping interface, Framer Motion spring animations, micro-interactions on hover, professional layout"
+
+    # TIER 4: iOS/Mobile premium
+    - "kriptik_ui, iOS app design, Apple Human Interface Guidelines, SF Pro typography, bottom navigation, liquid glass Dynamic Island, premium mobile interface"
+    - "kriptik_ui, mobile fintech app, iOS 18 design language, glassmorphism cards, transaction list, clean minimal Apple aesthetic"
+
+    # Animation & Motion tests
+    - "kriptik_ui, scroll-driven animation showcase, GSAP ScrollTrigger scrub effects, parallax layered sections, kinetic typography reveals, 60fps performance"
+    - "kriptik_ui, interactive landing page, Framer Motion spring physics, magnetic cursor effects, image distortion on hover, premium micro-interactions"
+
+  validation_epochs: 1
+  num_validation_images: 3      # More validation images per prompt
+
+# Inference Configuration (for validation)
+inference:
+  guidance_scale: 3.5           # FLUX works well with lower CFG
+  num_inference_steps: 28       # Standard for FLUX.1-dev
+
+# Hardware Configuration
+accelerator:
+  mixed_precision: "bf16"
+  gradient_checkpointing: true
+
+  # Multi-GPU settings (optional)
+  num_processes: 1
+
+  # Memory optimization
+  enable_xformers: true
+  allow_tf32: true
+
+# Logging Configuration
+logging:
+  report_to: "tensorboard"
+  logging_dir: "./output/premium-ui-design-lora/logs"
+
+# Hub Configuration (optional - for uploading to HuggingFace)
+hub:
+  push_to_hub: false
+  hub_model_id: "kriptik/premium-ui-design-lora"
+  hub_token: null               # Set via environment variable HF_TOKEN
+
+# =============================================================================
+# Premium Training Notes
+# =============================================================================
+#
+# DATASET QUALITY:
+# - All images from Tier 1-4 premium sources
+# - Anti-AI-slop filtering applied (no stock photos, generic icons)
+# - Physics parameters validated in technique tags
+# - 2024-2026 modern designs only
+#
+# EXPECTED IMPROVEMENTS:
+# - Award-quality visual aesthetics
+# - Better glassmorphism and depth effects
+# - Improved kinetic typography handling
+# - More accurate premium layout patterns
+# - Better text rendering in UI elements
+#
+# VRAM Requirements:
+# - RTX 4090 (24GB): batch_size=1, gradient_accumulation=4 ✓
+# - A100 40GB: batch_size=2, gradient_accumulation=2 ✓
+# - A100 80GB: batch_size=4, gradient_accumulation=1 ✓
+#
+# Expected Training Time:
+# - RTX 4090: ~75-90 minutes for 5000 steps
+# - A100 40GB: ~50-60 minutes for 5000 steps
+# - A100 80GB: ~35-45 minutes for 5000 steps
+#
+# Quality Checkpoints:
+# - 1000 steps: Basic premium style transfer
+# - 2000 steps: Good layouts, glassmorphism emerging
+# - 3000 steps: Award-quality aesthetics
+# - 4000 steps: Refined details, better text
+# - 5000 steps: Production premium quality
+#
+# SYMBIOTIC TRAINING:
+# The premium dataset is shared between:
+# 1. FLUX UI-LoRA (this training) - Image generation
+# 2. UICoder (Week 4) - Code generation
+# Both models learn the same design vocabulary for consistency.
+# =============================================================================

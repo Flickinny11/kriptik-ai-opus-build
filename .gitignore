@@ -53,3 +53,15 @@ drizzle/
 kriptik-mobile/credentials/
 kriptik-mobile/credentials.json
 *.p8
+
+# ML Training (large files - DO NOT COMMIT)
+training/ui-lora/dataset/
+training/ui-lora/models/
+training/ui-lora/samples/
+training/ui-lora/output/
+training/premium-data-capture/output/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin

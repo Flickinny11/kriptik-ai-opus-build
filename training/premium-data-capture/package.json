@@ -1,0 +1,46 @@
+{
+  "name": "@kriptik/premium-data-capture",
+  "version": "1.0.0",
+  "description": "Premium design data capture pipeline for training FLUX UI-LoRA and UICoder models",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "capture": "npx tsx screenshot-capture.ts",
+    "extract": "npx tsx code-extraction.ts",
+    "tag": "npx tsx technique-tagger.ts",
+    "filter": "npx tsx quality-filter.ts",
+    "pair": "npx tsx create-paired-dataset.ts",
+    "pipeline": "npx tsx index.ts",
+    "pipeline:tier1": "npx tsx index.ts --tier=1",
+    "pipeline:tier2": "npx tsx index.ts --tier=1,2",
+    "pipeline:code-only": "npx tsx index.ts --skip-screenshots",
+    "pipeline:process-only": "npx tsx index.ts --skip-screenshots --skip-code"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ui-design",
+    "flux",
+    "lora",
+    "training-data",
+    "screenshot-capture",
+    "code-extraction",
+    "premium-design",
+    "awwwards",
+    "codrops",
+    "three.js",
+    "gsap",
+    "framer-motion"
+  ],
+  "author": "KripTik AI",
+  "license": "PROPRIETARY"
+}
