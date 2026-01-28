@@ -470,7 +470,7 @@ export class SemanticPageAnalyzer {
               let method: APICall['method'] = 'GET';
               if (args[1] && t.isObjectExpression(args[1])) {
                 const methodProp = args[1].properties.find(
-                  (p): p is t.ObjectProperty =>
+                  (p: t.ObjectMethod | t.ObjectProperty | t.SpreadElement): p is t.ObjectProperty =>
                     t.isObjectProperty(p) &&
                     t.isIdentifier(p.key) &&
                     p.key.name === 'method'
