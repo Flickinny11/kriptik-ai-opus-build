@@ -12,7 +12,7 @@
 
 # Use RunPod's official ComfyUI worker with FLUX.1-dev pre-installed
 # This image includes: ComfyUI, FLUX.1-dev checkpoint, T5 encoder, CLIP, VAE
-FROM runpod/worker-comfyui:3.3.0-flux1-dev
+FROM runpod/worker-comfyui:5.7.1-flux1-dev
 
 # =============================================================================
 # Environment Configuration
@@ -54,8 +54,8 @@ WORKDIR ${MODELS_PATH}/loras
 # or bake into image after training
 RUN mkdir -p ui-design
 
-# Copy LoRA if available during build (optional)
-# COPY ./models/ui-design-lora.safetensors ./ui-design/
+# Copy LoRA - baked into image for production deployment
+COPY ./models/ui-design-lora.safetensors ./ui-design/
 
 # =============================================================================
 # Add Optimized UI Generation Workflow

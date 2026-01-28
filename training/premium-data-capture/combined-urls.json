@@ -1,0 +1,7526 @@
+{
+  "tier1_awards": [
+    {
+      "title": "Bruno Simon Portfolio",
+      "url": "https://bruno-simon.com",
+      "source": "Awwwards SOTY",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "three.js",
+        "cannon.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Lusion Creative Studio",
+      "url": "https://lusion.co",
+      "source": "Awwwards SOTY Nominee",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "webgl",
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Active Theory",
+      "url": "https://activetheory.net",
+      "source": "FWA Site of the Year",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "webgl",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Studio Freight",
+      "url": "https://studiofreight.com",
+      "source": "Awwwards SOTD",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "lenis",
+        "gsap",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Emotion Agency",
+      "url": "https://emotion.agency",
+      "source": "Awwwards Honorable Mention",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Aristide Benoist",
+      "url": "https://www.aristidebenoist.com",
+      "source": "Awwwards SOTD",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Dennis Snellenberg",
+      "url": "https://dennissnellenberg.com",
+      "source": "Awwwards SOTD",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Chartogne Taillet",
+      "url": "https://chartogne-taillet.com",
+      "source": "Awwwards SOTY 2022",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "webgl",
+        "three.js"
+      ]
+    },
+    {
+      "title": "14islands",
+      "url": "https://14islands.com",
+      "source": "FWA Agency of Year",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "react",
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Basic Agency",
+      "url": "https://basicagency.com",
+      "source": "Awwwards SOTY",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "AKQA Agency",
+      "url": "https://www.akqa.com",
+      "source": "Cannes Lions",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "react",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Obys Agency",
+      "url": "https://www.obys.agency",
+      "source": "Awwwards SOTY 2023",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Antinomy Studio",
+      "url": "https://antinomy.studio",
+      "source": "Awwwards SOTD",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "three.js",
+        "r3f"
+      ]
+    },
+    {
+      "title": "Locomotive",
+      "url": "https://www.locomotive.ca",
+      "source": "Awwwards Agency of Year",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "locomotive-scroll",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Resn",
+      "url": "https://resn.co.nz",
+      "source": "FWA Agency of Year",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Cuberto",
+      "url": "https://www.cuberto.com",
+      "source": "Awwwards Multiple Winner",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Wild",
+      "url": "https://www.wild.as",
+      "source": "Awwwards SOTD",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Monopo London",
+      "url": "https://monopo.london",
+      "source": "Awwwards SOTY 2024",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Fifty Three Studio",
+      "url": "https://www.fiftythree.studio",
+      "source": "CSS Design Awards",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Make Me Pulse",
+      "url": "https://www.makemepulse.com",
+      "source": "FWA Multiple Winner",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "webgl",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Unseen",
+      "url": "https://www.unseen.co",
+      "source": "Awwwards SOTD",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "three.js",
+        "r3f"
+      ]
+    },
+    {
+      "title": "Crafted by GC",
+      "url": "https://www.craftedbygc.com",
+      "source": "Awwwards SOTD",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Heco Partners",
+      "url": "https://www.helloheco.com",
+      "source": "Awwwards SOTD",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Linear App",
+      "url": "https://linear.app",
+      "source": "Product Hunt POTY",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Vercel",
+      "url": "https://vercel.com",
+      "source": "Design Excellence",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "next.js",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Stripe",
+      "url": "https://stripe.com",
+      "source": "Design Excellence",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "gsap",
+        "svg-animations"
+      ]
+    },
+    {
+      "title": "Apple MacBook Pro",
+      "url": "https://www.apple.com/macbook-pro",
+      "source": "Apple Design",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "scroll-animations",
+        "video"
+      ]
+    },
+    {
+      "title": "Apple iPhone 16 Pro",
+      "url": "https://www.apple.com/iphone-16-pro",
+      "source": "Apple Design",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "scroll-animations",
+        "video"
+      ]
+    },
+    {
+      "title": "Apple Vision Pro",
+      "url": "https://www.apple.com/apple-vision-pro",
+      "source": "Apple Design",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "3d",
+        "scroll-animations"
+      ]
+    },
+    {
+      "title": "Raycast",
+      "url": "https://raycast.com",
+      "source": "Apple Design Award",
+      "category": "Tier 1: Award Winners",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "shadcn/ui",
+      "url": "https://ui.shadcn.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "radix",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Radix UI",
+      "url": "https://www.radix-ui.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "primitives"
+      ]
+    },
+    {
+      "title": "Chakra UI",
+      "url": "https://chakra-ui.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "css-in-js"
+      ]
+    },
+    {
+      "title": "Mantine",
+      "url": "https://mantine.dev",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "hooks"
+      ]
+    },
+    {
+      "title": "Ant Design",
+      "url": "https://ant.design",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "enterprise"
+      ]
+    },
+    {
+      "title": "Material UI",
+      "url": "https://mui.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "material"
+      ]
+    },
+    {
+      "title": "Tremor",
+      "url": "https://www.tremor.so",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "dashboards"
+      ]
+    },
+    {
+      "title": "Aceternity UI",
+      "url": "https://ui.aceternity.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "animations"
+      ]
+    },
+    {
+      "title": "Magic UI",
+      "url": "https://magicui.design",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Hover.dev",
+      "url": "https://www.hover.dev",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "animations"
+      ]
+    },
+    {
+      "title": "Animata",
+      "url": "https://www.animata.design",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Cult UI",
+      "url": "https://cult-ui.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Flowbite",
+      "url": "https://flowbite.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "tailwind",
+        "vanilla"
+      ]
+    },
+    {
+      "title": "DaisyUI",
+      "url": "https://daisyui.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "tailwind",
+        "vanilla"
+      ]
+    },
+    {
+      "title": "Headless UI",
+      "url": "https://headlessui.com",
+      "source": "curated",
+      "category": "Tier 7: Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "primitives"
+      ]
+    },
+    {
+      "title": "Stability AI",
+      "url": "https://stability.ai/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Cohere",
+      "url": "https://www.cohere.ai/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Hugging Face",
+      "url": "https://huggingface.co/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "svelte"
+      ]
+    },
+    {
+      "title": "HF Spaces",
+      "url": "https://huggingface.co/spaces",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "svelte"
+      ]
+    },
+    {
+      "title": "Replicate",
+      "url": "https://replicate.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Modal",
+      "url": "https://modal.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Banana Dev",
+      "url": "https://www.banana.dev/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Together AI",
+      "url": "https://together.ai/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Anyscale",
+      "url": "https://www.anyscale.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Weights",
+      "url": "https://weights.gg/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Fireworks AI",
+      "url": "https://www.fireworks.ai/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Groq",
+      "url": "https://www.groq.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "DeepMind",
+      "url": "https://deepmind.google/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Google AI",
+      "url": "https://ai.google/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Google Labs",
+      "url": "https://labs.google/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Inflection AI",
+      "url": "https://www.inflection.ai/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Character AI",
+      "url": "https://character.ai/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Poe",
+      "url": "https://poe.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "You.com",
+      "url": "https://www.you.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Phind",
+      "url": "https://www.phind.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Kagi",
+      "url": "https://www.kagi.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "go"
+      ]
+    },
+    {
+      "title": "Brave Search",
+      "url": "https://www.brave.com/search/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Neeva",
+      "url": "https://neeva.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Twelve Labs",
+      "url": "https://www.twelvelabs.io/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "HeyGen",
+      "url": "https://www.heygen.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Synthesia",
+      "url": "https://www.synthesia.io/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "D-ID",
+      "url": "https://www.d-id.com/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "PlayHT",
+      "url": "https://www.play.ht/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "ElevenLabs",
+      "url": "https://elevenlabs.io/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Resemble AI",
+      "url": "https://www.resemble.ai/",
+      "source": "curated",
+      "category": "AI/ML Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Postman",
+      "url": "https://www.postman.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Insomnia",
+      "url": "https://insomnia.rest/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "electron"
+      ]
+    },
+    {
+      "title": "Hoppscotch",
+      "url": "https://hoppscotch.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "nuxt"
+      ]
+    },
+    {
+      "title": "RapidAPI Paw",
+      "url": "https://paw.cloud/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "HTTPie",
+      "url": "https://httpie.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Bento",
+      "url": "https://www.getbento.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Gitpod",
+      "url": "https://www.gitpod.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Codespaces",
+      "url": "https://www.codespaces.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "CodeSandbox",
+      "url": "https://codesandbox.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "StackBlitz",
+      "url": "https://stackblitz.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "CodePen",
+      "url": "https://codepen.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "JSFiddle",
+      "url": "https://jsfiddle.net/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "jquery"
+      ]
+    },
+    {
+      "title": "Glitch",
+      "url": "https://glitch.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Observable",
+      "url": "https://observablehq.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Val Town",
+      "url": "https://www.val.town/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Warp Terminal",
+      "url": "https://www.warp.dev/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "rust"
+      ]
+    },
+    {
+      "title": "iTerm2",
+      "url": "https://www.iterm2.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Hyper",
+      "url": "https://hyper.is/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "electron"
+      ]
+    },
+    {
+      "title": "Fig",
+      "url": "https://www.fig.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Sourcegraph",
+      "url": "https://www.sourcegraph.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tabnine",
+      "url": "https://www.tabnine.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Codeium",
+      "url": "https://www.codeium.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Continue",
+      "url": "https://www.continue.dev/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Snyk",
+      "url": "https://www.snyk.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "SonarQube",
+      "url": "https://www.sonarqube.org/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "java"
+      ]
+    },
+    {
+      "title": "Codecov",
+      "url": "https://www.codecov.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Coveralls",
+      "url": "https://coveralls.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "rails"
+      ]
+    },
+    {
+      "title": "CircleCI",
+      "url": "https://www.circleci.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Travis CI",
+      "url": "https://www.travis-ci.com/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Jenkins",
+      "url": "https://www.jenkins.io/",
+      "source": "curated",
+      "category": "Developer Tools",
+      "tags": [
+        "java"
+      ]
+    },
+    {
+      "title": "Todoist",
+      "url": "https://www.todoist.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Any.do",
+      "url": "https://www.any.do/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "TickTick",
+      "url": "https://www.ticktick.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Things",
+      "url": "https://www.things.app/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Cultured Code",
+      "url": "https://culturedcode.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "OmniGroup",
+      "url": "https://www.omnigroup.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Flexibits",
+      "url": "https://flexibits.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Fantastical",
+      "url": "https://www.fantastical.app/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Camo",
+      "url": "https://www.camo.studio/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "MacPaw",
+      "url": "https://www.macpaw.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Setapp",
+      "url": "https://setapp.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "1Password",
+      "url": "https://www.1password.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Bitwarden",
+      "url": "https://bitwarden.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Dashlane",
+      "url": "https://www.dashlane.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Roam Research",
+      "url": "https://www.roamresearch.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "clojure"
+      ]
+    },
+    {
+      "title": "RemNote",
+      "url": "https://www.remnote.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Logseq",
+      "url": "https://logseq.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "clojure"
+      ]
+    },
+    {
+      "title": "Obsidian",
+      "url": "https://www.obisidian.md/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "electron"
+      ]
+    },
+    {
+      "title": "Anytype",
+      "url": "https://www.anytype.io/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Capacities",
+      "url": "https://www.capacities.io/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Mem",
+      "url": "https://www.mem.ai/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Reflect",
+      "url": "https://www.reflect.app/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Craft",
+      "url": "https://www.craft.do/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Bear",
+      "url": "https://www.bear.app/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Ulysses",
+      "url": "https://www.ulysses.app/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "iA Writer",
+      "url": "https://ia.net/writer",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Notion Integrations",
+      "url": "https://www.notion.so/integrations",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Coda",
+      "url": "https://www.coda.io/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Monday.com",
+      "url": "https://www.monday.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "ClickUp",
+      "url": "https://www.clickup.com/",
+      "source": "curated",
+      "category": "Productivity Apps",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Discord",
+      "url": "https://discord.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Discord Nitro",
+      "url": "https://discord.com/nitro",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Telegram",
+      "url": "https://www.telegram.org/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Signal",
+      "url": "https://signal.org/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Element",
+      "url": "https://element.io/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Mattermost",
+      "url": "https://www.mattermost.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Rocket.Chat",
+      "url": "https://rocket.chat/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "meteor"
+      ]
+    },
+    {
+      "title": "Zulip",
+      "url": "https://www.zulip.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Lark",
+      "url": "https://www.lark.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Twist",
+      "url": "https://www.twist.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Gather",
+      "url": "https://www.gather.town/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Around",
+      "url": "https://www.around.co/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tandem",
+      "url": "https://www.tandem.chat/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tuple",
+      "url": "https://tuple.app/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Pop",
+      "url": "https://www.pop.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Whereby",
+      "url": "https://whereby.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Google Meet",
+      "url": "https://meet.google.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Zoom",
+      "url": "https://zoom.us/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Webex",
+      "url": "https://www.webex.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Microsoft Teams",
+      "url": "https://teams.microsoft.com/",
+      "source": "curated",
+      "category": "Communication Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Spotify",
+      "url": "https://www.spotify.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Spotify Premium",
+      "url": "https://www.spotify.com/premium/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Apple Music",
+      "url": "https://music.apple.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "YouTube",
+      "url": "https://www.youtube.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "polymer"
+      ]
+    },
+    {
+      "title": "YouTube Premium",
+      "url": "https://www.youtube.com/premium",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "polymer"
+      ]
+    },
+    {
+      "title": "Netflix",
+      "url": "https://www.netflix.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "HBO Max",
+      "url": "https://www.hbomax.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Disney+",
+      "url": "https://www.disneyplus.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Hulu",
+      "url": "https://www.hulu.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Peacock",
+      "url": "https://www.peacocktv.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Paramount+",
+      "url": "https://www.paramountplus.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Twitch",
+      "url": "https://www.twitch.tv/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Kick",
+      "url": "https://www.kick.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "SoundCloud",
+      "url": "https://soundcloud.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Deezer",
+      "url": "https://www.deezer.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tidal",
+      "url": "https://tidal.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Audible",
+      "url": "https://www.audible.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Scribd",
+      "url": "https://www.scribd.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Goodreads",
+      "url": "https://www.goodreads.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "rails"
+      ]
+    },
+    {
+      "title": "StoryGraph",
+      "url": "https://www.storygraph.com/",
+      "source": "curated",
+      "category": "Media & Entertainment",
+      "tags": [
+        "rails"
+      ]
+    },
+    {
+      "title": "Strava",
+      "url": "https://www.strava.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Nike Training Club",
+      "url": "https://www.nike.com/ntc-app",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Headspace",
+      "url": "https://www.headspace.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Calm",
+      "url": "https://www.calm.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Noom",
+      "url": "https://www.noom.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "MyFitnessPal",
+      "url": "https://www.myfitnesspal.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Fitbit",
+      "url": "https://www.fitbit.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Garmin",
+      "url": "https://www.garmin.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Polar",
+      "url": "https://www.polar.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Withings",
+      "url": "https://www.withings.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Eight Sleep",
+      "url": "https://www.eight.sleep/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Levels",
+      "url": "https://www.levels.link/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Supersapiens",
+      "url": "https://www.supersapiens.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Weave Fitness",
+      "url": "https://www.weavefitness.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Future",
+      "url": "https://www.future.co/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tonal",
+      "url": "https://www.tonal.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Mirror",
+      "url": "https://www.mirror.co/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tempo",
+      "url": "https://www.tempo.fit/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Hydrow",
+      "url": "https://www.hydrow.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "NordicTrack",
+      "url": "https://www.nordictrack.com/",
+      "source": "curated",
+      "category": "Health & Fitness",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Airbnb",
+      "url": "https://www.airbnb.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Booking.com",
+      "url": "https://www.booking.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Expedia",
+      "url": "https://www.expedia.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "TripAdvisor",
+      "url": "https://www.tripadvisor.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Kayak",
+      "url": "https://www.kayak.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Skyscanner",
+      "url": "https://www.skyscanner.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Google Flights",
+      "url": "https://www.google.com/travel/flights",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Hopper",
+      "url": "https://www.hopper.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Kiwi",
+      "url": "https://www.kiwi.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Rome2Rio",
+      "url": "https://www.rome2rio.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Wanderlog",
+      "url": "https://www.wanderlog.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Roadtrippers",
+      "url": "https://www.roadtrippers.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "AllTrails",
+      "url": "https://www.alltrails.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Komoot",
+      "url": "https://www.komoot.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Hostelworld",
+      "url": "https://www.hostelworld.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Marriott",
+      "url": "https://www.marriott.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Hilton",
+      "url": "https://www.hilton.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Hyatt",
+      "url": "https://www.hyatt.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "IHG",
+      "url": "https://www.ihg.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Four Seasons",
+      "url": "https://www.fourseasons.com/",
+      "source": "curated",
+      "category": "Travel & Hospitality",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "New York Times",
+      "url": "https://www.nytimes.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Wall Street Journal",
+      "url": "https://www.wsj.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Washington Post",
+      "url": "https://www.washingtonpost.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "The Guardian",
+      "url": "https://www.theguardian.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "BBC",
+      "url": "https://www.bbc.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "CNN",
+      "url": "https://www.cnn.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Reuters",
+      "url": "https://www.reuters.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Bloomberg",
+      "url": "https://www.bloomberg.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Financial Times",
+      "url": "https://www.ft.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "The Economist",
+      "url": "https://www.economist.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Wired",
+      "url": "https://www.wired.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "The Verge",
+      "url": "https://www.theverge.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "TechCrunch",
+      "url": "https://www.techcrunch.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ars Technica",
+      "url": "https://arstechnica.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Engadget",
+      "url": "https://www.engadget.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Gizmodo",
+      "url": "https://www.gizmodo.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Medium",
+      "url": "https://www.medium.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Dev.to",
+      "url": "https://dev.to/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "rails"
+      ]
+    },
+    {
+      "title": "Hashnode",
+      "url": "https://hashnode.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Hacker News",
+      "url": "https://www.hackernews.com/",
+      "source": "curated",
+      "category": "News & Media",
+      "tags": [
+        "arc"
+      ]
+    },
+    {
+      "title": "Twitter/X",
+      "url": "https://www.twitter.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Facebook",
+      "url": "https://www.facebook.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Instagram",
+      "url": "https://www.instagram.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "LinkedIn",
+      "url": "https://www.linkedin.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Threads",
+      "url": "https://www.threads.net/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "TikTok",
+      "url": "https://www.tiktok.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Reddit",
+      "url": "https://www.reddit.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Mastodon",
+      "url": "https://www.mastodon.social/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "rails"
+      ]
+    },
+    {
+      "title": "Bluesky",
+      "url": "https://bsky.app/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Snapchat",
+      "url": "https://www.snapchat.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Pinterest",
+      "url": "https://www.pinterest.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tumblr",
+      "url": "https://www.tumblr.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "BeReal",
+      "url": "https://www.bereal.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Clubhouse",
+      "url": "https://www.clubhouse.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Nextdoor",
+      "url": "https://www.nextdoor.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Strava Athletes",
+      "url": "https://www.strava.com/athletes/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Glassdoor",
+      "url": "https://www.glassdoor.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Indeed",
+      "url": "https://www.indeed.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Levels.fyi",
+      "url": "https://www.levels.fyi/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Blind",
+      "url": "https://www.blind.com/",
+      "source": "curated",
+      "category": "Social Platforms",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Brittany Chiang",
+      "url": "https://brittanychiang.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "react",
+        "gatsby"
+      ]
+    },
+    {
+      "title": "Tania Rascia",
+      "url": "https://www.taniarascia.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Wes Bos",
+      "url": "https://wes.bos.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "gatsby"
+      ]
+    },
+    {
+      "title": "Kent C Dodds",
+      "url": "https://kentcdodds.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "remix"
+      ]
+    },
+    {
+      "title": "Josh W Comeau",
+      "url": "https://www.joshwcomeau.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "gatsby",
+        "react"
+      ]
+    },
+    {
+      "title": "Lee Robinson",
+      "url": "https://leerob.io/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Delba de Oliveira",
+      "url": "https://delba.dev/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Paco Coursey",
+      "url": "https://paco.me/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Rauno Freiberg",
+      "url": "https://rauno.me/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Emil Kowalski",
+      "url": "https://www.emilkowal.ski/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Maxime Heckel",
+      "url": "https://maximeheckel.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "react",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Matt Lasky",
+      "url": "https://www.mattlasky.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "webgl"
+      ]
+    },
+    {
+      "title": "Robb Owen",
+      "url": "https://robbowen.digital/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Timo Lins",
+      "url": "https://timolins.dev/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Sarah Dayan",
+      "url": "https://www.sarahdayan.dev/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "nuxt"
+      ]
+    },
+    {
+      "title": "Max Bock",
+      "url": "https://mxb.dev/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "eleventy"
+      ]
+    },
+    {
+      "title": "Robin Wieruch",
+      "url": "https://www.robinwieruch.de/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "gatsby"
+      ]
+    },
+    {
+      "title": "Swyx",
+      "url": "https://www.swyx.io/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "gatsby"
+      ]
+    },
+    {
+      "title": "Maggie Appleton",
+      "url": "https://maggieappleton.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Stefan Judis",
+      "url": "https://www.stefanjudis.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "eleventy"
+      ]
+    },
+    {
+      "title": "Jason Lengstorf",
+      "url": "https://www.learnwithjason.dev/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "astro"
+      ]
+    },
+    {
+      "title": "Smashing Magazine",
+      "url": "https://www.smashingmagazine.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "jamstack"
+      ]
+    },
+    {
+      "title": "CSS-Tricks",
+      "url": "https://css-tricks.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "wordpress"
+      ]
+    },
+    {
+      "title": "Web.dev",
+      "url": "https://web.dev/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "eleventy"
+      ]
+    },
+    {
+      "title": "Chrome Developers",
+      "url": "https://developer.chrome.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "eleventy"
+      ]
+    },
+    {
+      "title": "UI.dev",
+      "url": "https://ui.dev/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Egghead.io",
+      "url": "https://egghead.io/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Level Up Tutorials",
+      "url": "https://www.leveluptutorials.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "sveltekit"
+      ]
+    },
+    {
+      "title": "Frontend Masters",
+      "url": "https://frontendmasters.com/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Epic Web",
+      "url": "https://www.epicweb.dev/",
+      "source": "curated",
+      "category": "Creative Developer Portfolios",
+      "tags": [
+        "remix"
+      ]
+    },
+    {
+      "title": "Figma Community",
+      "url": "https://www.figma.com/community",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Figma Resources",
+      "url": "https://www.figma.com/resources",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Figma Templates",
+      "url": "https://www.figma.com/templates",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Figma Plugins",
+      "url": "https://www.figma.com/plugins",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Canva",
+      "url": "https://www.canva.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Canva Templates",
+      "url": "https://www.canva.com/templates/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Adobe Creative Cloud",
+      "url": "https://www.adobe.com/creativecloud.html",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Adobe XD",
+      "url": "https://www.adobe.com/products/xd.html",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Adobe Photoshop",
+      "url": "https://www.adobe.com/products/photoshop.html",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Adobe Illustrator",
+      "url": "https://www.adobe.com/products/illustrator.html",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Adobe Express",
+      "url": "https://www.adobe.com/express/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Dribbble",
+      "url": "https://dribbble.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "rails"
+      ]
+    },
+    {
+      "title": "Behance",
+      "url": "https://www.behance.net/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Awwwards Main",
+      "url": "https://www.awwwards.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "CSS Design Awards",
+      "url": "https://www.cssdesignawards.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "SiteInspire",
+      "url": "https://www.siteinspire.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Designspiration",
+      "url": "https://www.designspiration.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Coolors",
+      "url": "https://coolors.co/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Color Hunt",
+      "url": "https://colorhunt.co/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Happy Hues",
+      "url": "https://www.happyhues.co/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Realtime Colors",
+      "url": "https://www.realtime.colors.co/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Fontjoy",
+      "url": "https://fontjoy.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Google Fonts",
+      "url": "https://fonts.google.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Fontshare",
+      "url": "https://www.fontshare.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Type Scale",
+      "url": "https://type-scale.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Modular Scale",
+      "url": "https://www.modularscale.com/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Utopia",
+      "url": "https://utopia.fyi/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "eleventy"
+      ]
+    },
+    {
+      "title": "Polypane",
+      "url": "https://polypane.app/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "electron"
+      ]
+    },
+    {
+      "title": "Responsively",
+      "url": "https://www.responsively.app/",
+      "source": "curated",
+      "category": "Design Tool Marketing Sites",
+      "tags": [
+        "electron"
+      ]
+    },
+    {
+      "title": "shadcn/ui",
+      "url": "https://ui.shadcn.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "next.js",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "shadcn Button",
+      "url": "https://ui.shadcn.com/docs/components/button",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "shadcn Card",
+      "url": "https://ui.shadcn.com/docs/components/card",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "shadcn Dialog",
+      "url": "https://ui.shadcn.com/docs/components/dialog",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "shadcn Form",
+      "url": "https://ui.shadcn.com/docs/components/form",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "shadcn Examples",
+      "url": "https://ui.shadcn.com/examples",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Radix UI",
+      "url": "https://www.radix-ui.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Radix Primitives",
+      "url": "https://www.radix-ui.com/primitives",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Chakra UI",
+      "url": "https://chakra-ui.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Chakra Components",
+      "url": "https://chakra-ui.com/docs/components",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Mantine",
+      "url": "https://mantine.dev/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Mantine Button",
+      "url": "https://mantine.dev/core/button/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ant Design",
+      "url": "https://ant.design/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ant Components",
+      "url": "https://ant.design/components/overview/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "MUI",
+      "url": "https://mui.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Material UI",
+      "url": "https://mui.com/material-ui/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tremor",
+      "url": "https://www.tremor.so/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Tremor Charts",
+      "url": "https://www.tremor.so/docs/components/areachart",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Headless UI",
+      "url": "https://headlessui.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react",
+        "vue"
+      ]
+    },
+    {
+      "title": "Heroicons",
+      "url": "https://www.heroicons.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "svg"
+      ]
+    },
+    {
+      "title": "Lucide Icons",
+      "url": "https://lucide.dev/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "svg"
+      ]
+    },
+    {
+      "title": "Phosphor Icons",
+      "url": "https://phosphoricons.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "svg"
+      ]
+    },
+    {
+      "title": "Tabler Icons",
+      "url": "https://tabler-icons.io/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "svg"
+      ]
+    },
+    {
+      "title": "Feather Icons",
+      "url": "https://feathericons.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "svg"
+      ]
+    },
+    {
+      "title": "Iconify",
+      "url": "https://iconify.design/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tailwind UI",
+      "url": "https://www.tailwindui.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Tailwind CSS",
+      "url": "https://tailwindcss.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "css"
+      ]
+    },
+    {
+      "title": "DaisyUI",
+      "url": "https://daisyui.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Flowbite",
+      "url": "https://flowbite.com/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Preline",
+      "url": "https://preline.co/",
+      "source": "curated",
+      "category": "UI Component Libraries",
+      "tags": [
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Resend",
+      "url": "https://resend.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Resend Overview",
+      "url": "https://resend.com/overview",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "PlanetScale",
+      "url": "https://planetscale.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Supabase",
+      "url": "https://supabase.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Supabase Dashboard",
+      "url": "https://supabase.com/dashboard",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Convex",
+      "url": "https://www.convex.dev/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Railway",
+      "url": "https://railway.app/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Render",
+      "url": "https://render.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Fly.io",
+      "url": "https://fly.io/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "go"
+      ]
+    },
+    {
+      "title": "DigitalOcean",
+      "url": "https://www.digitalocean.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Netlify",
+      "url": "https://www.netlify.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Cloudflare Pages",
+      "url": "https://pages.cloudflare.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Cloudflare Workers",
+      "url": "https://workers.cloudflare.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Prisma",
+      "url": "https://www.prisma.io/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Drizzle ORM",
+      "url": "https://orm.drizzle.team/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "astro"
+      ]
+    },
+    {
+      "title": "Turso",
+      "url": "https://turso.tech/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "EdgeDB",
+      "url": "https://www.edgedb.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "MongoDB",
+      "url": "https://www.mongodb.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Redis",
+      "url": "https://redis.io/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Upstash",
+      "url": "https://upstash.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Neon",
+      "url": "https://neon.tech/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "CockroachDB",
+      "url": "https://www.cockroachlabs.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Vite",
+      "url": "https://vitejs.dev/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "vue"
+      ]
+    },
+    {
+      "title": "Astro",
+      "url": "https://astro.build/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "astro"
+      ]
+    },
+    {
+      "title": "Remix",
+      "url": "https://remix.run/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "remix"
+      ]
+    },
+    {
+      "title": "Next.js",
+      "url": "https://nextjs.org/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Nuxt",
+      "url": "https://nuxt.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "nuxt"
+      ]
+    },
+    {
+      "title": "SvelteKit",
+      "url": "https://kit.svelte.dev/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "svelte"
+      ]
+    },
+    {
+      "title": "SolidJS",
+      "url": "https://solidjs.com/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "solid"
+      ]
+    },
+    {
+      "title": "Qwik",
+      "url": "https://qwik.builder.io/",
+      "source": "curated",
+      "category": "Premium Landing Pages",
+      "tags": [
+        "qwik"
+      ]
+    },
+    {
+      "title": "Coinbase",
+      "url": "https://www.coinbase.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Binance",
+      "url": "https://www.binance.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Kraken",
+      "url": "https://www.kraken.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "MetaMask",
+      "url": "https://metamask.io/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Rainbow Wallet",
+      "url": "https://rainbow.me/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react-native"
+      ]
+    },
+    {
+      "title": "Phantom",
+      "url": "https://phantom.app/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ledger",
+      "url": "https://www.ledger.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Trezor",
+      "url": "https://www.trezor.io/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ethereum.org",
+      "url": "https://ethereum.org/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "gatsby"
+      ]
+    },
+    {
+      "title": "Solana",
+      "url": "https://solana.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Polygon",
+      "url": "https://polygon.technology/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Arbitrum",
+      "url": "https://arbitrum.io/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Optimism",
+      "url": "https://optimism.io/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Base",
+      "url": "https://base.org/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Uniswap",
+      "url": "https://uniswap.org/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Aave",
+      "url": "https://aave.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Compound",
+      "url": "https://compound.finance/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Lido",
+      "url": "https://www.lido.fi/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Ramp",
+      "url": "https://www.ramp.network/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "MoonPay",
+      "url": "https://www.moonpay.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Mercury Bank",
+      "url": "https://mercury.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Brex",
+      "url": "https://www.brex.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ramp Spend",
+      "url": "https://www.ramp.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Divvy",
+      "url": "https://www.divvy.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Plaid",
+      "url": "https://www.plaid.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Moov",
+      "url": "https://www.moov.io/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Modern Treasury",
+      "url": "https://www.modern.money/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Column",
+      "url": "https://www.column.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Increase",
+      "url": "https://increase.com/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Unit",
+      "url": "https://www.unit.co/",
+      "source": "curated",
+      "category": "Fintech & Crypto",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "React Docs",
+      "url": "https://react.dev/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "React Learn",
+      "url": "https://react.dev/learn",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "React Reference",
+      "url": "https://react.dev/reference",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Vue.js Docs",
+      "url": "https://vuejs.org/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "vitepress"
+      ]
+    },
+    {
+      "title": "Angular Docs",
+      "url": "https://angular.io/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Svelte Docs",
+      "url": "https://svelte.dev/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "sveltekit"
+      ]
+    },
+    {
+      "title": "Solid Docs",
+      "url": "https://docs.solidjs.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "solid"
+      ]
+    },
+    {
+      "title": "Preact Docs",
+      "url": "https://preactjs.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "preact"
+      ]
+    },
+    {
+      "title": "htmx Docs",
+      "url": "https://htmx.org/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "html"
+      ]
+    },
+    {
+      "title": "Alpine.js Docs",
+      "url": "https://alpinejs.dev/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "alpine"
+      ]
+    },
+    {
+      "title": "Stimulus Docs",
+      "url": "https://stimulus.hotwired.dev/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "hotwire"
+      ]
+    },
+    {
+      "title": "Turbo Docs",
+      "url": "https://turbo.hotwired.dev/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "hotwire"
+      ]
+    },
+    {
+      "title": "TypeScript Docs",
+      "url": "https://typescriptlang.org/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "typescript"
+      ]
+    },
+    {
+      "title": "Rust Docs",
+      "url": "https://www.rust-lang.org/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "rust"
+      ]
+    },
+    {
+      "title": "Go Docs",
+      "url": "https://go.dev/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "go"
+      ]
+    },
+    {
+      "title": "Zig Docs",
+      "url": "https://ziglang.org/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "zig"
+      ]
+    },
+    {
+      "title": "Docker Docs",
+      "url": "https://docs.docker.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Kubernetes Docs",
+      "url": "https://kubernetes.io/docs/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "hugo"
+      ]
+    },
+    {
+      "title": "GitHub Docs",
+      "url": "https://docs.github.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Stripe Docs",
+      "url": "https://stripe.com/docs",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "AWS Docs",
+      "url": "https://docs.aws.amazon.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "GCP Docs",
+      "url": "https://cloud.google.com/docs",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "angular"
+      ]
+    },
+    {
+      "title": "Microsoft Learn",
+      "url": "https://learn.microsoft.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "MDN",
+      "url": "https://developer.mozilla.org/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "django"
+      ]
+    },
+    {
+      "title": "Can I Use",
+      "url": "https://caniuse.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Bundlephobia",
+      "url": "https://bundlephobia.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Packagephobia",
+      "url": "https://packagephobia.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "NPM DevTools",
+      "url": "https://npm.devtool.tech/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "NPM Trends",
+      "url": "https://npmtrends.com/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Socket.dev",
+      "url": "https://socket.dev/",
+      "source": "curated",
+      "category": "Documentation Sites",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Bruno Simon Portfolio",
+      "url": "https://bruno-simon.com/",
+      "source": "SOTY 2019",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "webgl",
+        "cannon.js"
+      ]
+    },
+    {
+      "title": "Lusion Studio",
+      "url": "https://lusion.co/",
+      "source": "SOTY 2022",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "webgl",
+        "r3f"
+      ]
+    },
+    {
+      "title": "Active Theory",
+      "url": "https://activetheory.net/",
+      "source": "Multiple SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "webgl",
+        "gsap"
+      ]
+    },
+    {
+      "title": "14islands",
+      "url": "https://14islands.com/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap",
+        "r3f"
+      ]
+    },
+    {
+      "title": "Immersive Garden",
+      "url": "https://immersive-g.com/",
+      "source": "FWA",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "webgl",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Samsy Portfolio",
+      "url": "https://samsy.ninja/",
+      "source": "Developer Award",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "webgpu",
+        "three.js",
+        "tsl"
+      ]
+    },
+    {
+      "title": "Monopo Vietnam",
+      "url": "https://monopo.vn/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Locomotive",
+      "url": "https://www.locomotive.ca/",
+      "source": "Agency SOTY",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "gsap",
+        "locomotive-scroll"
+      ]
+    },
+    {
+      "title": "Studio Freight",
+      "url": "https://studiofreight.com/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap",
+        "lenis"
+      ]
+    },
+    {
+      "title": "Resn",
+      "url": "https://resn.co.nz/",
+      "source": "Multiple FWA",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "webgl",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Aristide Benoist",
+      "url": "https://www.aristidebenoist.com/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Lee Byron",
+      "url": "https://www.leebyron.com/",
+      "source": "Developer Award",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "canvas",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Dennis Snellenberg",
+      "url": "https://dennissnellenberg.com/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "gsap",
+        "barba.js"
+      ]
+    },
+    {
+      "title": "Anthony Fu",
+      "url": "https://antfu.me/",
+      "source": "Developer Award",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "vue",
+        "vite"
+      ]
+    },
+    {
+      "title": "Sean Halpin",
+      "url": "https://www.seanhalpin.xyz/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Cassie Evans",
+      "url": "https://www.cassie.codes/",
+      "source": "Developer Award",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "gsap",
+        "svg"
+      ]
+    },
+    {
+      "title": "Kevin Powell",
+      "url": "https://www.kevinpowell.co/",
+      "source": "CSS Award",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "css",
+        "animation"
+      ]
+    },
+    {
+      "title": "Stripe Sessions",
+      "url": "https://stripe.com/sessions",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Apple iPhone 16 Pro",
+      "url": "https://www.apple.com/iphone-16-pro/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "gsap",
+        "scroll-trigger",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Apple Vision Pro",
+      "url": "https://www.apple.com/apple-vision-pro/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Porsche Taycan",
+      "url": "https://www.porsche.com/taycan/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Tesla Cybertruck",
+      "url": "https://www.tesla.com/cybertruck",
+      "source": "FWA",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "RFRSH Entertainment",
+      "url": "https://rfrsh.com/",
+      "source": "SOTY 2020",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "The One Club",
+      "url": "https://www.oneclub.org/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Linear Changelog",
+      "url": "https://linear.app/changelog",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Vercel Ship",
+      "url": "https://vercel.com/ship",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "next.js",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Pitch",
+      "url": "https://pitch.com/about",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "react",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Lusion 2024",
+      "url": "https://www.awwwards.com/sites/lusion-2024",
+      "source": "SOTY",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "r3f"
+      ]
+    },
+    {
+      "title": "Daniel Spatzek",
+      "url": "https://www.danielspatzek.com/",
+      "source": "SOTD",
+      "category": "Award Winners (Awwwards, FWA, CSS Awards)",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "shadcn Dropdown",
+      "url": "https://ui.shadcn.com/docs/components/dropdown-menu",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "radix"
+      ]
+    },
+    {
+      "title": "shadcn Table",
+      "url": "https://ui.shadcn.com/docs/components/table",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "tanstack-table"
+      ]
+    },
+    {
+      "title": "shadcn Dashboard",
+      "url": "https://ui.shadcn.com/examples/dashboard",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "shadcn Cards Example",
+      "url": "https://ui.shadcn.com/examples/cards",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Radix Accordion",
+      "url": "https://www.radix-ui.com/primitives/docs/components/accordion",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Radix Dialog",
+      "url": "https://www.radix-ui.com/primitives/docs/components/dialog",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Radix Dropdown",
+      "url": "https://www.radix-ui.com/primitives/docs/components/dropdown-menu",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Radix Themes",
+      "url": "https://www.radix-ui.com/themes",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "MUI Components",
+      "url": "https://mui.com/material-ui/all-components/",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Aceternity UI Main",
+      "url": "https://ui.aceternity.com/",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "framer-motion",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "Aceternity Components",
+      "url": "https://ui.aceternity.com/components",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Magic UI Main",
+      "url": "https://magicui.design/",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Magic UI Marquee",
+      "url": "https://magicui.design/docs/components/marquee",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Tremor Charts",
+      "url": "https://www.tremor.so/docs/components/area-chart",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "NextUI Main",
+      "url": "https://nextui.org/",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react",
+        "tailwind"
+      ]
+    },
+    {
+      "title": "PrimeReact Main",
+      "url": "https://www.primefaces.org/primereact/",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ariakit Main",
+      "url": "https://ariakit.org/",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "React Spectrum Main",
+      "url": "https://react-spectrum.adobe.com/",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "React Aria",
+      "url": "https://www.react-aria.dev/",
+      "source": "curated",
+      "category": "Design Systems & Component Libraries",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Three.js Home",
+      "url": "https://threejs.org/",
+      "source": "Three.js",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "three.js"
+      ]
+    },
+    {
+      "title": "Three.js Examples",
+      "url": "https://threejs.org/examples/",
+      "source": "Three.js",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Three.js Animation",
+      "url": "https://threejs.org/examples/#webgl_animation_skinning_blending",
+      "source": "Three.js",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "three.js"
+      ]
+    },
+    {
+      "title": "Three.js GPGPU Birds",
+      "url": "https://threejs.org/examples/#webgl_gpgpu_birds",
+      "source": "Three.js",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "three.js",
+        "gpgpu"
+      ]
+    },
+    {
+      "title": "Three.js Bloom",
+      "url": "https://threejs.org/examples/#webgl_postprocessing_unreal_bloom",
+      "source": "Three.js",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "three.js",
+        "postprocessing"
+      ]
+    },
+    {
+      "title": "Three.js WebGPU Particles",
+      "url": "https://threejs.org/examples/#webgpu_compute_particles",
+      "source": "Three.js",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgpu",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Spline Home",
+      "url": "https://spline.design/",
+      "source": "Spline",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgl",
+        "3d"
+      ]
+    },
+    {
+      "title": "Spline Community",
+      "url": "https://app.spline.design/community",
+      "source": "Spline",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgl",
+        "3d"
+      ]
+    },
+    {
+      "title": "Babylon.js Home",
+      "url": "https://www.babylonjs.com/",
+      "source": "Babylon",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgl",
+        "babylon"
+      ]
+    },
+    {
+      "title": "Babylon Playground",
+      "url": "https://playground.babylonjs.com/",
+      "source": "Babylon",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "babylon"
+      ]
+    },
+    {
+      "title": "A-Frame Home",
+      "url": "https://aframe.io/",
+      "source": "A-Frame",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webvr",
+        "webxr"
+      ]
+    },
+    {
+      "title": "A-Frame Examples",
+      "url": "https://aframe.io/examples/showcase/helloworld/",
+      "source": "A-Frame",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webvr"
+      ]
+    },
+    {
+      "title": "PlayCanvas Home",
+      "url": "https://playcanvas.com/",
+      "source": "PlayCanvas",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgl",
+        "game-engine"
+      ]
+    },
+    {
+      "title": "Shadertoy Home",
+      "url": "https://www.shadertoy.com/",
+      "source": "Shadertoy",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "glsl",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Shadertoy Popular",
+      "url": "https://www.shadertoy.com/view/XsXXDn",
+      "source": "Shadertoy",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "glsl"
+      ]
+    },
+    {
+      "title": "PixiJS Home",
+      "url": "https://pixijs.com/",
+      "source": "PixiJS",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgl",
+        "2d"
+      ]
+    },
+    {
+      "title": "Phaser Home",
+      "url": "https://phaser.io/",
+      "source": "Phaser",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgl",
+        "game"
+      ]
+    },
+    {
+      "title": "WebGL Fundamentals",
+      "url": "https://webglfundamentals.org/",
+      "source": "WebGL Fundamentals",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgl"
+      ]
+    },
+    {
+      "title": "WebGPU Fundamentals",
+      "url": "https://webgpufundamentals.org/",
+      "source": "WebGPU Fundamentals",
+      "category": "WebGL & 3D Excellence",
+      "tags": [
+        "webgpu"
+      ]
+    }
+  ],
+  "tier2_studios": [
+    {
+      "title": "Samsy WebGPU Portfolio",
+      "url": "https://samsy.ninja",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "webgpu",
+        "three.js",
+        "tsl"
+      ]
+    },
+    {
+      "title": "Immersive Garden",
+      "url": "https://immersive-g.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "webgl",
+        "gsap"
+      ]
+    },
+    {
+      "title": "ToyFight Studio",
+      "url": "https://toyfight.co",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "gsap",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Akaru Studio",
+      "url": "https://www.akaru.fr",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Area 17",
+      "url": "https://www.area17.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Fantasy Interactive",
+      "url": "https://www.fantasy.co",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Frog Design",
+      "url": "https://www.frog.co",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Huge Inc",
+      "url": "https://www.huge.inc",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "next.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Instrument",
+      "url": "https://www.instrument.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "react",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Jam3",
+      "url": "https://www.jam3.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "three.js",
+        "r3f"
+      ]
+    },
+    {
+      "title": "Metalab",
+      "url": "https://metalab.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "framer-motion",
+        "react"
+      ]
+    },
+    {
+      "title": "North Kingdom",
+      "url": "https://www.northkingdom.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "webgl",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Penthouse Studios",
+      "url": "https://www.penthousestudios.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "gsap",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Rally Interactive",
+      "url": "https://rally.io",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Superhero Cheesecake",
+      "url": "https://www.superhero-cheesecake.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "thoughtbot",
+      "url": "https://www.thoughtbot.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Ueno",
+      "url": "https://ueno.co",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "react",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Envoy",
+      "url": "https://www.weareenvoy.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Werkstatt",
+      "url": "https://www.werkstatt.fr",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Yummygum",
+      "url": "https://www.yummygum.com",
+      "source": "curated",
+      "category": "Tier 2: Elite Studios",
+      "tags": [
+        "framer-motion",
+        "react"
+      ]
+    },
+    {
+      "title": "Metalab",
+      "url": "https://metalab.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Metalab - Slack",
+      "url": "https://metalab.com/work/slack",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Metalab - Uber",
+      "url": "https://metalab.com/work/uber",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ueno",
+      "url": "https://ueno.co/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Ueno - Google",
+      "url": "https://ueno.co/work/google",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Jam3",
+      "url": "https://www.jam3.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "webgl",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Jam3 - Google Lens",
+      "url": "https://www.jam3.com/work/google-lens",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "three.js"
+      ]
+    },
+    {
+      "title": "Dogstudio",
+      "url": "https://dogstudio.co/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Basic Agency",
+      "url": "https://basic.agency/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Fantasy",
+      "url": "https://fantasy.co/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Instrument",
+      "url": "https://www.instrument.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Hello Monday",
+      "url": "https://www.hello-monday.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Area 17",
+      "url": "https://area17.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Huge Inc",
+      "url": "https://www.huge.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "ToyFight",
+      "url": "https://toyfight.co/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Cosmos Studio",
+      "url": "https://cosmos.studio/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Emotion Agency",
+      "url": "https://emotion.agency/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Unseen Studio",
+      "url": "https://www.unseen.studio/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Cuberto",
+      "url": "https://cuberto.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "gsap",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Bornfight",
+      "url": "https://www.bornfight.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "gsap",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Epic Agency",
+      "url": "https://www.epic.net/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "SNS",
+      "url": "https://www.s-n-s.work/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "STRV",
+      "url": "https://www.strv.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react",
+        "swift"
+      ]
+    },
+    {
+      "title": "Fueled",
+      "url": "https://www.fueled.com/",
+      "source": "curated",
+      "category": "Elite Creative Studios",
+      "tags": [
+        "react-native",
+        "swift"
+      ]
+    }
+  ],
+  "tier3_tutorials": [
+    {
+      "title": "Codrops Scroll 3D Sticky Effect",
+      "url": "https://tympanus.net/codrops/2024/03/14/on-scroll-3d-sticky-image-effect/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "three.js",
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Codrops Liquid Glass SDF Shaders",
+      "url": "https://tympanus.net/codrops/2024/04/25/creating-liquid-glass-effects-with-sdfs-and-shaders/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "glsl",
+        "webgl",
+        "sdf"
+      ]
+    },
+    {
+      "title": "Codrops SVG Gradient Border",
+      "url": "https://tympanus.net/codrops/2023/11/21/animating-an-svg-gradient-border/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "svg",
+        "gsap",
+        "css"
+      ]
+    },
+    {
+      "title": "Apple Vision Pro Window Effect",
+      "url": "https://tympanus.net/codrops/2024/01/17/recreating-the-apple-vision-pro-window-effect/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "three.js",
+        "r3f",
+        "postprocessing"
+      ]
+    },
+    {
+      "title": "Image Distortion Three.js",
+      "url": "https://tympanus.net/codrops/2023/12/05/image-distortion-effects-with-three-js/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "three.js",
+        "glsl",
+        "image-effects"
+      ]
+    },
+    {
+      "title": "Scroll Text Effect Animations",
+      "url": "https://tympanus.net/codrops/2024/02/28/on-scroll-text-effect-animations/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "gsap",
+        "scroll-trigger",
+        "typography"
+      ]
+    },
+    {
+      "title": "Scroll Animation Image Grids",
+      "url": "https://tympanus.net/codrops/2024/01/10/scroll-animation-ideas-for-image-grids/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "gsap",
+        "scroll-trigger",
+        "css-grid"
+      ]
+    },
+    {
+      "title": "CSS Scroll Powered Animations",
+      "url": "https://tympanus.net/codrops/2023/10/18/on-scroll-css-powered-transitions-and-animations/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "css",
+        "scroll-animations"
+      ]
+    },
+    {
+      "title": "Shader Image Transition",
+      "url": "https://tympanus.net/codrops/2024/05/08/shader-powered-image-transition-with-three-js/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "three.js",
+        "glsl",
+        "transitions"
+      ]
+    },
+    {
+      "title": "Kinetic Typography Transition",
+      "url": "https://tympanus.net/codrops/2024/06/12/kinetic-typography-page-transition/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "gsap",
+        "typography",
+        "transitions"
+      ]
+    },
+    {
+      "title": "Text Reveal Effects",
+      "url": "https://tympanus.net/codrops/2024/07/03/scroll-triggered-text-reveal-effects/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "gsap",
+        "scroll-trigger",
+        "typography"
+      ]
+    },
+    {
+      "title": "WebGL Distortion Hover",
+      "url": "https://tympanus.net/codrops/2024/08/15/webgl-distortion-hover-effects/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "three.js",
+        "webgl",
+        "hover-effects"
+      ]
+    },
+    {
+      "title": "Particle Morphing Three.js",
+      "url": "https://tympanus.net/codrops/2024/09/20/particle-morphing-with-three-js/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "three.js",
+        "particles",
+        "morphing"
+      ]
+    },
+    {
+      "title": "3D Scroll Experience",
+      "url": "https://tympanus.net/codrops/2024/10/05/3d-scroll-experience-tutorial/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "three.js",
+        "scroll-trigger",
+        "3d"
+      ]
+    },
+    {
+      "title": "Glassmorphism Cards",
+      "url": "https://tympanus.net/codrops/2024/11/12/glassmorphism-card-components/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "css",
+        "glassmorphism",
+        "blur"
+      ]
+    },
+    {
+      "title": "Bento Grid GSAP",
+      "url": "https://tympanus.net/codrops/2025/01/08/bento-grid-layouts-with-gsap/",
+      "source": "Codrops",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "css-grid",
+        "gsap",
+        "bento"
+      ]
+    },
+    {
+      "title": "Three.js Journey",
+      "url": "https://threejs-journey.com",
+      "source": "Bruno Simon",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "three.js",
+        "webgl",
+        "course"
+      ]
+    },
+    {
+      "title": "R3F Documentation",
+      "url": "https://r3f.docs.pmnd.rs",
+      "source": "Poimandres",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "r3f",
+        "react",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Drei Documentation",
+      "url": "https://docs.pmnd.rs/drei",
+      "source": "Poimandres",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "drei",
+        "r3f",
+        "helpers"
+      ]
+    },
+    {
+      "title": "GSAP Official Demos",
+      "url": "https://gsap.com/resources/demos/",
+      "source": "GreenSock",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "gsap",
+        "scroll-trigger",
+        "animations"
+      ]
+    },
+    {
+      "title": "Framer Motion Examples",
+      "url": "https://www.framer.com/motion/examples/",
+      "source": "Framer",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "framer-motion",
+        "react",
+        "spring"
+      ]
+    },
+    {
+      "title": "Lenis Smooth Scroll",
+      "url": "https://lenis.studiofreight.com",
+      "source": "Studio Freight",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "lenis",
+        "smooth-scroll"
+      ]
+    },
+    {
+      "title": "ScrollOut Library",
+      "url": "https://scroll-out.github.io",
+      "source": "ScrollOut",
+      "category": "Tier 3: Tutorial Excellence (Codrops & Examples)",
+      "tags": [
+        "scroll-animations",
+        "css"
+      ]
+    },
+    {
+      "title": "On-Scroll 3D Cards",
+      "url": "https://tympanus.net/codrops/2024/01/17/on-scroll-3d-cards/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "WebGL Parallax Effect",
+      "url": "https://tympanus.net/codrops/2024/02/14/creating-a-webgl-parallax-effect/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "webgl",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Kinetic Typography",
+      "url": "https://tympanus.net/codrops/2023/12/12/kinetic-typography-on-scroll/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Infinite Scrolling Gallery",
+      "url": "https://tympanus.net/codrops/2024/03/05/infinite-scrolling-gallery/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Shader Playground",
+      "url": "https://tympanus.net/codrops/2023/11/20/shader-playground/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "glsl",
+        "three.js"
+      ]
+    },
+    {
+      "title": "WebGL Image Distortion",
+      "url": "https://tympanus.net/codrops/2024/04/02/webgl-image-distortion/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "webgl",
+        "glsl"
+      ]
+    },
+    {
+      "title": "Smooth Scrolling Effects",
+      "url": "https://tympanus.net/codrops/2023/10/15/smooth-scrolling-effects/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "lenis",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Page Transitions Barba",
+      "url": "https://tympanus.net/codrops/2024/05/10/page-transitions-with-barba/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "barba.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "R3F Scroll Effects",
+      "url": "https://tympanus.net/codrops/2024/06/15/r3f-scroll-effects/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "r3f",
+        "drei"
+      ]
+    },
+    {
+      "title": "Liquid Distortion",
+      "url": "https://tympanus.net/codrops/2023/09/20/liquid-distortion-effect/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "glsl",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Glassmorphism Effects",
+      "url": "https://tympanus.net/codrops/2024/07/01/glassmorphism-effects/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "css",
+        "backdrop-filter"
+      ]
+    },
+    {
+      "title": "Magnetic Buttons",
+      "url": "https://tympanus.net/codrops/2023/08/15/magnetic-buttons/",
+      "source": "Codrops",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Three.js Journey Main",
+      "url": "https://threejs-journey.com/",
+      "source": "Three.js Journey",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "three.js"
+      ]
+    },
+    {
+      "title": "Three.js Journey Lessons",
+      "url": "https://threejs-journey.com/lessons",
+      "source": "Three.js Journey",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "R3F Examples",
+      "url": "https://r3f.docs.pmnd.rs/getting-started/examples",
+      "source": "pmndrs",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "r3f",
+        "drei"
+      ]
+    },
+    {
+      "title": "R3F Introduction",
+      "url": "https://docs.pmnd.rs/react-three-fiber/getting-started/introduction",
+      "source": "pmndrs",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "r3f"
+      ]
+    },
+    {
+      "title": "GSAP ScrollTrigger Demo",
+      "url": "https://codepen.io/GreenSock/pen/YzgBrPy",
+      "source": "GreenSock",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Framer Motion Docs",
+      "url": "https://www.framer.com/motion/",
+      "source": "Framer",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "React Spring Docs",
+      "url": "https://www.react-spring.dev/",
+      "source": "pmndrs",
+      "category": "Tutorial Excellence (Codrops, Three.js Journey)",
+      "tags": [
+        "react-spring"
+      ]
+    }
+  ],
+  "tier4_mobile": [
+    {
+      "title": "Apple HIG - iOS",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/designing-for-ios",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - visionOS",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/designing-for-visionos",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple Design Tips",
+      "url": "https://developer.apple.com/design/tips/",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Buttons",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/buttons",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Navigation",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/navigation-bars",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Tab Bars",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/tab-bars",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Lists",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/lists",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Sheets",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/sheets",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Dark Mode",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/dark-mode",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Materials",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/materials",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Typography",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/typography",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Color",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/color",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Icons",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/icons",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Motion",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/motion",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG - Accessibility",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/accessibility",
+      "source": "Apple",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Material Design 3",
+      "url": "https://m3.material.io",
+      "source": "Google",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Material Components",
+      "url": "https://m3.material.io/components",
+      "source": "Google",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Material Motion",
+      "url": "https://m3.material.io/styles/motion",
+      "source": "Google",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Material Color",
+      "url": "https://m3.material.io/styles/color",
+      "source": "Google",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Material Typography",
+      "url": "https://m3.material.io/styles/typography",
+      "source": "Google",
+      "category": "Tier 4: iOS/Mobile Premium",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG Main",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/",
+      "source": "Apple",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG Text Fields",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/text-fields",
+      "source": "Apple",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "Apple HIG Modality",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/modality",
+      "source": "Apple",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "Material Design 3",
+      "url": "https://m3.material.io/",
+      "source": "Google",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "Material 3 Foundations",
+      "url": "https://m3.material.io/foundations",
+      "source": "Google",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "Mobbin iOS Apps",
+      "url": "https://mobbin.com/browse/ios/apps",
+      "source": "Mobbin",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "Mobbin Android Apps",
+      "url": "https://mobbin.com/browse/android/apps",
+      "source": "Mobbin",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "Mobbin Web Apps",
+      "url": "https://mobbin.com/browse/web/apps",
+      "source": "Mobbin",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "ScreensDesign Main",
+      "url": "https://screensdesign.com/",
+      "source": "ScreensDesign",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "ScreensDesign Onboarding",
+      "url": "https://screensdesign.com/patterns/onboarding",
+      "source": "ScreensDesign",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "ScreensDesign Paywalls",
+      "url": "https://screensdesign.com/patterns/paywall",
+      "source": "ScreensDesign",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "ScreensDesign Settings",
+      "url": "https://screensdesign.com/patterns/settings",
+      "source": "ScreensDesign",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "LaudableApps Main",
+      "url": "https://laudableapps.com/",
+      "source": "LaudableApps",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    },
+    {
+      "title": "AppShopper",
+      "url": "https://www.appshopper.com/",
+      "source": "AppShopper",
+      "category": "iOS/Mobile Excellence",
+      "tags": []
+    }
+  ],
+  "tier5_saas": [
+    {
+      "title": "Figma",
+      "url": "https://figma.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Notion",
+      "url": "https://notion.so",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "css"
+      ]
+    },
+    {
+      "title": "Slack",
+      "url": "https://slack.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "electron"
+      ]
+    },
+    {
+      "title": "Discord",
+      "url": "https://discord.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "electron"
+      ]
+    },
+    {
+      "title": "Spotify",
+      "url": "https://spotify.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "css"
+      ]
+    },
+    {
+      "title": "GitHub",
+      "url": "https://github.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "turbo"
+      ]
+    },
+    {
+      "title": "OpenAI",
+      "url": "https://www.openai.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "next.js",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Anthropic",
+      "url": "https://anthropic.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "next.js",
+        "react"
+      ]
+    },
+    {
+      "title": "Arc Browser",
+      "url": "https://arc.net",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "swift",
+        "macos"
+      ]
+    },
+    {
+      "title": "Superhuman",
+      "url": "https://www.superhuman.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "electron"
+      ]
+    },
+    {
+      "title": "Craft",
+      "url": "https://www.craft.do",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "swift",
+        "ios"
+      ]
+    },
+    {
+      "title": "Pitch",
+      "url": "https://www.pitch.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Loom",
+      "url": "https://www.loom.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "video"
+      ]
+    },
+    {
+      "title": "Miro",
+      "url": "https://www.miro.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "canvas"
+      ]
+    },
+    {
+      "title": "Airtable",
+      "url": "https://www.airtable.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "canvas"
+      ]
+    },
+    {
+      "title": "Coda",
+      "url": "https://www.coda.io",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "canvas"
+      ]
+    },
+    {
+      "title": "Retool",
+      "url": "https://www.retool.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "low-code"
+      ]
+    },
+    {
+      "title": "Framer",
+      "url": "https://www.framer.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Webflow",
+      "url": "https://webflow.com",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "no-code"
+      ]
+    },
+    {
+      "title": "Prismic",
+      "url": "https://www.prismic.io",
+      "source": "curated",
+      "category": "Tier 5: SaaS & Product Design",
+      "tags": [
+        "react",
+        "cms"
+      ]
+    },
+    {
+      "title": "Raycast",
+      "url": "https://raycast.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react",
+        "swift"
+      ]
+    },
+    {
+      "title": "Raycast Store",
+      "url": "https://raycast.com/store",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Arc Browser",
+      "url": "https://arc.net/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Cron Calendar",
+      "url": "https://cron.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Height",
+      "url": "https://height.app/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Superhuman",
+      "url": "https://www.superhuman.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "OpenAI",
+      "url": "https://www.openai.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "ChatGPT",
+      "url": "https://www.openai.com/chatgpt",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Anthropic",
+      "url": "https://anthropic.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Claude",
+      "url": "https://claude.ai/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Midjourney",
+      "url": "https://www.midjourney.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Runway ML",
+      "url": "https://runway.ml/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Descript",
+      "url": "https://www.descript.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Perplexity",
+      "url": "https://www.perplexity.ai/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Jasper AI",
+      "url": "https://www.jasper.ai/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Copy AI",
+      "url": "https://www.copy.ai/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Replit",
+      "url": "https://replit.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Cursor",
+      "url": "https://www.cursor.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "electron"
+      ]
+    },
+    {
+      "title": "Retool",
+      "url": "https://retool.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Builder.io",
+      "url": "https://www.builder.io/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Webflow",
+      "url": "https://webflow.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Webflow Designer",
+      "url": "https://webflow.com/designer",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Framer",
+      "url": "https://framer.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Spline",
+      "url": "https://www.spline.design/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "webgl",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Rive",
+      "url": "https://rive.app/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "webgl"
+      ]
+    },
+    {
+      "title": "Jitter",
+      "url": "https://www.jitter.video/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "LottieFiles",
+      "url": "https://lottiefiles.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Screen Studio",
+      "url": "https://www.screen.studio/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "CleanShot",
+      "url": "https://cleanshot.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Pixelmator Pro",
+      "url": "https://www.pixelmator.com/pro/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Affinity Designer",
+      "url": "https://affinity.serif.com/en-us/designer/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Sketch",
+      "url": "https://www.sketch.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "InVision",
+      "url": "https://www.invisionapp.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Abstract",
+      "url": "https://www.abstract.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Zeplin",
+      "url": "https://zeplin.io/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Principle",
+      "url": "https://www.principle.app/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "swift"
+      ]
+    },
+    {
+      "title": "Maze",
+      "url": "https://maze.co/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Hotjar",
+      "url": "https://www.hotjar.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "FullStory",
+      "url": "https://www.fullstory.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Mixpanel",
+      "url": "https://www.mixpanel.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Amplitude",
+      "url": "https://amplitude.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Segment",
+      "url": "https://segment.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "PostHog",
+      "url": "https://www.posthog.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Plausible",
+      "url": "https://www.plausible.io/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "elixir"
+      ]
+    },
+    {
+      "title": "Umami",
+      "url": "https://umami.is/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Calendly",
+      "url": "https://www.calendly.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "SavvyCal",
+      "url": "https://savvycal.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Cal.com",
+      "url": "https://cal.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Typeform",
+      "url": "https://www.typeform.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tally",
+      "url": "https://tally.so/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Formbricks",
+      "url": "https://formbricks.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "ConvertKit",
+      "url": "https://www.convertkit.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Mailchimp",
+      "url": "https://www.mailchimp.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Beehiiv",
+      "url": "https://www.beehiiv.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Buttondown",
+      "url": "https://buttondown.email/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "django"
+      ]
+    },
+    {
+      "title": "Substack",
+      "url": "https://substack.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ghost",
+      "url": "https://ghost.org/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "node"
+      ]
+    },
+    {
+      "title": "Product Hunt",
+      "url": "https://www.producthunt.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Indie Hackers",
+      "url": "https://www.indiehackers.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "ember"
+      ]
+    },
+    {
+      "title": "Y Combinator",
+      "url": "https://www.ycombinator.com/",
+      "source": "curated",
+      "category": "Premium SaaS Products",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Linear App",
+      "url": "https://linear.app/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Linear Features",
+      "url": "https://linear.app/features",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Linear Method",
+      "url": "https://linear.app/method",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Vercel Home",
+      "url": "https://vercel.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "next.js",
+        "react"
+      ]
+    },
+    {
+      "title": "Vercel Dashboard",
+      "url": "https://vercel.com/dashboard",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Vercel AI",
+      "url": "https://vercel.com/ai",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "next.js",
+        "ai"
+      ]
+    },
+    {
+      "title": "Stripe Home",
+      "url": "https://stripe.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Stripe Payments",
+      "url": "https://stripe.com/payments",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Stripe Atlas",
+      "url": "https://stripe.com/atlas",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Figma Home",
+      "url": "https://www.figma.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react",
+        "webgl"
+      ]
+    },
+    {
+      "title": "FigJam",
+      "url": "https://www.figma.com/figjam/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Figma Dev Mode",
+      "url": "https://www.figma.com/dev-mode/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Notion Home",
+      "url": "https://notion.so/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Notion AI",
+      "url": "https://notion.so/product/ai",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Slack Home",
+      "url": "https://slack.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Slack Features",
+      "url": "https://slack.com/features",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "GitHub Home",
+      "url": "https://github.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "GitHub Copilot",
+      "url": "https://github.com/features/copilot",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Dropbox Home",
+      "url": "https://www.dropbox.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Intercom Home",
+      "url": "https://www.intercom.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Loom Home",
+      "url": "https://www.loom.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Airtable Home",
+      "url": "https://www.airtable.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Miro Home",
+      "url": "https://www.miro.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react",
+        "canvas"
+      ]
+    },
+    {
+      "title": "Asana Home",
+      "url": "https://www.asana.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "HubSpot Home",
+      "url": "https://www.hubspot.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Framer Home",
+      "url": "https://www.framer.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react",
+        "framer-motion"
+      ]
+    },
+    {
+      "title": "Pitch Home",
+      "url": "https://pitch.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Raycast Home",
+      "url": "https://www.raycast.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "swift",
+        "react"
+      ]
+    },
+    {
+      "title": "Cron Calendar",
+      "url": "https://www.cron.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Todoist",
+      "url": "https://todoist.com/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Readwise",
+      "url": "https://www.readwise.io/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Obsidian",
+      "url": "https://www.obsidian.md/",
+      "source": "curated",
+      "category": "SaaS & Product Design",
+      "tags": [
+        "electron"
+      ]
+    }
+  ],
+  "tier6_ecommerce": [
+    {
+      "title": "Nike",
+      "url": "https://www.nike.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Apple Store",
+      "url": "https://www.apple.com/shop",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "vanilla",
+        "scroll"
+      ]
+    },
+    {
+      "title": "Tesla",
+      "url": "https://www.tesla.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Porsche",
+      "url": "https://www.porsche.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "BMW",
+      "url": "https://www.bmw.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "video"
+      ]
+    },
+    {
+      "title": "Mercedes-Benz",
+      "url": "https://www.mercedes-benz.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Rolex",
+      "url": "https://www.rolex.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "video"
+      ]
+    },
+    {
+      "title": "Louis Vuitton",
+      "url": "https://www.louisvuitton.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Gucci",
+      "url": "https://www.gucci.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Hermes",
+      "url": "https://www.hermes.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "video"
+      ]
+    },
+    {
+      "title": "Dior",
+      "url": "https://www.dior.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Prada",
+      "url": "https://www.prada.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "gsap",
+        "video"
+      ]
+    },
+    {
+      "title": "Adidas",
+      "url": "https://www.adidas.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Patagonia",
+      "url": "https://www.patagonia.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Allbirds",
+      "url": "https://www.allbirds.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "shopify",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Glossier",
+      "url": "https://www.glossier.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "css"
+      ]
+    },
+    {
+      "title": "Warby Parker",
+      "url": "https://www.warbyparker.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Everlane",
+      "url": "https://www.everlane.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "css"
+      ]
+    },
+    {
+      "title": "Away Travel",
+      "url": "https://www.away.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Casper",
+      "url": "https://www.casper.com",
+      "source": "curated",
+      "category": "Tier 6: E-commerce & Marketing",
+      "tags": [
+        "react",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Shopify",
+      "url": "https://www.shopify.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Shopify Plus",
+      "url": "https://www.shopify.com/plus",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Apple Store",
+      "url": "https://www.apple.com/store",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "vanilla"
+      ]
+    },
+    {
+      "title": "Apple Mac Store",
+      "url": "https://www.apple.com/shop/buy-mac",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "vanilla"
+      ]
+    },
+    {
+      "title": "Nike",
+      "url": "https://www.nike.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Adidas",
+      "url": "https://www.adidas.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Allbirds",
+      "url": "https://www.allbirds.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Everlane",
+      "url": "https://www.everlane.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Glossier",
+      "url": "https://www.glossier.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Warby Parker",
+      "url": "https://www.warbyparker.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Away",
+      "url": "https://www.away.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Casper",
+      "url": "https://www.casper.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Peloton",
+      "url": "https://www.peloton.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Whoop",
+      "url": "https://www.whoop.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Oura Ring",
+      "url": "https://www.oura.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "next.js"
+      ]
+    },
+    {
+      "title": "Glyph",
+      "url": "https://glyph.supply/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Sonos",
+      "url": "https://www.sonos.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Bose",
+      "url": "https://www.bose.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Dyson",
+      "url": "https://www.dyson.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Samsung",
+      "url": "https://www.samsung.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Patagonia",
+      "url": "https://www.patagonia.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "REI",
+      "url": "https://www.rei.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Lululemon",
+      "url": "https://www.lululemon.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Gymshark",
+      "url": "https://www.gymshark.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "shopify"
+      ]
+    },
+    {
+      "title": "Notion Templates",
+      "url": "https://www.notion.so/templates",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Gumroad",
+      "url": "https://gumroad.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Ko-fi",
+      "url": "https://ko-fi.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Patreon",
+      "url": "https://www.patreon.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Etsy",
+      "url": "https://www.etsy.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Depop",
+      "url": "https://www.depop.com/",
+      "source": "curated",
+      "category": "E-commerce & Brands",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Apple Home",
+      "url": "https://www.apple.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap",
+        "scroll-trigger",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Apple Shop",
+      "url": "https://www.apple.com/shop/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Apple iPhone",
+      "url": "https://www.apple.com/iphone/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Apple Mac",
+      "url": "https://www.apple.com/mac/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Apple iPad",
+      "url": "https://www.apple.com/ipad/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Nike Running",
+      "url": "https://www.nike.com/running",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "react"
+      ]
+    },
+    {
+      "title": "Tesla Home",
+      "url": "https://www.tesla.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "react",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Tesla Model S",
+      "url": "https://www.tesla.com/model-s",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js"
+      ]
+    },
+    {
+      "title": "Porsche Home",
+      "url": "https://www.porsche.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Rolex Home",
+      "url": "https://www.rolex.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Louis Vuitton",
+      "url": "https://www.louisvuitton.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap",
+        "three.js"
+      ]
+    },
+    {
+      "title": "Gucci",
+      "url": "https://www.gucci.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Dior",
+      "url": "https://www.dior.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Chanel",
+      "url": "https://www.chanel.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Hermès",
+      "url": "https://www.hermes.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap",
+        "scroll-trigger"
+      ]
+    },
+    {
+      "title": "Cartier",
+      "url": "https://www.cartier.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Tiffany & Co",
+      "url": "https://www.tiffany.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Audi",
+      "url": "https://www.audi.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "BMW",
+      "url": "https://www.bmw.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Mercedes-Benz",
+      "url": "https://www.mercedes-benz.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js",
+        "gsap"
+      ]
+    },
+    {
+      "title": "Lamborghini",
+      "url": "https://www.lamborghini.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Ferrari",
+      "url": "https://www.ferrari.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js"
+      ]
+    },
+    {
+      "title": "Patek Philippe",
+      "url": "https://www.patek.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Omega Watches",
+      "url": "https://www.omega.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js"
+      ]
+    },
+    {
+      "title": "Breitling",
+      "url": "https://www.breitling.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "three.js"
+      ]
+    },
+    {
+      "title": "Prada",
+      "url": "https://www.prada.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    },
+    {
+      "title": "Burberry",
+      "url": "https://www.burberry.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap",
+        "webgl"
+      ]
+    },
+    {
+      "title": "Balenciaga",
+      "url": "https://www.balenciaga.com/",
+      "source": "curated",
+      "category": "E-commerce & Luxury Premium",
+      "tags": [
+        "gsap"
+      ]
+    }
+  ]
+}

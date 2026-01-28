@@ -265,6 +265,15 @@ Examples:
 }
 
 // Run if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+// Note: tsx doesn't always properly resolve import.meta.url, so we use a different check
+const isMainModule = process.argv[1]?.endsWith('index.ts') ||
+  process.argv[1]?.endsWith('index.js') ||
+  import.meta.url?.includes('index.ts') ||
+  import.meta.url?.includes('index.js');
+
+if (isMainModule) {
+  main().catch((err) => {
+    console.error('Pipeline failed:', err);
+    process.exit(1);
+  });
 }

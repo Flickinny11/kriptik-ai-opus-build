@@ -60,8 +60,24 @@ training/ui-lora/models/
 training/ui-lora/samples/
 training/ui-lora/output/
 training/premium-data-capture/output/
+training/premium-data-capture/repos/
+training/premium-designs/
+training/comprehensive-training-dataset/
+training/comprehensive-training-dataset.tar.gz
+premium-designs/
 *.safetensors
 *.ckpt
 *.pt
 *.pth
 *.bin
+*.tar.gz
+
+# Test outputs (DO NOT COMMIT)
+docker/ui-generator/test_output*.png
+
+# UICoder training code examples (downloaded during training)
+training/uicoder/code/
+training/uicoder/code-patterns/
+training/uicoder/paired/
+training/uicoder/paired-data/
+training/uicoder/training-data.jsonl

@@ -85,3 +85,9 @@ export { default as inferenceRouter } from './api/inference.js';
 
 // Design Mode (UI Mockup Generation, Blueprints, Semantic Analysis)
 export { default as designModeRouter } from './design-mode.js';
+
+// 3D Pipeline (Image-to-3D, Animations, Web Assets)
+export { default as threeDPipelineRouter } from './3d-pipeline.js';
+
+// Video Generation (Remotion - Programmatic Video)
+export { default as videoRouter } from './video.js';

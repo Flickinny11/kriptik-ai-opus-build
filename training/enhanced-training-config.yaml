@@ -1,0 +1,293 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# KRIPTIK AI ENHANCED TRAINING CONFIGURATION
+# Production-Grade Training for Viral Traffic
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Research-Backed Decisions (January 2026):
+# - Full fine-tune > LoRA > QLoRA for quality (CivitAI research)
+# - Extract-from-full-finetune yields better LoRA than direct training
+# - DPO provides RLHF-equivalent results at 40% compute cost
+# - DeepSeek-Coder-V2 achieves 90.2% HumanEval (vs Mistral 60%)
+# - FreeText achieves 98%+ text accuracy without retraining
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FLUX UI IMAGE GENERATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+flux:
+  # Production strategy: Start with enhanced LoRA, upgrade to full fine-tune if needed
+
+  baseline_lora:
+    # Currently running - rank 64, 5000 steps
+    status: "in_progress"
+    estimated_quality: "75-80%"
+    use_case: "Initial testing and validation"
+
+  enhanced_lora:
+    # Recommended upgrade for better quality
+    base_model: "black-forest-labs/FLUX.1-dev"
+    method: "lora"
+    rank: 128                    # Upgraded from 64 for complex styles
+    alpha: 128                   # Match rank for stable training
+    steps: 8000                  # Upgraded from 5000
+    learning_rate: 8e-5          # Slightly lower for stability with higher rank
+    batch_size: 1
+    gradient_accumulation: 4
+    resolution: [1024, 1024]
+    trigger_word: "kriptik_ui"
+    estimated_quality: "85-90%"
+    estimated_cost: "$30-40"
+    hardware: "RTX A5000 24GB"
+
+  full_finetune:
+    # Maximum quality option for production
+    base_model: "black-forest-labs/FLUX.1-dev"
+    method: "full_fine_tune"
+    epochs: 3
+    batch_size: 1
+    gradient_accumulation: 8
+    learning_rate: 1e-5          # Lower for full fine-tune stability
+    resolution: [1024, 1024]
+    trigger_word: "kriptik_ui"
+    estimated_quality: "92-95%"
+    estimated_cost: "$150-200"
+    hardware: "A100 80GB or H100"
+
+    # Post-training: Extract LoRA for efficient inference
+    extract_lora:
+      enabled: true
+      rank: 128
+      reason: "Extracted LoRA from full fine-tune yields better results than direct LoRA training"
+
+  text_overlay:
+    # FreeText-based post-processing for perfect text
+    enabled: true
+    method: "system_font_overlay"
+    fonts:
+      primary: "Inter"
+      heading: "SF Pro Display"
+      mono: "JetBrains Mono"
+    workflow:
+      - step: "generate_ui_with_text_placeholders"
+        description: "Generate UI image with marked regions for text"
+      - step: "render_text_with_system_fonts"
+        description: "Use node-canvas to render actual text"
+      - step: "blend_with_flux_fill"
+        description: "Use FLUX Fill inpainting to seamlessly blend"
+    estimated_accuracy: "98%+"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UICODER: CODE GENERATION FROM MOCKUPS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+uicoder:
+  # Three-stage training for production quality
+
+  stage_1_sft:
+    # Supervised Fine-Tuning
+    base_model: "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
+    model_params: "16B total, 2.4B active (MoE)"
+    context_length: 128000       # vs 32K for Mistral
+    humaneval_score: "90.2%"     # vs 60% for Mistral-7B
+
+    # Alternative options
+    alternatives:
+      - model: "Qwen/Qwen2.5-Coder-32B-Instruct"
+        humaneval: "88.4%"
+        context: 128000
+      - model: "mistralai/Codestral-22B-v0.1"
+        humaneval: "81.1%"
+        context: 32000
+
+    training:
+      method: "lora"
+      rank: 64
+      alpha: 64
+      epochs: 3
+      batch_size: 4
+      gradient_accumulation: 4
+      learning_rate: 4e-6
+      max_seq_length: 8192       # Long context for full components
+
+    dataset:
+      format: "instruction_tuning"
+      fields:
+        instruction: "Generate React/TypeScript code for this UI design"
+        input: "Screenshot analysis + technique requirements"
+        output: "Complete working React component with animations"
+
+    estimated_quality: "80-85%"
+    estimated_cost: "$50-80"
+    hardware: "A100 40GB"
+
+  stage_2_dpo:
+    # Direct Preference Optimization
+    # 40% cheaper than RLHF, equivalent results
+    enabled: true
+    method: "dpo"
+    beta: 0.1
+    epochs: 1
+
+    preference_pairs:
+      # Good code vs bad code examples
+      criteria:
+        - name: "compiles"
+          weight: 0.3
+          description: "TypeScript compiles without errors"
+        - name: "correct_patterns"
+          weight: 0.3
+          description: "Uses correct GSAP/Framer Motion patterns"
+        - name: "performance"
+          weight: 0.2
+          description: "Achieves 60fps, passes Lighthouse"
+        - name: "accessibility"
+          weight: 0.2
+          description: "Includes ARIA, reduced motion support"
+
+    dataset_generation:
+      method: "teacher_student"
+      teacher_model: "claude-opus-4-5"
+      student_model: "deepseek-coder-v2"
+      pairs_per_example: 3       # 3 preference pairs per training example
+
+    estimated_quality_boost: "+10-15%"
+    estimated_cost: "$20-30"
+
+  stage_3_feedback_loop:
+    # Automated validation and refinement
+    enabled: true
+    iterations: 5
+
+    validators:
+      typescript_compile:
+        enabled: true
+        reject_on_error: true
+
+      lighthouse:
+        enabled: true
+        min_performance: 90
+        min_accessibility: 95
+
+      visual_match:
+        enabled: true
+        method: "vl_jepa"
+        min_similarity: 0.85
+
+      animation_validation:
+        enabled: true
+        checks:
+          - "spring_physics_params"      # stiffness 100-500, damping 10-40
+          - "gsap_scrolltrigger_config"  # ignoreMobileResize, cleanup
+          - "reduced_motion_support"     # prefers-reduced-motion check
+
+    refinement:
+      on_failure: "regenerate_with_error_context"
+      max_retries: 3
+
+    estimated_quality_boost: "+5-10%"
+
+  final_quality:
+    estimated: "95%+"
+    characteristics:
+      - "TypeScript compiles without errors"
+      - "Correct GSAP/Framer Motion/Three.js patterns"
+      - "60fps on mobile devices"
+      - "Lighthouse performance > 90"
+      - "Visual match to mockup > 85%"
+      - "Proper accessibility (WCAG AA)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TRAINING DATA REQUIREMENTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+datasets:
+  flux_ui:
+    current:
+      images: 3377
+      status: "training"
+    recommended_additions:
+      - source: "Apple HIG 2026 examples"
+        count: 200
+        priority: "high"
+      - source: "Awwwards SOTY 2024-2025"
+        count: 300
+        priority: "high"
+      - source: "iOS app screenshots (LaudableApps)"
+        count: 500
+        priority: "medium"
+
+  uicoder:
+    paired_dataset:
+      current: 0
+      target: 1000
+      format: "screenshot + working_code + technique_tags"
+
+    code_examples:
+      sources:
+        - "codrops/webgl-demos"
+        - "pmndrs/drei examples"
+        - "gsap/scrolltrigger examples"
+        - "framer-motion examples"
+      target_files: 5000
+
+    preference_pairs:
+      target: 3000
+      generation_method: "opus_4.5_teacher"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRODUCTION DEPLOYMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+deployment:
+  runpod_serverless:
+    flux_endpoint:
+      model: "kriptik-ui-lora.safetensors"
+      workflow: "ui-generation-with-text-overlay"
+      gpu: "RTX 4090"
+      min_workers: 0
+      max_workers: 50
+      idle_timeout: 30
+      estimated_cost_per_image: "$0.01-0.03"
+
+    uicoder_endpoint:
+      model: "kriptik-uicoder-deepseek.safetensors"
+      gpu: "RTX 4090"
+      min_workers: 0
+      max_workers: 20
+      estimated_cost_per_generation: "$0.02-0.05"
+
+  viral_traffic_capacity:
+    # Serverless auto-scales to handle any load
+    daily_generations: "unlimited"
+    concurrent_requests: "50+"
+    cold_start: "<30s"
+    warm_inference: "<5s"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VERIFICATION STRATEGY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+verification:
+  flux_quality_test:
+    samples: 50
+    prompts: "diverse_ui_prompts.json"
+    metrics:
+      - visual_quality: ">7.0 aesthetic score"
+      - text_accuracy: ">95% (with FreeText)"
+      - awwwards_similarity: ">0.75"
+
+  uicoder_quality_test:
+    samples: 100
+    metrics:
+      - compile_rate: ">98%"
+      - visual_match: ">0.85"
+      - lighthouse_performance: ">90"
+      - mobile_60fps: ">95% of samples"
+
+  integration_test:
+    flow: "NLP prompt → FLUX mockup → UICoder code → rendered app"
+    samples: 20
+    success_criteria:
+      - end_to_end_success: ">90%"
+      - user_satisfaction: "subjective survey"

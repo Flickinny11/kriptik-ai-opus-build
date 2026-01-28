@@ -1,0 +1,19 @@
+{
+  "template": "starry-night-parallax-zoom-effect-slider",
+  "url": "https://www.sliderrevolution.com/templates/starry-night-parallax-zoom-effect-slider/",
+  "category": "slider",
+  "source": "sliders",
+  "sliderConfig": null,
+  "transitions": [
+    "all",
+    "0.2s ease-out",
+    "background-color 0.2s ease-out",
+    "none",
+    "background-color 0.2s ease-out, color 0.2s ease-out",
+    "0.25s ease-out",
+    "opacity 0.2s ease-out",
+    "max-height 0.25s ease-in-out",
+    "color 0.2s ease-out"
+  ],
+  "animations": []
+}

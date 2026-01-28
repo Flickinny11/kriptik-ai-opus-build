@@ -1,0 +1,37 @@
+# =============================================================================
+# KripTik UI Generator - Lightweight RunPod Serverless Worker
+# =============================================================================
+# Uses Diffusers for FLUX.1-dev + LoRA inference.
+# Much faster to build than ComfyUI worker (no 23GB model baked in).
+# Model downloads on first request (cold start ~60s, warm ~15s).
+# =============================================================================
+
+FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
+
+# Environment
+ENV PYTHONUNBUFFERED=1
+ENV HF_HOME=/workspace/huggingface
+ENV TRANSFORMERS_CACHE=/workspace/huggingface
+
+# Install dependencies (with torch upgrade for enable_gqa support)
+# bitsandbytes enables 8-bit quantization for 24GB GPUs
+RUN pip install --no-cache-dir --upgrade torch==2.5.1 && \
+    pip install --no-cache-dir \
+    runpod \
+    diffusers>=0.31.0 \
+    transformers>=4.46.0 \
+    accelerate>=0.34.0 \
+    safetensors \
+    sentencepiece \
+    peft \
+    bitsandbytes>=0.43.0 && \
+    mkdir -p /workspace/loras
+
+# Copy LoRA
+COPY ./models/ui-design-lora.safetensors /workspace/loras/
+
+# Copy handler
+COPY ./handler_diffusers.py /handler.py
+
+# Entry point
+CMD ["python", "-u", "/handler.py"]

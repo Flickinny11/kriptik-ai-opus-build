@@ -1,0 +1,217 @@
+{
+  "template": "kinetic-typography",
+  "url": "https://www.sliderrevolution.com/templates/kinetic-text-slider/",
+  "effects": [
+    "kinetic",
+    "typography",
+    "animation"
+  ],
+  "gsapTimelines": [],
+  "scrollTriggers": [],
+  "sr7Config": {
+    "breakpoints": [
+      1500,
+      1240,
+      778,
+      480
+    ],
+    "modules": [
+      "module",
+      "page",
+      "slide",
+      "layer",
+      "draw",
+      "animate",
+      "srtools",
+      "canvas",
+      "defaults",
+      "carousel",
+      "navigation",
+      "media",
+      "modifiers",
+      "migration"
+    ]
+  },
+  "cssAnimations": [
+    {
+      "name": "show-content-image",
+      "keyframes": 3
+    },
+    {
+      "name": "turn-on-visibility",
+      "keyframes": 2
+    },
+    {
+      "name": "turn-off-visibility",
+      "keyframes": 3
+    },
+    {
+      "name": "lightbox-zoom-in",
+      "keyframes": 2
+    },
+    {
+      "name": "lightbox-zoom-out",
+      "keyframes": 3
+    },
+    {
+      "name": "overlay-menu__fade-in-animation",
+      "keyframes": 2
+    },
+    {
+      "name": "tp-rotateplane",
+      "keyframes": 3
+    },
+    {
+      "name": "tp-fade-in",
+      "keyframes": 3
+    },
+    {
+      "name": "tp-rotate",
+      "keyframes": 1
+    },
+    {
+      "name": "rs-animatesaleicon",
+      "keyframes": 3
+    },
+    {
+      "name": "rs-drawstroke",
+      "keyframes": 2
+    },
+    {
+      "name": "fadeInFromNone",
+      "keyframes": 3
+    },
+    {
+      "name": "infoPopup",
+      "keyframes": 2
+    },
+    {
+      "name": "fadeit",
+      "keyframes": 4
+    },
+    {
+      "name": "cyclenumber1",
+      "keyframes": 6
+    },
+    {
+      "name": "cyclenumber2",
+      "keyframes": 6
+    },
+    {
+      "name": "cyclenumber3",
+      "keyframes": 6
+    },
+    {
+      "name": "MOVE-BG",
+      "keyframes": 2
+    },
+    {
+      "name": "fa-spin",
+      "keyframes": 2
+    },
+    {
+      "name": "fa-spin",
+      "keyframes": 2
+    },
+    {
+      "name": "esg-rotateplane",
+      "keyframes": 3
+    },
+    {
+      "name": "esg-scaleout",
+      "keyframes": 2
+    },
+    {
+      "name": "esg-bouncedelay",
+      "keyframes": 2
+    },
+    {
+      "name": "esg-rotate",
+      "keyframes": 1
+    },
+    {
+      "name": "esg-bounce",
+      "keyframes": 2
+    },
+    {
+      "name": "a",
+      "keyframes": 1
+    },
+    {
+      "name": "srdFadeIn",
+      "keyframes": 2
+    },
+    {
+      "name": "aspAnFadeIn",
+      "keyframes": 3
+    },
+    {
+      "name": "aspAnFadeIn",
+      "keyframes": 3
+    },
+    {
+      "name": "aspAnFadeOut",
+      "keyframes": 3
+    },
+    {
+      "name": "aspAnFadeOut",
+      "keyframes": 3
+    },
+    {
+      "name": "aspAnFadeInDrop",
+      "keyframes": 2
+    },
+    {
+      "name": "aspAnFadeInDrop",
+      "keyframes": 2
+    },
+    {
+      "name": "aspAnFadeOutDrop",
+      "keyframes": 2
+    },
+    {
+      "name": "aspAnFadeOutDrop",
+      "keyframes": 2
+    },
+    {
+      "name": "shm-rot-simple",
+      "keyframes": 3
+    },
+    {
+      "name": "shm-rot-simple",
+      "keyframes": 3
+    },
+    {
+      "name": "ball-beat",
+      "keyframes": 2
+    },
+    {
+      "name": "ball-beat",
+      "keyframes": 2
+    },
+    {
+      "name": "ball-beat",
+      "keyframes": 2
+    },
+    {
+      "name": "ball-beat",
+      "keyframes": 2
+    },
+    {
+      "name": "ball-beat",
+      "keyframes": 2
+    },
+    {
+      "name": "ball-beat",
+      "keyframes": 2
+    },
+    {
+      "name": "asp_an_fadeInDown",
+      "keyframes": 2
+    },
+    {
+      "name": "asp_an_fadeInDown",
+      "keyframes": 2
+    }
+  ]
+}

@@ -1033,6 +1033,14 @@ app.use("/api/agent", agentRouter);
 import mobileRouter from './routes/mobile.js';
 app.use("/api/mobile", mobileRouter);
 
+// 3D Pipeline (Image-to-3D, Animations, Web Assets) - 35 credits per request
+import threeDPipelineRouter from './routes/3d-pipeline.js';
+app.use("/api/3d", aiRateLimiter, requireCredits(35), threeDPipelineRouter);
+
+// Video Generation (Remotion - Programmatic Video) - 50 credits per request
+import videoRouter from './routes/video.js';
+app.use("/api/video", aiRateLimiter, requireCredits(50), videoRouter);
+
 // Health Check Routes - Comprehensive infrastructure monitoring
 app.use("/api/health", healthRouter);
 
