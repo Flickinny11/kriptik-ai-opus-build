@@ -1,0 +1,128 @@
+# =============================================================================
+# KripTik Asset LoRA Training Configuration
+# =============================================================================
+# Fine-tune FLUX.1-dev for photorealistic in-UI images.
+# Trigger word: kriptik_asset
+#
+# Purpose: Generate high-quality images FOR USE within UIs:
+# - Hero background images
+# - Product photography
+# - Team member portraits
+# - Abstract/artistic backgrounds
+# - SliderRevolution-style visual content
+#
+# NOT for generating UI mockups (use kriptik_ui for that)
+# =============================================================================
+
+# Model Configuration
+model:
+  base_model: "black-forest-labs/FLUX.1-dev"
+  model_type: "flux"
+  revision: "main"
+  variant: "fp16"
+
+  # LoRA Configuration (rank 32 for photorealistic quality)
+  lora:
+    rank: 32
+    alpha: 32
+    dropout: 0.0
+    target_modules:
+      - "to_q"
+      - "to_k"
+      - "to_v"
+      - "to_out.0"
+      - "proj_in"
+      - "proj_out"
+      - "ff.net.0.proj"
+      - "ff.net.2"
+
+# Dataset Configuration
+dataset:
+  instance_data_dir: "./dataset/images"
+  caption_dir: "./dataset/captions"
+  caption_extension: ".txt"
+
+  resolution: 1024
+  center_crop: true
+  random_flip: true    # OK for photorealistic images
+
+  trigger_word: "kriptik_asset"
+  prepend_trigger_word: true
+
+# Training Configuration
+training:
+  output_dir: "./output"
+
+  train_batch_size: 1
+  gradient_accumulation_steps: 4
+  gradient_checkpointing: true
+  mixed_precision: "bf16"
+
+  learning_rate: 1.0e-4
+  lr_scheduler: "cosine"
+  lr_warmup_steps: 100
+
+  max_train_steps: 3000
+  checkpointing_steps: 500
+  validation_steps: 500
+
+  optimizer: "adamw_bf16"
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 0.01
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+
+  seed: 42
+
+# Validation Configuration
+validation:
+  validation_prompts:
+    - "kriptik_asset, hero background image, abstract gradient, purple and blue tones, modern tech aesthetic, 4K quality"
+    - "kriptik_asset, product photography, sleek smartphone on marble surface, soft lighting, studio quality"
+    - "kriptik_asset, professional headshot, business attire, neutral background, studio lighting, high resolution"
+    - "kriptik_asset, abstract 3D shapes, floating geometric objects, soft shadows, clean white background"
+    - "kriptik_asset, nature landscape, mountains at sunset, dramatic sky, cinematic photography"
+  validation_epochs: 1
+  num_validation_images: 2
+
+# Inference Configuration
+inference:
+  guidance_scale: 3.5
+  num_inference_steps: 28
+
+# Hardware Configuration
+accelerator:
+  mixed_precision: "bf16"
+  gradient_checkpointing: true
+  num_processes: 1
+  enable_xformers: true
+  allow_tf32: true
+
+# Logging
+logging:
+  report_to: "tensorboard"
+  logging_dir: "./output/logs"
+
+# =============================================================================
+# Data Collection Notes
+# =============================================================================
+# Required dataset sources for photorealistic assets:
+#
+# 1. Unsplash API - Free high-quality photos
+#    - Hero backgrounds, landscapes, abstract
+#    - Team portraits (with proper licensing)
+#
+# 2. Pexels API - Free stock photography
+#    - Product photography
+#    - Business imagery
+#
+# 3. SliderRevolution hero crops
+#    - Extract hero sections from SliderRev templates
+#    - High-quality visual content already captured
+#
+# 4. Midjourney/Leonardo generations (optional)
+#    - Abstract art
+#    - 3D renders
+#    - Artistic backgrounds
+# =============================================================================
