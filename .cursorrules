@@ -1,0 +1,71 @@
+# KripTik AI Cursor Rules
+
+## CRITICAL: Authentication Configuration
+
+> **DO NOT MODIFY AUTH FILES WITHOUT EXPLICIT USER PERMISSION**
+>
+> The auth system uses a specific configuration to work on Safari/iOS.
+> Any changes to auth files have historically caused cascading failures.
+>
+> See: AUTH-IMMUTABLE-SPECIFICATION.md for full details.
+
+### Why Auth is Configured This Way
+
+Safari/iOS blocks ALL cross-site cookies via WebKit ITP (Intelligent Tracking Prevention).
+This is NOT fixable with `sameSite: 'none'` or any cookie configuration.
+Safari simply blocks cookies from cross-origin fetch requests, period.
+
+**THE ONLY RELIABLE SOLUTION**: Make all auth requests **same-origin** from the browser's perspective.
+
+### The Architecture (DO NOT CHANGE)
+
+```
+Browser on kriptik.app
+    ↓
+Request to /api/auth/*
+    ↓
+Vercel REWRITES /api/* → api.kriptik.app/api/*
+    ↓
+From browser's POV: same-origin (kriptik.app → kriptik.app)
+    ↓
+Cookies with sameSite:'lax' work correctly!
+```
+
+### Auth Rules for AI Agents
+
+1. **NEVER modify auth files** without explicit user permission
+2. **NEVER change `API_URL`** to a cross-origin URL in production
+3. **NEVER use `sameSite: 'none'`** - it doesn't work on Safari
+4. **NEVER use `useSecureCookies: true`** - it breaks compatibility
+5. **ALWAYS preserve** the Vercel rewrite configuration in vercel.json
+6. **ALWAYS preserve** the `domain: '.kriptik.app'` cookie setting
+7. If auth breaks, **first check if someone changed auth files** and revert
+8. Auth issues are often **environment variable issues**, not code issues
+
+### Protected Files
+
+These files have locked configurations:
+- `src/lib/api-config.ts` - API_URL must be empty string in production
+- `src/lib/auth-client.ts` - Must use same-origin configuration
+- `server/src/auth.ts` - Cookie settings are specifically tuned
+- `vercel.json` - The /api/* rewrite is critical
+
+### Environment Variables
+
+**Frontend (kriptik.app):**
+- `VITE_API_URL` - MUST be unset or empty string (NOT 'https://api.kriptik.app')
+- `VITE_FRONTEND_URL` - `https://kriptik.app`
+
+**Backend (api.kriptik.app):**
+- `BETTER_AUTH_SECRET` - (secure random string)
+- `BETTER_AUTH_URL` - `https://api.kriptik.app`
+- `FRONTEND_URL` - `https://kriptik.app`
+
+---
+
+## General Development Guidelines
+
+- This is a Vite + React + TypeScript frontend
+- Backend uses Hono with Better Auth
+- Database is Turso (SQLite)
+- Deployed on Vercel (frontend and backend as separate projects)
