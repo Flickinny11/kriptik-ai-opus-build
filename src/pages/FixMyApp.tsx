@@ -667,16 +667,19 @@ export default function FixMyApp() {
 
     // Check if extension is installed
     useEffect(() => {
+        console.log('[FixMyApp] Starting extension check...');
         const checkExtension = () => {
             // Track if we got a response (using local var to avoid stale closure)
             let gotResponse = false;
 
             // Send message to check if extension is installed
+            console.log('[FixMyApp] Sending KRIPTIK_EXTENSION_PING');
             window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
 
             // Listen for response
             const handleMessage = (event: MessageEvent) => {
                 if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
+                    console.log('[FixMyApp] Received KRIPTIK_EXTENSION_PONG - extension installed!');
                     gotResponse = true;
                     setExtensionInstalled(true);
                     setExtensionCheckComplete(true);
@@ -690,6 +693,7 @@ export default function FixMyApp() {
             setTimeout(() => {
                 // Use local var instead of state to avoid stale closure bug
                 if (!gotResponse) {
+                    console.log('[FixMyApp] No extension response - extension not installed');
                     setExtensionInstalled(false);
                     setExtensionCheckComplete(true);
                 }
@@ -699,6 +703,12 @@ export default function FixMyApp() {
 
         checkExtension();
     }, []);
+
+    // Log step changes
+    useEffect(() => {
+        console.log('[FixMyApp] Step changed to:', step);
+        console.log('[FixMyApp] Current state - extensionInstalled:', extensionInstalled, 'extensionCheckComplete:', extensionCheckComplete, 'source:', source);
+    }, [step, extensionInstalled, extensionCheckComplete, source]);
 
     // Clean up Fix My App session ONLY when workflow is fully complete
     // DO NOT end session on unmount - user needs to navigate to AI builder to capture data
@@ -774,8 +784,35 @@ export default function FixMyApp() {
         };
     }, []);
 
-    // Initialize session
+    // Initialize session - first check if we need consent/extension step (client-side)
+    // The actual API call happens when user proceeds from consent step
     const initSession = async () => {
+        if (!source) return;
+
+        console.log('[FixMyApp] initSession called with source:', source);
+        
+        // Check if this source has context available (needs consent + extension)
+        const sourceConfig = sourceOptions.find(s => s.id === source);
+        const needsConsent = sourceConfig?.contextAvailable ?? false;
+        
+        console.log('[FixMyApp] Source config:', sourceConfig);
+        console.log('[FixMyApp] needsConsent (contextAvailable):', needsConsent);
+        console.log('[FixMyApp] requiresBrowserLogin:', requiresBrowserLogin());
+
+        if (needsConsent) {
+            // Go to consent step first - no API call needed yet
+            // This allows user to see the Extension download option before login
+            console.log('[FixMyApp] Going to consent step (client-side, no API call yet)');
+            setStep('consent');
+        } else {
+            // For sources without context, call API directly
+            console.log('[FixMyApp] Source does not need consent, calling API...');
+            await callInitSessionApi();
+        }
+    };
+
+    // The actual API call - made when proceeding from consent step or for sources without consent
+    const callInitSessionApi = async () => {
         if (!source) return;
 
         setIsLoading(true);
@@ -785,6 +822,8 @@ export default function FixMyApp() {
                 { source, sourceUrl: _sourceUrl }
             );
 
+            console.log('[FixMyApp] Server response:', response.data);
+
             setSession({
                 sessionId: response.data.sessionId,
                 source,
@@ -793,44 +832,48 @@ export default function FixMyApp() {
                 currentStep: 'Initializing',
             });
 
-            // Skip consent for sources without context extraction
-            if (!response.data.consentRequired) {
-                setStep('upload');
+            // After API call from consent, go to upload
+            setStep('upload');
+        } catch (error: any) {
+            console.error('[FixMyApp] initSession API error:', error);
+            
+            // Check if it's an auth error
+            if (error?.response?.status === 401) {
+                toast({
+                    title: 'Login Required',
+                    description: 'Please sign in to continue with Fix My App.',
+                    variant: 'destructive',
+                });
+                // Could redirect to login here
+                navigate('/');
             } else {
-                setStep('consent');
+                toast({
+                    title: 'Error',
+                    description: 'Failed to initialize session. Please try again.',
+                    variant: 'destructive',
+                });
             }
-        } catch (error) {
-            toast({
-                title: 'Error',
-                description: 'Failed to initialize session',
-                variant: 'destructive',
-            });
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Submit consent - just open the URL in a new tab and proceed
+    // Submit consent - call API to initialize session, then open URL and proceed
     const submitConsent = async () => {
-        // Open the platform URL in a new browser tab
-        const platformUrl = getPlatformUrl();
-        if (platformUrl) {
-            window.open(platformUrl, '_blank');
-            toast({
-                title: 'Browser Tab Opened',
-                description: 'Your app URL has been opened in a new tab.',
-            });
-        } else if (githubUrl) {
-            // For GitHub or direct URLs, open the entered URL
-            window.open(githubUrl, '_blank');
-            toast({
-                title: 'Browser Tab Opened',
-                description: 'Your URL has been opened in a new tab.',
-            });
-        }
-
-        // Go to upload step
-        setStep('upload');
+        console.log('[FixMyApp] submitConsent called');
+        
+        // First, call the API to initialize the session (requires auth)
+        // This will fail if user is not logged in, but show a helpful message
+        await callInitSessionApi();
+        
+        // If we get here, the API call succeeded
+        // The callInitSessionApi function will:
+        // 1. Set the session
+        // 2. Navigate to upload step
+        // 3. Show error if auth fails
+        
+        // Note: Opening the URL is now handled in the button onClick
+        // because we want to do it only if extension is installed
     };
 
     // Upload files
@@ -873,7 +916,9 @@ export default function FixMyApp() {
     // Check if source requires browser login (AI builders with context)
     const requiresBrowserLogin = useCallback(() => {
         const browserSources: ImportSource[] = ['lovable', 'bolt', 'v0', 'create', 'tempo', 'gptengineer', 'databutton', 'magic_patterns', 'replit'];
-        return source && browserSources.includes(source);
+        const result = source && browserSources.includes(source);
+        console.log('[FixMyApp] requiresBrowserLogin() called - source:', source, 'result:', result);
+        return result;
     }, [source]);
 
     // Get platform URL based on source
@@ -1316,6 +1361,7 @@ export default function FixMyApp() {
                                 </p>
 
                                 {/* Extension Status - Show for AI builders that need context capture */}
+                                {/* Debug: requiresBrowserLogin={requiresBrowserLogin()}, source={source} */}
                                 {requiresBrowserLogin() && (
                                     <ExtensionStatusCard
                                         extensionInstalled={extensionInstalled}

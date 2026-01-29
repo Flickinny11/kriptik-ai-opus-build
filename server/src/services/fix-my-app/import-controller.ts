@@ -165,6 +165,8 @@ export class ImportController extends EventEmitter {
         const consentRequired = sourceConfig?.contextAvailable ?? false;
 
         const sourceName = sourceConfig?.name || source;
+        console.log(`[ImportController] initSession - source: ${source}, sourceConfig:`, sourceConfig);
+        console.log(`[ImportController] initSession - contextAvailable: ${sourceConfig?.contextAvailable}, consentRequired: ${consentRequired}`);
         this.log(`Session initialized for ${sourceName} import`);
         this.emitProgress(5, 'Session initialized');
 
