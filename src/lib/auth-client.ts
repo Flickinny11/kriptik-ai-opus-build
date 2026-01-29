@@ -2,13 +2,18 @@ import { createAuthClient } from "better-auth/react"
 import { API_URL, FRONTEND_URL } from './api-config';
 
 // =============================================================================
-// AUTH CLIENT - Per AUTH-IMMUTABLE-SPECIFICATION.md
+// AUTH CLIENT - iOS WebKit ITP Compatible
 // =============================================================================
-// REVERTED (2026-01-29): Previous iOS workaround was broken:
-// - It used GET to /api/auth/sign-in/google which doesn't exist (404)
-// - Better Auth only has POST /api/auth/sign-in/social
-// - OAuth works via top-level navigations which bypass WebKit ITP
-// - Proper cookie settings (sameSite:'none', secure:true) are the real fix
+// WebKit's Intelligent Tracking Prevention (ITP) blocks cross-site fetch requests
+// even with credentials:'include'. The solution is to use Vercel's rewrite proxy
+// so requests appear same-origin to the browser.
+//
+// Flow with Vercel rewrite:
+// 1. Frontend at kriptik.app makes request to kriptik.app/api/auth/...
+// 2. Vercel rewrites to api.kriptik.app/api/auth/... (server-side)
+// 3. Browser sees same-origin request → WebKit ITP allows it
+// 4. OAuth callback goes directly to api.kriptik.app (top-level navigation, always allowed)
+// 5. Cookie set with domain:.kriptik.app works for both domains
 // =============================================================================
 
 // Browser detection helpers (used by session retry logic and other components)
@@ -40,6 +45,17 @@ export const isIOSChrome = (): boolean => {
     return /iPhone|iPad|iPod/i.test(ua) && /CriOS/i.test(ua);
 };
 
+// Determine if we should use same-origin requests (via Vercel rewrite)
+// In production on kriptik.app, use relative URLs so Vercel proxies to api.kriptik.app
+// This makes requests same-origin, bypassing WebKit ITP
+const isProd = typeof window !== 'undefined' &&
+    (window.location.hostname === 'kriptik.app' ||
+     window.location.hostname.endsWith('.vercel.app'));
+
+// In production, use empty baseURL for same-origin requests via Vercel rewrite
+// In development, use API_URL directly (localhost doesn't have ITP issues)
+const AUTH_BASE_URL = isProd ? '' : API_URL;
+
 // Log browser detection for debugging
 if (typeof navigator !== 'undefined') {
     console.log('[Auth Client] Browser detection:', {
@@ -48,19 +64,18 @@ if (typeof navigator !== 'undefined') {
         safari: isSafari(),
         iOSSafari: isIOSSafari(),
         iOSChrome: isIOSChrome(),
-        apiUrl: API_URL,
+        isProd,
+        authBaseUrl: AUTH_BASE_URL || '(same-origin via Vercel rewrite)',
     });
 }
 
-// Create auth client per AUTH-IMMUTABLE-SPECIFICATION.md
-// Uses API_URL which points to api.kriptik.app
-// Cross-origin auth works because:
-// 1. Cookies use sameSite:'none' + secure:true + domain:'.kriptik.app'
-// 2. OAuth uses top-level navigation (not fetch), bypassing WebKit ITP
+// Create auth client
+// In production: empty baseURL = relative URLs = same-origin via Vercel rewrite
+// This bypasses WebKit ITP which blocks cross-site fetch requests
 export const authClient = createAuthClient({
-    baseURL: API_URL,
+    baseURL: AUTH_BASE_URL || undefined,
     fetchOptions: {
-        credentials: "include", // REQUIRED for cross-origin cookies
+        credentials: "include",
     },
 });
 
@@ -113,7 +128,8 @@ export const signInWithGoogle = async () => {
 
     console.log('[Auth] Starting Google sign-in...', {
         iOS: isIOS(),
-        apiUrl: API_URL,
+        isProd,
+        authBaseUrl: AUTH_BASE_URL || '(same-origin)',
         callbackURL,
     });
 
@@ -149,7 +165,8 @@ export const signInWithGitHub = async () => {
 
     console.log('[Auth] Starting GitHub sign-in...', {
         iOS: isIOS(),
-        apiUrl: API_URL,
+        isProd,
+        authBaseUrl: AUTH_BASE_URL || '(same-origin)',
         callbackURL,
     });
 
