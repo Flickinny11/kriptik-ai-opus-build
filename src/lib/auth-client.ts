@@ -1,39 +1,39 @@
 import { createAuthClient } from "better-auth/react"
-import { API_URL, FRONTEND_URL, DIRECT_API_URL } from './api-config';
+import { API_URL, FRONTEND_URL } from './api-config';
 
-// Note: API_URL and FRONTEND_URL are imported from centralized config
-// iOS MOBILE FIX (2026-01-15):
-// - In production, API_URL is empty string (same-origin via Vercel rewrite)
-// - This bypasses WebKit ITP which was blocking cross-site requests
-// - DIRECT_API_URL is used for OAuth redirects that need the actual backend URL
+// =============================================================================
+// AUTH CLIENT - Per AUTH-IMMUTABLE-SPECIFICATION.md
+// =============================================================================
+// REVERTED (2026-01-29): Previous iOS workaround was broken:
+// - It used GET to /api/auth/sign-in/google which doesn't exist (404)
+// - Better Auth only has POST /api/auth/sign-in/social
+// - OAuth works via top-level navigations which bypass WebKit ITP
+// - Proper cookie settings (sameSite:'none', secure:true) are the real fix
+// =============================================================================
 
-// Detect if we're on mobile
+// Browser detection helpers (used by session retry logic and other components)
 export const isMobile = (): boolean => {
     if (typeof navigator === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
-// Detect Safari (for special cookie handling)
 export const isSafari = (): boolean => {
     if (typeof navigator === 'undefined') return false;
     const ua = navigator.userAgent;
     return /Safari/i.test(ua) && !/Chrome/i.test(ua);
 };
 
-// Detect iOS (includes Chrome on iOS which uses WebKit)
 export const isIOS = (): boolean => {
     if (typeof navigator === 'undefined') return false;
     return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 };
 
-// Detect iOS Safari (strictest cookie handling)
 export const isIOSSafari = (): boolean => {
     if (typeof navigator === 'undefined') return false;
     const ua = navigator.userAgent;
     return /iPhone|iPad|iPod/i.test(ua) && /Safari/i.test(ua) && !/Chrome/i.test(ua);
 };
 
-// Detect iOS Chrome (uses WebKit, same restrictions as Safari)
 export const isIOSChrome = (): boolean => {
     if (typeof navigator === 'undefined') return false;
     const ua = navigator.userAgent;
@@ -48,19 +48,19 @@ if (typeof navigator !== 'undefined') {
         safari: isSafari(),
         iOSSafari: isIOSSafari(),
         iOSChrome: isIOSChrome(),
-        apiUrl: API_URL || '(same-origin)',
-        directApiUrl: DIRECT_API_URL,
+        apiUrl: API_URL,
     });
 }
 
-// Create auth client with proper config
-// In production, API_URL is empty so requests go through Vercel rewrite (same-origin)
+// Create auth client per AUTH-IMMUTABLE-SPECIFICATION.md
+// Uses API_URL which points to api.kriptik.app
+// Cross-origin auth works because:
+// 1. Cookies use sameSite:'none' + secure:true + domain:'.kriptik.app'
+// 2. OAuth uses top-level navigation (not fetch), bypassing WebKit ITP
 export const authClient = createAuthClient({
-    baseURL: API_URL || undefined, // undefined = relative URLs (same-origin)
+    baseURL: API_URL,
     fetchOptions: {
-        credentials: "include",
-        // Safari requires explicit cache control for cookie handling
-        cache: "no-store" as RequestCache,
+        credentials: "include", // REQUIRED for cross-origin cookies
     },
 });
 
@@ -97,158 +97,85 @@ export async function testAuthConnection(): Promise<{
     }
 }
 
-// ============================================================================
-// SOCIAL SIGN-IN - iOS MOBILE FIX (2026-01-15)
-//
-// On iOS (Safari and Chrome which both use WebKit), we use DIRECT NAVIGATION
-// instead of fetch requests. This bypasses WebKit's ITP which can block
-// cross-site fetch requests even with credentials: 'include'.
-//
-// Direct navigation (window.location.href) is ALWAYS allowed because it's
-// a top-level navigation, not a background fetch. The OAuth flow naturally
-// uses redirects, so this works perfectly.
-// ============================================================================
-
-/**
- * Build the OAuth URL for direct navigation
- * This is used on iOS where fetch-based OAuth initiation can be blocked
- */
-function buildOAuthUrl(provider: 'google' | 'github', callbackURL: string): string {
-    // Use DIRECT_API_URL for OAuth since the callback comes from the OAuth provider
-    // directly to the backend, not through the Vercel proxy
-    const baseUrl = DIRECT_API_URL || API_URL || '';
-    const encodedCallback = encodeURIComponent(callbackURL);
-    // FIX (2026-01-29): Better Auth uses /sign-in/social with provider param, NOT /sign-in/{provider}
-    // The old URL /sign-in/google returned 404 because that endpoint doesn't exist
-    return `${baseUrl}/api/auth/sign-in/social?provider=${provider}&callbackURL=${encodedCallback}`;
-}
+// =============================================================================
+// SOCIAL SIGN-IN - Using Better Auth's built-in methods
+// =============================================================================
+// OAuth flow works even on iOS because:
+// 1. signIn.social() makes POST to /api/auth/sign-in/social
+// 2. Better Auth returns redirect URL to Google/GitHub
+// 3. Browser navigates to OAuth provider (top-level navigation - always allowed)
+// 4. OAuth provider redirects back to callback
+// 5. Callback sets cookie with domain:.kriptik.app and redirects to frontend
+// =============================================================================
 
 export const signInWithGoogle = async () => {
-    // Use full frontend URL for callback to ensure redirect goes to frontend, not backend
     const callbackURL = `${FRONTEND_URL}/dashboard`;
 
     console.log('[Auth] Starting Google sign-in...', {
         iOS: isIOS(),
-        iOSChrome: isIOSChrome(),
-        apiUrl: API_URL || '(same-origin)',
-        directApiUrl: DIRECT_API_URL,
+        apiUrl: API_URL,
         callbackURL,
     });
 
-    // iOS FIX: Use direct navigation instead of fetch
-    // This bypasses WebKit ITP which blocks cross-site fetch with credentials
-    if (isIOS()) {
-        console.log('[Auth] iOS detected - using direct navigation for OAuth');
-        const oauthUrl = buildOAuthUrl('google', callbackURL);
-        console.log('[Auth] Navigating to:', oauthUrl);
-        window.location.href = oauthUrl;
-        return;
-    }
-
     try {
         // Use Better Auth's built-in social sign-in
-        // This handles the OAuth flow and redirects automatically
+        // This handles the OAuth flow correctly on all platforms
         const result = await authClient.signIn.social({
             provider: 'google',
-            callbackURL, // Use full URL to ensure redirect to frontend
+            callbackURL,
         });
 
         console.log('[Auth] Google sign-in result:', JSON.stringify(result, null, 2));
 
-        // Check for error in result
         if (result?.error) {
-            console.error('[Auth] Google sign-in error in result:', result.error);
+            console.error('[Auth] Google sign-in error:', result.error);
             throw new Error(result.error.message || result.error.code || 'Google sign-in failed');
         }
 
-        // Check if result contains a URL we need to redirect to manually
-        // Some Better Auth versions/configs return the URL instead of auto-redirecting
+        // Better Auth may return a URL for manual redirect
         const redirectUrl = (result as any)?.url || (result as any)?.redirect || (result as any)?.data?.url;
         if (redirectUrl && typeof redirectUrl === 'string') {
-            console.log('[Auth] Manual redirect required to:', redirectUrl);
+            console.log('[Auth] Redirecting to:', redirectUrl);
             window.location.href = redirectUrl;
-            return;
         }
-
-        // If we get here with no redirect and no error, log the full result for debugging
-        console.log('[Auth] No redirect occurred. Full result:', result);
-
     } catch (error) {
         console.error('[Auth] Google sign-in error:', error);
-
-        // FALLBACK: On any network error, try direct navigation as fallback
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-            console.log('[Auth] Fetch failed - falling back to direct navigation');
-            const oauthUrl = buildOAuthUrl('google', callbackURL);
-            window.location.href = oauthUrl;
-            return;
-        }
-
         throw error;
     }
 };
 
 export const signInWithGitHub = async () => {
-    // Use full frontend URL for callback to ensure redirect goes to frontend, not backend
     const callbackURL = `${FRONTEND_URL}/dashboard`;
 
     console.log('[Auth] Starting GitHub sign-in...', {
         iOS: isIOS(),
-        iOSChrome: isIOSChrome(),
-        apiUrl: API_URL || '(same-origin)',
-        directApiUrl: DIRECT_API_URL,
+        apiUrl: API_URL,
         callbackURL,
     });
 
-    // iOS FIX: Use direct navigation instead of fetch
-    // This bypasses WebKit ITP which blocks cross-site fetch with credentials
-    if (isIOS()) {
-        console.log('[Auth] iOS detected - using direct navigation for OAuth');
-        const oauthUrl = buildOAuthUrl('github', callbackURL);
-        console.log('[Auth] Navigating to:', oauthUrl);
-        window.location.href = oauthUrl;
-        return;
-    }
-
     try {
         // Use Better Auth's built-in social sign-in
-        // This handles the OAuth flow and redirects automatically
+        // This handles the OAuth flow correctly on all platforms
         const result = await authClient.signIn.social({
             provider: 'github',
-            callbackURL, // Use full URL to ensure redirect to frontend
+            callbackURL,
         });
 
         console.log('[Auth] GitHub sign-in result:', JSON.stringify(result, null, 2));
 
-        // Check for error in result
         if (result?.error) {
-            console.error('[Auth] GitHub sign-in error in result:', result.error);
+            console.error('[Auth] GitHub sign-in error:', result.error);
             throw new Error(result.error.message || result.error.code || 'GitHub sign-in failed');
         }
 
-        // Check if result contains a URL we need to redirect to manually
-        // Some Better Auth versions/configs return the URL instead of auto-redirecting
+        // Better Auth may return a URL for manual redirect
         const redirectUrl = (result as any)?.url || (result as any)?.redirect || (result as any)?.data?.url;
         if (redirectUrl && typeof redirectUrl === 'string') {
-            console.log('[Auth] Manual redirect required to:', redirectUrl);
+            console.log('[Auth] Redirecting to:', redirectUrl);
             window.location.href = redirectUrl;
-            return;
         }
-
-        // If we get here with no redirect and no error, log the full result for debugging
-        console.log('[Auth] No redirect occurred. Full result:', result);
-
     } catch (error) {
         console.error('[Auth] GitHub sign-in error:', error);
-
-        // FALLBACK: On any network error, try direct navigation as fallback
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-            console.log('[Auth] Fetch failed - falling back to direct navigation');
-            const oauthUrl = buildOAuthUrl('github', callbackURL);
-            window.location.href = oauthUrl;
-            return;
-        }
-
         throw error;
     }
 };
