@@ -710,6 +710,21 @@ export default function FixMyApp() {
         console.log('[FixMyApp] Current state - extensionInstalled:', extensionInstalled, 'extensionCheckComplete:', extensionCheckComplete, 'source:', source);
     }, [step, extensionInstalled, extensionCheckComplete, source]);
 
+    // Keyboard shortcut: Ctrl+Enter to proceed from source selection
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                console.log('[FixMyApp] Ctrl+Enter pressed, step:', step, 'source:', source);
+                if (step === 'source' && source) {
+                    e.preventDefault();
+                    initSession();
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [step, source]);
+
     // Clean up Fix My App session ONLY when workflow is fully complete
     // DO NOT end session on unmount - user needs to navigate to AI builder to capture data
     useEffect(() => {
@@ -1236,14 +1251,18 @@ export default function FixMyApp() {
                     >
                         {/* Step 1: Source Selection */}
                         {step === 'source' && (
-                            <Card className="p-8 bg-slate-900/50 border-slate-800">
-                                <h2 className="text-2xl font-bold mb-2">Where is your app from?</h2>
-                                <p className="text-slate-400 mb-6">
-                                    Select the platform where your broken app was built. We support 20+ AI builders and tools.
-                                </p>
+                            <Card className="bg-slate-900/50 border-slate-800 flex flex-col max-h-[calc(100vh-250px)]">
+                                <div className="p-8 pb-4">
+                                    <h2 className="text-2xl font-bold mb-2">Where is your app from?</h2>
+                                    <p className="text-slate-400 mb-6">
+                                        Select the platform where your broken app was built. We support 20+ AI builders and tools.
+                                    </p>
+                                </div>
 
-                                {/* Category tabs or accordion */}
-                                <div className="space-y-6 mb-8 max-h-[500px] overflow-y-auto pr-2">
+                                {/* Scrollable source selection area */}
+                                <div className="flex-1 overflow-y-auto px-8">
+                                    {/* Category tabs or accordion */}
+                                    <div className="space-y-6 mb-4">
                                     {Object.entries(getSourcesByCategory()).map(([category, sources]) => {
                                         if (sources.length === 0) return null;
                                         const info = categoryInfo[category as SourceCategory];
@@ -1296,59 +1315,63 @@ export default function FixMyApp() {
                                             </div>
                                         );
                                     })}
+                                    </div>
+
+                                    {/* URL input for sources that require it */}
+                                    {source && sourceOptions.find(s => s.id === source)?.requiresUrl && (
+                                        <div className="mb-6">
+                                            <Label htmlFor="source-url" className="text-slate-300">
+                                                {sourceOptions.find(s => s.id === source)?.name} URL
+                                            </Label>
+                                            <Input
+                                                id="source-url"
+                                                value={githubUrl}
+                                                onChange={(e) => setGithubUrl(e.target.value)}
+                                                placeholder={sourceOptions.find(s => s.id === source)?.urlPlaceholder || 'Enter URL'}
+                                                className="mt-2 bg-slate-800 border-slate-700"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* URL input for sources that require it */}
-                                {source && sourceOptions.find(s => s.id === source)?.requiresUrl && (
-                                    <div className="mb-6">
-                                        <Label htmlFor="source-url" className="text-slate-300">
-                                            {sourceOptions.find(s => s.id === source)?.name} URL
-                                        </Label>
-                                        <Input
-                                            id="source-url"
-                                            value={githubUrl}
-                                            onChange={(e) => setGithubUrl(e.target.value)}
-                                            placeholder={sourceOptions.find(s => s.id === source)?.urlPlaceholder || 'Enter URL'}
-                                            className="mt-2 bg-slate-800 border-slate-700"
-                                        />
-                                    </div>
-                                )}
-
-                                {/* Selected source info */}
-                                {source && (
-                                    <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 mb-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-2xl">
-                                                {typeof sourceOptions.find(s => s.id === source)?.icon === 'string'
-                                                    ? sourceOptions.find(s => s.id === source)?.icon
-                                                    : sourceOptions.find(s => s.id === source)?.icon}
-                                            </div>
-                                            <div>
-                                                <div className="font-semibold text-white">
-                                                    {sourceOptions.find(s => s.id === source)?.name}
+                                {/* Sticky footer with selected source info and Continue button */}
+                                <div className="p-8 pt-4 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm">
+                                    {/* Selected source info */}
+                                    {source && (
+                                        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-2xl">
+                                                    {typeof sourceOptions.find(s => s.id === source)?.icon === 'string'
+                                                        ? sourceOptions.find(s => s.id === source)?.icon
+                                                        : sourceOptions.find(s => s.id === source)?.icon}
                                                 </div>
-                                                <div className="text-sm text-slate-400">
-                                                    {sourceOptions.find(s => s.id === source)?.contextAvailable
-                                                        ? '✓ Full context extraction available (95% fix success rate)'
-                                                        : '⚠ Code only - limited context (60% fix success rate)'}
+                                                <div>
+                                                    <div className="font-semibold text-white">
+                                                        {sourceOptions.find(s => s.id === source)?.name}
+                                                    </div>
+                                                    <div className="text-sm text-slate-400">
+                                                        {sourceOptions.find(s => s.id === source)?.contextAvailable
+                                                            ? '✓ Full context extraction available (95% fix success rate)'
+                                                            : '⚠ Code only - limited context (60% fix success rate)'}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-
-                                <button
-                                    onClick={initSession}
-                                    disabled={!source || isLoading || (sourceOptions.find(s => s.id === source)?.requiresUrl && !githubUrl)}
-                                    style={{...primaryButtonStyles, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
-                                    className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] active:shadow-[0_0px_0_rgba(0,0,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                >
-                                    {isLoading ? (
-                                        <><Loader2Icon size={16} className="animate-spin" /> Initializing...</>
-                                    ) : (
-                                        <>Continue <ArrowRightIcon size={16} /></>
                                     )}
-                                </button>
+
+                                    <button
+                                        onClick={initSession}
+                                        disabled={!source || isLoading || (sourceOptions.find(s => s.id === source)?.requiresUrl && !githubUrl)}
+                                        style={{...primaryButtonStyles, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
+                                        className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] active:shadow-[0_0px_0_rgba(0,0,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    >
+                                        {isLoading ? (
+                                            <><Loader2Icon size={16} className="animate-spin" /> Initializing...</>
+                                        ) : (
+                                            <>Continue <ArrowRightIcon size={16} /></>
+                                        )}
+                                    </button>
+                                </div>
                             </Card>
                         )}
 
