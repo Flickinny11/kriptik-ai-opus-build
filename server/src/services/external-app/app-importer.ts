@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Octokit } from '@octokit/rest';
 import { db } from '../../db.js';
 import { eq } from 'drizzle-orm';
+import { externalApps } from '../../schema.js';
 
 // Types
 export type SupportedFramework = 'nodejs' | 'python' | 'react' | 'nextjs' | 'express' | 'fastapi' | 'flask' | 'django' | 'other';
@@ -839,7 +840,7 @@ export class AppImporter {
         // Save to database using Drizzle
         // Note: This requires the externalApps table to exist in schema.ts
         try {
-            await db.insert(require('../../schema.js').externalApps).values({
+            await db.insert(externalApps).values({
                 id: app.id,
                 userId: app.userId,
                 sourceRepo: app.sourceRepo,
@@ -859,7 +860,6 @@ export class AppImporter {
 
     private async updateAppIntegrationPoints(appId: string, integrationPoints: IntegrationPoint[]): Promise<void> {
         try {
-            const { externalApps } = require('../../schema.js');
             await db
                 .update(externalApps)
                 .set({

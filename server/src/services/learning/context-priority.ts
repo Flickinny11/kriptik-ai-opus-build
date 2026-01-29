@@ -602,7 +602,14 @@ export class ContextPriorityService extends EventEmitter {
                 }
             }
         } catch (error) {
-            console.error('[ContextPriority] Failed to load weights:', error);
+            // Table might not exist yet - this is normal on fresh deployments
+            // The service will work with default weights
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.includes('no such table')) {
+                console.log('[ContextPriority] Table not found - using default weights (run migrations to enable learning)');
+            } else {
+                console.error('[ContextPriority] Failed to load weights:', error);
+            }
         }
     }
 }
