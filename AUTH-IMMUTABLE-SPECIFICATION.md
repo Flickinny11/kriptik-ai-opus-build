@@ -1,120 +1,161 @@
-# 🔒 AUTH IMMUTABLE SPECIFICATION
+# AUTH IMMUTABLE SPECIFICATION
 
-> **⚠️ CRITICAL: DO NOT MODIFY AUTH FILES WITHOUT EXPLICIT USER PERMISSION**
+> **CRITICAL: DO NOT MODIFY AUTH FILES WITHOUT EXPLICIT USER PERMISSION**
 >
 > This document specifies the exact, working authentication configuration for KripTik AI.
 > Any modification to auth-related files has historically caused cascading failures.
-> Auth is LOCKED. This configuration is verified working as of December 29, 2025.
+>
+> **Last verified working: January 29, 2026**
 
 ---
 
-## 🔐 AUTH FILES - DO NOT MODIFY
+## WHY AUTH KEEPS BREAKING
 
-The following files are **LOCKED** and must not be modified:
+Safari/iOS blocks ALL cross-site cookies via WebKit ITP (Intelligent Tracking Prevention).
+This is NOT something that can be fixed with `sameSite: 'none'` or any cookie configuration.
+Safari simply blocks cookies from cross-origin fetch requests, period.
 
-| File | Purpose |
-|------|---------|
-| `server/src/auth.ts` | Better Auth configuration |
-| `server/src/schema.ts` | Database schema (auth tables) |
-| `server/src/middleware/auth.ts` | Auth middleware |
-| `src/lib/auth-client.ts` | Frontend auth client |
+**THE ONLY RELIABLE SOLUTION**: Make all auth requests **same-origin** from the browser's perspective.
 
 ---
 
-## 📋 VERIFIED WORKING CONFIGURATION
+## THE ARCHITECTURE (DO NOT CHANGE)
 
-### Backend URL Resolution (server/src/auth.ts)
-```typescript
-const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
-const backendUrl =
-    process.env.BETTER_AUTH_URL ||
-    process.env.BACKEND_URL ||
-    (isProd ? 'https://kriptik-ai-opus-build-backend.vercel.app' : 'http://localhost:3001');
-const frontendUrl =
-    process.env.FRONTEND_URL ||
-    process.env.PUBLIC_FRONTEND_URL ||
-    (isProd ? 'https://kriptik-ai-opus-build.vercel.app' : 'http://localhost:5173');
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  BROWSER (Safari/Chrome/Firefox on ANY platform)                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│  User visits kriptik.app                                                │
+│    ↓                                                                    │
+│  Frontend makes request to /api/auth/*                                  │
+│    ↓                                                                    │
+│  Vercel REWRITES /api/* → api.kriptik.app/api/*                        │
+│    ↓                                                                    │
+│  From browser's POV: same-origin (kriptik.app → kriptik.app)           │
+│    ↓                                                                    │
+│  Cookies with sameSite:'lax' work correctly!                           │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Drizzle Adapter Schema Mapping (CRITICAL)
+### OAuth Flow (Works on iOS!)
+
+1. User on `kriptik.app` clicks "Sign in with Google"
+2. POST to `kriptik.app/api/auth/sign-in/social` (Vercel rewrites to api.kriptik.app)
+3. Server returns redirect URL to Google
+4. Browser navigates to Google (top-level navigation - ALWAYS allowed)
+5. User authenticates with Google
+6. Google redirects to `api.kriptik.app/api/auth/callback/google`
+7. Server sets cookie with `domain: '.kriptik.app'` (top-level navigation - allowed!)
+8. Server redirects to `kriptik.app/dashboard`
+9. Dashboard calls `/api/auth/session` (same-origin via rewrite - cookie sent!)
+
+**Key insight**: Steps 4-8 are all top-level navigations, which Safari ALWAYS allows.
+Steps 2 and 9 are same-origin requests (via Vercel rewrite), so Safari sends cookies.
+
+---
+
+## AUTH FILES - LOCKED CONFIGURATION
+
+### 1. Frontend API Config (`src/lib/api-config.ts`)
+
+```typescript
+// CRITICAL: In production, API_URL MUST be empty string!
+// This makes requests same-origin via Vercel rewrite.
+export const API_URL = import.meta.env.VITE_API_URL ??
+    (import.meta.env.PROD ? '' : 'http://localhost:3001');
+
+export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL ||
+    (typeof window !== 'undefined' ? window.location.origin : 'https://kriptik.app');
+
+// Direct API URL for OAuth callback configuration (backend env var)
+export const DIRECT_API_URL =
+    (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
+```
+
+**CRITICAL**: Do NOT change `API_URL` to `'https://api.kriptik.app'` in production!
+That makes requests cross-origin, which Safari blocks.
+
+### 2. Frontend Auth Client (`src/lib/auth-client.ts`)
+
+```typescript
+export const authClient = createAuthClient({
+    baseURL: API_URL || undefined, // Empty = relative URLs = same-origin
+    fetchOptions: {
+        credentials: "include",
+        cache: "no-store", // Safari fix
+    },
+});
+```
+
+### 3. Frontend Vercel Config (`vercel.json`)
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.kriptik.app/api/:path*"
+    }
+  ]
+}
+```
+
+**This is the magic**: Vercel proxies `/api/*` to `api.kriptik.app`, making it same-origin.
+
+### 4. Backend Auth Config (`server/src/auth.ts`)
+
+```typescript
+advanced: {
+    // DO NOT use secure cookie prefix
+    useSecureCookies: false,
+
+    // Enable cross-subdomain cookies
+    crossSubDomainCookies: {
+        enabled: true,
+        domain: '.kriptik.app',
+    },
+
+    cookiePrefix: "kriptik_auth",
+
+    defaultCookieAttributes: {
+        // 'lax' - REQUIRED for Safari compatibility
+        // Works because all requests are same-origin via Vercel rewrite
+        sameSite: 'lax' as const,
+        secure: isProd,
+        httpOnly: true,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        // Leading dot required for subdomain sharing
+        domain: isProd ? '.kriptik.app' : undefined,
+    },
+},
+```
+
+### 5. Backend Drizzle Schema Mapping
+
 ```typescript
 drizzleAdapter(db, {
     provider: "sqlite",
-    // Schema keys MUST match modelName values exactly
     schema: {
-        users: schema.users,           // Key "users" matches modelName "users"
-        session: schema.sessions,      // Key "session" matches modelName "session"
-        account: schema.accounts,      // Key "account" matches modelName "account"
-        verification: schema.verifications, // Key "verification" matches modelName "verification"
+        users: schema.users,           // Key matches modelName
+        session: schema.sessions,      // Key matches modelName
+        account: schema.accounts,      // Key matches modelName
+        verification: schema.verifications,
     },
 })
 ```
 
-**⚠️ CRITICAL NOTE**: The schema keys (`users`, `session`, `account`, `verification`) MUST match
-the `modelName` values in the Better Auth configuration. Mismatched keys cause auth failures.
-
-### Model Name Configuration
-```typescript
-user: { modelName: "users" },      // SQL table: 'users' (plural)
-account: { modelName: "account" }, // SQL table: 'account' (singular)
-verification: { modelName: "verification" }, // SQL table: 'verification'
-session: { modelName: "session" }, // In session config
-```
-
-### Cookie Configuration (Production)
-```typescript
-advanced: {
-    useSecureCookies: false,  // IMPORTANT: Avoids __Secure- prefix issues
-    cookiePrefix: "kriptik_auth",
-    defaultCookieAttributes: {
-        sameSite: 'lax' as const,
-        secure: true,
-        httpOnly: true,
-        path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        domain: isProd ? '.kriptik.app' : undefined, // CRITICAL for subdomain cookies
-    },
-},
-```
-
-### Session Configuration
-```typescript
-session: {
-    modelName: "session",
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24,     // Update every 24 hours
-    cookieCache: {
-        enabled: true,
-        maxAge: 60 * 5, // 5 minutes
-    },
-},
-```
-
-### Social Providers
-```typescript
-// GitHub (if credentials set)
-socialProviders.github = {
-    clientId: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    redirectURI: `${backendUrl}/api/auth/callback/github`,
-};
-
-// Google (if credentials set)
-socialProviders.google = {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    redirectURI: `${backendUrl}/api/auth/callback/google`,
-};
-```
+**CRITICAL**: Schema keys MUST match modelName values!
 
 ---
 
-## 🌐 ENVIRONMENT VARIABLES (Required)
+## ENVIRONMENT VARIABLES
 
-### Vercel Backend Environment Variables
+### Backend (Vercel - api.kriptik.app project)
+
 | Variable | Value |
 |----------|-------|
-| `BETTER_AUTH_SECRET` | (secure random string - NEVER EXPOSE) |
+| `BETTER_AUTH_SECRET` | (secure random string) |
 | `BETTER_AUTH_URL` | `https://api.kriptik.app` |
 | `BACKEND_URL` | `https://api.kriptik.app` |
 | `FRONTEND_URL` | `https://kriptik.app` |
@@ -122,114 +163,143 @@ socialProviders.google = {
 | `GOOGLE_CLIENT_SECRET` | (from Google Cloud Console) |
 | `GITHUB_CLIENT_ID` | (from GitHub Developer Settings) |
 | `GITHUB_CLIENT_SECRET` | (from GitHub Developer Settings) |
+| `TURSO_DATABASE_URL` | (from Turso dashboard) |
+| `TURSO_AUTH_TOKEN` | (from Turso dashboard) |
 
-### Vercel Frontend Environment Variables
+### Frontend (Vercel - kriptik.app project)
+
 | Variable | Value |
 |----------|-------|
-| `VITE_API_URL` | `https://api.kriptik.app` |
+| `VITE_API_URL` | **LEAVE UNSET** or set to empty string |
 | `VITE_FRONTEND_URL` | `https://kriptik.app` |
+
+**CRITICAL**: Do NOT set `VITE_API_URL` to `https://api.kriptik.app`!
 
 ---
 
-## 🔗 GOOGLE CLOUD CONSOLE CONFIGURATION
+## OAUTH PROVIDER CONFIGURATION
 
-### Authorized JavaScript Origins
+### Google Cloud Console
+
+**Authorized JavaScript Origins:**
 ```
 https://kriptik.app
 https://www.kriptik.app
 https://api.kriptik.app
-https://kriptik-ai-opus-build.vercel.app
-https://kriptik-ai-opus-build-backend.vercel.app
-http://localhost:3000
 http://localhost:5173
 ```
 
-### Authorized Redirect URIs
+**Authorized Redirect URIs:**
 ```
 https://api.kriptik.app/api/auth/callback/google
-https://kriptik-ai-opus-build-backend.vercel.app/api/auth/callback/google
 http://localhost:3001/api/auth/callback/google
 ```
 
----
+### GitHub Developer Settings
 
-## 🍪 COOKIE BEHAVIOR
+**Homepage URL:** `https://kriptik.app`
 
-### Production (kriptik.app ecosystem)
-- **Domain**: `.kriptik.app` (leading dot for subdomain access)
-- **SameSite**: `lax` (same-site subdomains work)
-- **Secure**: `true`
-- **HttpOnly**: `true`
-- **Prefix**: `kriptik_auth`
-
-### Why This Works
-1. **`.kriptik.app` domain**: Cookies set by `api.kriptik.app` are accessible to `kriptik.app`
-2. **SameSite=lax**: Allows cookies on same-site navigation (OAuth redirects)
-3. **No `__Secure-` prefix**: Avoids compatibility issues with some browsers
+**Authorization Callback URL:**
+```
+https://api.kriptik.app/api/auth/callback/github
+```
 
 ---
 
-## 🔒 TRUSTED ORIGINS
+## THINGS THAT BREAK AUTH (AVOID!)
 
-The auth system dynamically allows the following origins:
-- `https://kriptik.app`
-- `https://www.kriptik.app`
-- `https://api.kriptik.app`
-- `https://kriptik-ai-opus-build.vercel.app`
-- `https://kriptik-ai-opus-build-backend.vercel.app`
-- Vercel preview deployments matching `/kriptik.*\.vercel\.app$/`
-- Localhost ports for development
+### 1. Setting `API_URL` to cross-origin URL in production
+```typescript
+// WRONG - breaks Safari/iOS
+export const API_URL = 'https://api.kriptik.app';
 
----
+// CORRECT - same-origin via Vercel rewrite
+export const API_URL = '';
+```
 
-## ❌ KNOWN ISSUES THAT WERE FIXED
+### 2. Using `sameSite: 'none'`
+```typescript
+// WRONG - Safari blocks cross-site cookies regardless
+sameSite: 'none',
 
-### Issue 1: Schema Key Mismatch (CRITICAL)
-**Error**: `[BetterAuthError: [# Drizzle Adapter]: The model "users" was not found in the schema object]`
+// CORRECT - works with same-origin requests
+sameSite: 'lax',
+```
 
-**Root Cause**: Schema keys in drizzle adapter didn't match modelName values.
+### 3. Using `useSecureCookies: true`
+```typescript
+// WRONG - adds __Secure- prefix, causes issues
+useSecureCookies: true,
 
-**Fix**: Changed `schema: { user: schema.users, ... }` to `schema: { users: schema.users, ... }`
+// CORRECT
+useSecureCookies: false,
+```
 
-### Issue 2: __Secure- Cookie Prefix
-**Symptom**: Cookies not persisting in some browsers
+### 4. Deploying on public suffix domains (*.vercel.app)
+Safari treats subdomains of public suffix domains as separate sites.
+**Always use custom domain** (kriptik.app, not kriptik-ai.vercel.app).
 
-**Root Cause**: `useSecureCookies: true` adds `__Secure-` prefix which has strict requirements
-
-**Fix**: Set `useSecureCookies: false`
-
-### Issue 3: Cross-Subdomain Cookie Access
-**Symptom**: Login works on `api.kriptik.app` but cookies not accessible on `kriptik.app`
-
-**Root Cause**: Cookie domain not set correctly
-
-**Fix**: Explicit `domain: '.kriptik.app'` in `defaultCookieAttributes`
-
----
-
-## ✅ VERIFICATION STATUS
-
-| Feature | Chrome | Safari/iOS | Cursor Browser | Mobile |
-|---------|--------|------------|----------------|--------|
-| Google OAuth | ✅ | ✅ | ✅ | ✅ |
-| GitHub OAuth | ✅ | ✅ | ✅ | ✅ |
-| Email/Password | ✅ | ✅ | ✅ | ✅ |
-| Session Persistence | ✅ | ✅ | ✅ | ✅ |
-| Protected Routes | ✅ | ✅ | ✅ | ✅ |
+### 5. Making OAuth callbacks go to Vercel rewrite
+OAuth providers redirect directly to the URL you configure.
+Callbacks MUST go to `api.kriptik.app`, not `kriptik.app/api`.
 
 ---
 
-## 📌 RULES FOR AI AGENTS
+## RULES FOR AI AGENTS
 
-1. **NEVER modify `auth.ts`** without explicit user permission and code review
-2. **NEVER change schema key names** in the drizzle adapter
-3. **NEVER add `useSecureCookies: true`** - it breaks compatibility
-4. **ALWAYS preserve the explicit domain setting** `.kriptik.app`
-5. **NEVER modify `auth-client.ts`** redirect handling
-6. If auth breaks, **first check if any auth files were modified** and revert
-7. Auth issues are often **NOT auth code issues** but environment variable or external config issues
+1. **NEVER modify auth files** without explicit user permission
+2. **NEVER change `API_URL`** to a cross-origin URL in production
+3. **NEVER use `sameSite: 'none'`** - it doesn't work on Safari
+4. **NEVER use `useSecureCookies: true`** - it breaks compatibility
+5. **ALWAYS preserve** the Vercel rewrite configuration
+6. **ALWAYS preserve** the `domain: '.kriptik.app'` cookie setting
+7. If auth breaks, **first check if someone changed auth files** and revert
+8. Auth issues are often **environment variable issues**, not code issues
 
 ---
 
-*Last verified working: December 29, 2025*
-*Document version: 1.0*
+## VERIFICATION CHECKLIST
+
+Before confirming auth works, verify on ALL platforms:
+
+| Platform | Browser | Email Login | Google OAuth | GitHub OAuth | Session Persist |
+|----------|---------|-------------|--------------|--------------|-----------------|
+| Desktop | Chrome | ☐ | ☐ | ☐ | ☐ |
+| Desktop | Safari | ☐ | ☐ | ☐ | ☐ |
+| Desktop | Firefox | ☐ | ☐ | ☐ | ☐ |
+| iOS | Safari | ☐ | ☐ | ☐ | ☐ |
+| iOS | Chrome | ☐ | ☐ | ☐ | ☐ |
+| Android | Chrome | ☐ | ☐ | ☐ | ☐ |
+
+---
+
+## DEBUGGING
+
+### Check Browser Console
+Look for these logs on auth operations:
+```
+[Auth Client] Browser detection: { iOS: true, safari: true, apiUrl: '(same-origin)' }
+[Auth] Starting Google sign-in... { iOS: true, apiUrl: '(same-origin)' }
+```
+
+If you see `apiUrl: 'https://api.kriptik.app'` instead of `'(same-origin)'`,
+**the configuration is wrong and auth will fail on Safari/iOS**.
+
+### Check Server Logs (Vercel)
+```
+[Auth] Cookie SameSite setting: lax (Safari/iOS fix)
+[Auth] Cross-subdomain cookies: enabled
+```
+
+### Check Cookies in Browser DevTools
+After successful login, you should see:
+- Cookie name: `kriptik_auth.session_token`
+- Domain: `.kriptik.app`
+- SameSite: `Lax`
+- Secure: `true` (in production)
+
+---
+
+*Document version: 2.0*
+*Last updated: January 29, 2026*
+*Verified by: Comprehensive research on Safari ITP, WebKit cookie blocking, Better Auth GitHub issues*

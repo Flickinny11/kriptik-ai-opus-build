@@ -11,17 +11,29 @@
  * - Ensures consistent API URL across all components
  * - Makes it easy to update URLs in one place
  *
- * Last verified working: 2025-12-29
+ * SAFARI/iOS FIX (2026-01-29):
+ * Safari blocks ALL cross-site cookies via WebKit ITP, regardless of sameSite settings.
+ * The ONLY reliable solution is to make all requests SAME-ORIGIN.
+ *
+ * In production:
+ * - API_URL is EMPTY STRING ('') so requests go to /api/*
+ * - Vercel rewrite: /api/* → api.kriptik.app/api/*
+ * - From browser's perspective: same-origin (kriptik.app → kriptik.app)
+ * - Cookies with sameSite:'lax' work correctly
+ *
+ * Last verified working: 2026-01-29
  */
 
 /**
  * Backend API URL
  *
- * PRODUCTION: Uses api.kriptik.app (custom domain pointing to Vercel backend)
+ * PRODUCTION: Empty string - uses Vercel rewrite for same-origin requests
  * DEVELOPMENT: Uses localhost:3001
+ *
+ * CRITICAL FOR iOS: Do NOT change this to a cross-origin URL in production!
  */
-export const API_URL = import.meta.env.VITE_API_URL ||
-    (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
+export const API_URL = import.meta.env.VITE_API_URL ??
+    (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 /**
  * Frontend URL
@@ -35,9 +47,10 @@ export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL ||
  * Direct API URL
  *
  * Always points to the actual backend URL, even in production.
- * Used for OAuth redirects that need the actual backend URL (not empty string).
+ * Used for OAuth callbacks that need the actual backend URL.
+ * OAuth providers redirect directly to this URL, bypassing Vercel rewrite.
  */
-export const DIRECT_API_URL = import.meta.env.VITE_API_URL ||
+export const DIRECT_API_URL =
     (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
 
 /**

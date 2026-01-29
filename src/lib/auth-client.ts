@@ -2,16 +2,20 @@ import { createAuthClient } from "better-auth/react"
 import { API_URL, FRONTEND_URL } from './api-config';
 
 // =============================================================================
-// AUTH CLIENT - Per AUTH-IMMUTABLE-SPECIFICATION.md
+// AUTH CLIENT - SAFARI/iOS FIX (2026-01-29)
 // =============================================================================
-// REVERTED (2026-01-29): Previous iOS workaround was broken:
-// - It used GET to /api/auth/sign-in/google which doesn't exist (404)
-// - Better Auth only has POST /api/auth/sign-in/social
-// - OAuth works via top-level navigations which bypass WebKit ITP
-// - Proper cookie settings (sameSite:'none', secure:true) are the real fix
+// Safari blocks ALL cross-site cookies via WebKit ITP, regardless of sameSite.
+//
+// THE FIX:
+// - In production, API_URL is EMPTY STRING ('')
+// - All requests go to /api/* (same-origin from browser's perspective)
+// - Vercel rewrites /api/* → api.kriptik.app/api/*
+// - Cookies with sameSite:'lax' work correctly
+//
+// This bypasses Safari's ITP because everything is same-origin!
 // =============================================================================
 
-// Browser detection helpers (used by session retry logic and other components)
+// Browser detection helpers (for debugging and Safari-specific retry logic)
 export const isMobile = (): boolean => {
     if (typeof navigator === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -48,19 +52,19 @@ if (typeof navigator !== 'undefined') {
         safari: isSafari(),
         iOSSafari: isIOSSafari(),
         iOSChrome: isIOSChrome(),
-        apiUrl: API_URL,
+        apiUrl: API_URL || '(same-origin via Vercel rewrite)',
+        isProd: import.meta.env.PROD,
     });
 }
 
-// Create auth client per AUTH-IMMUTABLE-SPECIFICATION.md
-// Uses API_URL which points to api.kriptik.app
-// Cross-origin auth works because:
-// 1. Cookies use sameSite:'none' + secure:true + domain:'.kriptik.app'
-// 2. OAuth uses top-level navigation (not fetch), bypassing WebKit ITP
+// Create auth client with same-origin configuration
+// CRITICAL: In production, API_URL is '' (empty string) so requests are same-origin
 export const authClient = createAuthClient({
-    baseURL: API_URL,
+    // Empty string means relative URLs, which go through Vercel rewrite
+    baseURL: API_URL || undefined,
     fetchOptions: {
-        credentials: "include", // REQUIRED for cross-origin cookies
+        credentials: "include", // Required for cookie handling
+        cache: "no-store" as RequestCache, // Safari fix: prevents stale cookie issues
     },
 });
 
@@ -73,8 +77,13 @@ export async function testAuthConnection(): Promise<{
     error?: string;
 }> {
     try {
-        const response = await fetch(`${API_URL}/api/auth/test`, {
+        // Use relative URL in production (same-origin via Vercel rewrite)
+        const testUrl = API_URL ? `${API_URL}/api/auth/test` : '/api/auth/test';
+        console.log('[Auth Client] Testing connection to:', testUrl);
+
+        const response = await fetch(testUrl, {
             credentials: 'include',
+            cache: 'no-store',
         });
 
         if (!response.ok) {
@@ -98,14 +107,16 @@ export async function testAuthConnection(): Promise<{
 }
 
 // =============================================================================
-// SOCIAL SIGN-IN - Using Better Auth's built-in methods
+// SOCIAL SIGN-IN - SAFARI/iOS FIX (2026-01-29)
 // =============================================================================
-// OAuth flow works even on iOS because:
-// 1. signIn.social() makes POST to /api/auth/sign-in/social
+// OAuth flow works on ALL platforms including iOS because:
+// 1. signIn.social() makes POST to /api/auth/sign-in/social (same-origin via rewrite)
 // 2. Better Auth returns redirect URL to Google/GitHub
 // 3. Browser navigates to OAuth provider (top-level navigation - always allowed)
-// 4. OAuth provider redirects back to callback
-// 5. Callback sets cookie with domain:.kriptik.app and redirects to frontend
+// 4. OAuth provider redirects to api.kriptik.app/api/auth/callback/...
+// 5. Callback sets cookie with domain:.kriptik.app (top-level nav - allowed)
+// 6. Redirect to kriptik.app/dashboard
+// 7. Dashboard fetches /api/auth/session (same-origin - cookie sent!)
 // =============================================================================
 
 export const signInWithGoogle = async () => {
@@ -113,13 +124,14 @@ export const signInWithGoogle = async () => {
 
     console.log('[Auth] Starting Google sign-in...', {
         iOS: isIOS(),
-        apiUrl: API_URL,
+        isSafari: isSafari(),
+        apiUrl: API_URL || '(same-origin)',
         callbackURL,
     });
 
     try {
         // Use Better Auth's built-in social sign-in
-        // This handles the OAuth flow correctly on all platforms
+        // Requests go through Vercel rewrite in production (same-origin)
         const result = await authClient.signIn.social({
             provider: 'google',
             callbackURL,
@@ -132,11 +144,13 @@ export const signInWithGoogle = async () => {
             throw new Error(result.error.message || result.error.code || 'Google sign-in failed');
         }
 
-        // Better Auth may return a URL for manual redirect
+        // Better Auth returns URL for redirect - navigate to it
         const redirectUrl = (result as any)?.url || (result as any)?.redirect || (result as any)?.data?.url;
         if (redirectUrl && typeof redirectUrl === 'string') {
-            console.log('[Auth] Redirecting to:', redirectUrl);
+            console.log('[Auth] Redirecting to OAuth provider:', redirectUrl);
             window.location.href = redirectUrl;
+        } else {
+            console.warn('[Auth] No redirect URL in response - OAuth may have auto-redirected');
         }
     } catch (error) {
         console.error('[Auth] Google sign-in error:', error);
@@ -149,13 +163,14 @@ export const signInWithGitHub = async () => {
 
     console.log('[Auth] Starting GitHub sign-in...', {
         iOS: isIOS(),
-        apiUrl: API_URL,
+        isSafari: isSafari(),
+        apiUrl: API_URL || '(same-origin)',
         callbackURL,
     });
 
     try {
         // Use Better Auth's built-in social sign-in
-        // This handles the OAuth flow correctly on all platforms
+        // Requests go through Vercel rewrite in production (same-origin)
         const result = await authClient.signIn.social({
             provider: 'github',
             callbackURL,
@@ -168,11 +183,13 @@ export const signInWithGitHub = async () => {
             throw new Error(result.error.message || result.error.code || 'GitHub sign-in failed');
         }
 
-        // Better Auth may return a URL for manual redirect
+        // Better Auth returns URL for redirect - navigate to it
         const redirectUrl = (result as any)?.url || (result as any)?.redirect || (result as any)?.data?.url;
         if (redirectUrl && typeof redirectUrl === 'string') {
-            console.log('[Auth] Redirecting to:', redirectUrl);
+            console.log('[Auth] Redirecting to OAuth provider:', redirectUrl);
             window.location.href = redirectUrl;
+        } else {
+            console.warn('[Auth] No redirect URL in response - OAuth may have auto-redirected');
         }
     } catch (error) {
         console.error('[Auth] GitHub sign-in error:', error);
@@ -185,7 +202,7 @@ export const signInWithGitHub = async () => {
 // ============================================================================
 
 export const signInWithEmail = async (email: string, password: string) => {
-    console.log('[Auth] Signing in with email:', email, 'API_URL:', API_URL);
+    console.log('[Auth] Signing in with email:', email, 'apiUrl:', API_URL || '(same-origin)');
 
     try {
         const response = await authClient.signIn.email({
@@ -210,14 +227,14 @@ export const signInWithEmail = async (email: string, password: string) => {
     } catch (error) {
         console.error('[Auth] Email sign-in exception:', error);
         if (error instanceof TypeError && error.message.includes('fetch')) {
-            throw new Error(`Network error: Cannot reach auth server at ${API_URL}. Please check your connection.`);
+            throw new Error('Network error: Cannot reach auth server. Please check your connection.');
         }
         throw error;
     }
 };
 
 export const signUp = async (email: string, password: string, name: string) => {
-    console.log('[Auth] Signing up:', email, name, 'API_URL:', API_URL);
+    console.log('[Auth] Signing up:', email, name, 'apiUrl:', API_URL || '(same-origin)');
 
     try {
         const response = await authClient.signUp.email({
@@ -243,7 +260,7 @@ export const signUp = async (email: string, password: string, name: string) => {
     } catch (error) {
         console.error('[Auth] Signup exception:', error);
         if (error instanceof TypeError && error.message.includes('fetch')) {
-            throw new Error(`Network error: Cannot reach auth server at ${API_URL}. Please check your connection.`);
+            throw new Error('Network error: Cannot reach auth server. Please check your connection.');
         }
         throw error;
     }

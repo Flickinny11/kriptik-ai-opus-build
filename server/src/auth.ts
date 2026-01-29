@@ -182,9 +182,10 @@ if (googleClientId && googleClientSecret) {
 console.log('[Auth] Social providers configured:', Object.keys(socialProviders));
 console.log('[Auth] Frontend URL:', frontendUrl);
 console.log('[Auth] Backend URL:', backendUrl);
-console.log('[Auth] Cookie SameSite setting: none (cross-origin per spec)');
+console.log('[Auth] Cookie SameSite setting: lax (Safari/iOS fix 2026-01-29)');
 console.log('[Auth] Cookie domain:', isProd ? '.kriptik.app' : '(not set - dev mode)');
 console.log('[Auth] Is production:', isProd);
+console.log('[Auth] Cross-subdomain cookies: enabled (for api.kriptik.app ↔ kriptik.app)');
 
 // Log configuration on startup
 console.log('[Auth] Initializing Better Auth...');
@@ -259,32 +260,54 @@ export const auth = betterAuth({
         },
     },
 
-    // Advanced configuration - MATCHES AUTH-IMMUTABLE-SPECIFICATION.md
-    // REVERTED (2026-01-29): Previous 'lax' setting broke OAuth on iOS because:
-    // - OAuth callbacks come DIRECTLY from Google/GitHub to api.kriptik.app
-    // - This bypasses Vercel rewrite, making it cross-origin
-    // - 'lax' doesn't send cookies on cross-origin redirects in some browsers
-    // - 'none' with secure:true is REQUIRED for cross-origin cookie handling
+    // ==========================================================================
+    // SAFARI/iOS FIX (2026-01-29) - COMPREHENSIVE SOLUTION
+    // ==========================================================================
+    // Safari blocks ALL cross-site cookies via WebKit ITP. sameSite:'none' does NOT work.
+    //
+    // THE FIX:
+    // 1. Frontend uses Vercel rewrite: /api/* → api.kriptik.app/api/*
+    // 2. From browser's POV, all requests are SAME-ORIGIN (kriptik.app → kriptik.app)
+    // 3. sameSite:'lax' works for same-origin requests + top-level navigations (OAuth)
+    // 4. domain:'.kriptik.app' allows OAuth callback cookies to be read by frontend
+    //
+    // OAuth flow:
+    // 1. User clicks sign-in on kriptik.app
+    // 2. POST to kriptik.app/api/auth/... (Vercel rewrites to api.kriptik.app)
+    // 3. Better Auth returns Google/GitHub redirect URL
+    // 4. Browser navigates to OAuth provider (top-level navigation - always allowed)
+    // 5. OAuth provider redirects to api.kriptik.app/api/auth/callback/...
+    // 6. Cookie set with domain:.kriptik.app (top-level navigation - always allowed)
+    // 7. Redirect to kriptik.app/dashboard
+    // 8. Dashboard fetches kriptik.app/api/auth/session (same-origin - cookie sent!)
+    // ==========================================================================
     advanced: {
-        // MUST be true for cross-origin auth per spec
-        useSecureCookies: true,
+        // DO NOT use secure cookie prefix - causes compatibility issues
+        useSecureCookies: false,
 
-        // Different domains (kriptik.app vs api.kriptik.app), not subdomains
-        crossSubDomainCookies: { enabled: false },
+        // Enable cross-subdomain cookies for api.kriptik.app ↔ kriptik.app
+        crossSubDomainCookies: {
+            enabled: true,
+            domain: '.kriptik.app',
+        },
 
         // Cookie name prefix
         cookiePrefix: "kriptik_auth",
 
-        // Default cookie attributes - per AUTH-IMMUTABLE-SPECIFICATION.md
+        // Default cookie attributes
         defaultCookieAttributes: {
-            // 'none' - REQUIRED for cross-origin requests (frontend/backend different domains)
-            sameSite: 'none' as const,
-            // REQUIRED when sameSite is 'none'
-            secure: true,
+            // 'lax' - REQUIRED for Safari/iOS compatibility
+            // Works because:
+            // - Regular requests go through Vercel rewrite (same-origin)
+            // - OAuth callbacks are top-level navigations (always allowed)
+            sameSite: 'lax' as const,
+            // Secure is still required for HTTPS
+            secure: isProd,
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
-            // Domain allows cookie sharing between kriptik.app and api.kriptik.app
+            // Domain MUST include leading dot for subdomain sharing
+            // This allows cookies set by api.kriptik.app to be read by kriptik.app
             domain: isProd ? '.kriptik.app' : undefined,
         },
     },
