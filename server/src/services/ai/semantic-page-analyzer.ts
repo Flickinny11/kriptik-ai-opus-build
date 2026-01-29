@@ -11,18 +11,19 @@
  * Used for Enhanced I2C to replace UI while preserving functionality.
  */
 
+import { createRequire } from 'module';
 import { getVisualUnderstandingService } from '../embeddings/visual-understanding-service.js';
 import { getUnifiedClient, ANTHROPIC_MODELS } from './unified-client.js';
 import type { SemanticElement } from './ui-mockup-generator.js';
 import * as parser from '@babel/parser';
 import type { NodePath, Visitor } from '@babel/traverse';
-import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-// Handle ESM/CJS interop - @babel/traverse has complex exports
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const traverseDefault = (traverseModule as any).default ?? traverseModule;
-const traverse = traverseDefault as (
+// Use createRequire for @babel/traverse - it's a CJS package that uses require() internally
+// which fails in ESM context on Vercel serverless. createRequire provides the proper require() function.
+const require = createRequire(import.meta.url);
+const traverseModule = require('@babel/traverse');
+const traverse = (traverseModule.default ?? traverseModule) as (
   ast: t.Node,
   visitor: Visitor
 ) => void;
