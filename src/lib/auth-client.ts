@@ -118,7 +118,9 @@ function buildOAuthUrl(provider: 'google' | 'github', callbackURL: string): stri
     // directly to the backend, not through the Vercel proxy
     const baseUrl = DIRECT_API_URL || API_URL || '';
     const encodedCallback = encodeURIComponent(callbackURL);
-    return `${baseUrl}/api/auth/sign-in/${provider}?callbackURL=${encodedCallback}`;
+    // FIX (2026-01-29): Better Auth uses /sign-in/social with provider param, NOT /sign-in/{provider}
+    // The old URL /sign-in/google returned 404 because that endpoint doesn't exist
+    return `${baseUrl}/api/auth/sign-in/social?provider=${provider}&callbackURL=${encodedCallback}`;
 }
 
 export const signInWithGoogle = async () => {
