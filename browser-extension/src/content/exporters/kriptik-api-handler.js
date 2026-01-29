@@ -391,18 +391,69 @@ class KripTikAPIHandler extends ExportHandlerBase {
         if (window.Overlay && window.Overlay.isVisible) {
             window.Overlay.addLog('[SUCCESS] Project sent to KripTik AI!');
             window.Overlay.addLog(`[STATS] ${result.stats?.files || 0} files, ${result.stats?.chatMessages || 0} messages`);
-            window.Overlay.addLog(`[LINK] Opening KripTik dashboard...`);
+            window.Overlay.addLog('[COMPLETE] Capture complete - redirecting to KripTik...');
             window.Overlay.updateStatus('exported', 'Sent to KripTik AI');
         }
 
-        // Open KripTik in new tab after short delay
+        // Get the return URL from the Fix My App session
+        const sessionData = await this.getFixMyAppSession();
+        const returnUrl = sessionData?.returnUrl;
+
+        // Redirect after short delay
         setTimeout(() => {
-            if (result.builderUrl) {
-                window.open(result.builderUrl, '_blank');
+            // Construct the redirect URL with the fix session parameter
+            let redirectUrl;
+            
+            if (result.fixMyAppUrl) {
+                // Direct to Fix My App analysis page
+                redirectUrl = result.fixMyAppUrl;
+            } else if (returnUrl) {
+                // Return to original KripTik page with session info
+                const url = new URL(returnUrl);
+                if (result.projectId) {
+                    url.searchParams.set('fixSession', result.projectId);
+                }
+                redirectUrl = url.toString();
             } else if (result.dashboardUrl) {
-                window.open(result.dashboardUrl, '_blank');
+                // Default to dashboard with session param
+                const url = new URL(result.dashboardUrl);
+                if (result.projectId) {
+                    url.searchParams.set('fixSession', result.projectId);
+                }
+                redirectUrl = url.toString();
             }
-        }, 1500);
+
+            if (redirectUrl) {
+                // Redirect in the same tab (user is done with this AI builder)
+                window.location.href = redirectUrl;
+            }
+
+            // Clear the Fix My App session since we're done
+            this.clearFixMyAppSession();
+        }, 2000);
+    }
+
+    /**
+     * Get Fix My App session data
+     */
+    async getFixMyAppSession() {
+        return new Promise((resolve) => {
+            chrome.storage.local.get(['fixMyAppSession'], (result) => {
+                resolve(result.fixMyAppSession || null);
+            });
+        });
+    }
+
+    /**
+     * Clear Fix My App session after successful export
+     */
+    async clearFixMyAppSession() {
+        return new Promise((resolve) => {
+            chrome.storage.local.remove('fixMyAppSession', () => {
+                this.log('[Session] Fix My App session cleared');
+                resolve();
+            });
+        });
     }
 
     /**
