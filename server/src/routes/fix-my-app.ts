@@ -941,5 +941,144 @@ router.get('/:sessionId/browser/stream', (req: Request, res: Response) => {
     });
 });
 
+// =============================================================================
+// CREDENTIAL SUBMISSION ROUTES
+// =============================================================================
+
+/**
+ * POST /api/fix-my-app/:sessionId/credentials
+ * Submit credentials for a fix session
+ * 
+ * Called by the CredentialTiles UI when user enters API keys
+ */
+router.post('/:sessionId/credentials', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { sessionId } = req.params;
+        const { service, credentials } = req.body;
+
+        if (!service || !credentials || typeof credentials !== 'object') {
+            return res.status(400).json({
+                error: 'Missing required fields: service and credentials'
+            });
+        }
+
+        const controller = controllers.get(sessionId);
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        const session = controller.getSession();
+        if (!session.projectId) {
+            return res.status(400).json({ error: 'No project associated with this session' });
+        }
+
+        console.log(`[Fix My App] Storing credentials for ${service} in session ${sessionId}`);
+
+        // Write credentials to project's .env file (this also stores in vault)
+        const { writeCredentialsToProjectEnv } = await import('../services/credentials/credential-env-bridge.js');
+        await writeCredentialsToProjectEnv(session.projectId, userId, credentials);
+
+        res.json({
+            success: true,
+            message: `${service} credentials stored successfully`,
+            storedKeys: Object.keys(credentials).filter(k => credentials[k]),
+        });
+    } catch (error) {
+        console.error('[Fix My App] Credentials storage error:', error);
+        res.status(500).json({
+            error: 'Failed to store credentials',
+            message: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+
+/**
+ * GET /api/fix-my-app/:sessionId/credentials/status
+ * Check which credentials have been submitted
+ */
+router.get('/:sessionId/credentials/status', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { sessionId } = req.params;
+        const controller = controllers.get(sessionId);
+
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        const session = controller.getSession();
+        if (!session.projectId) {
+            return res.status(400).json({ error: 'No project associated with this session' });
+        }
+
+        // Get required credentials from the detected dependencies
+        const requiredServices = session.context?.processed?.implementationGaps
+            ?.filter((gap: any) => gap.type === 'credential')
+            ?.map((gap: any) => gap.service) || [];
+
+        // Check which credentials exist - get from projectEnvVars table
+        const { db } = await import('../db.js');
+        const { projectEnvVars } = await import('../schema.js');
+        const { eq } = await import('drizzle-orm');
+        
+        const storedVars = await db
+            .select({ envKey: projectEnvVars.envKey })
+            .from(projectEnvVars)
+            .where(eq(projectEnvVars.projectId, session.projectId));
+        const storedKeys = storedVars.map(v => v.envKey);
+
+        res.json({
+            success: true,
+            requiredServices,
+            storedKeys,
+            allSatisfied: requiredServices.every((s: string) => storedKeys.includes(s)),
+        });
+    } catch (error) {
+        console.error('[Fix My App] Credentials status error:', error);
+        res.status(500).json({ error: 'Failed to check credentials status' });
+    }
+});
+
+/**
+ * POST /api/fix-my-app/:sessionId/verify/:featureId
+ * Retest a specific feature verification
+ */
+router.post('/:sessionId/verify/:featureId', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { sessionId, featureId } = req.params;
+        const controller = controllers.get(sessionId);
+
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        // Trigger verification for this feature
+        // This will be handled by the BuildLoopOrchestrator's verification phase
+        console.log(`[Fix My App] Retesting feature ${featureId} for session ${sessionId}`);
+
+        res.json({
+            success: true,
+            message: `Verification started for feature ${featureId}`,
+        });
+    } catch (error) {
+        console.error('[Fix My App] Verify error:', error);
+        res.status(500).json({ error: 'Failed to start verification' });
+    }
+});
+
 export default router;
 

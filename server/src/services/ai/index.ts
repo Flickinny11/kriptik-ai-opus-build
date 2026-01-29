@@ -158,3 +158,45 @@ export {
     type PreventionStrategy,
 } from './predictive-error-prevention.js';
 
+// Text Rendering Services - Premium text overlay with effects
+export { getTextOverlayRenderer, TextOverlayRenderer } from './text-overlay-renderer.js';
+export { getPremiumTextEffects, PremiumTextEffectsService } from './premium-text-effects.js';
+export { getTextBlendingService, TextBlendingService } from './text-blending-service.js';
+export {
+    getUltraPremiumTextService,
+    UltraPremiumTextService,
+    type MaterialType,
+    type Text3DConfig,
+    type TextureConfig,
+    type LightingConfig,
+    type UltraPremiumTextStyle,
+    type UltraPremiumTextRequest,
+    type UltraPremiumTextResult,
+    type BackgroundAnalysis,
+} from './ultra-premium-text-service.js';
+export {
+    getUnifiedTextPipeline,
+    UnifiedTextPipeline,
+    TEXT_STYLE_PRESETS,
+    type UnifiedTextStyle,
+    type UnifiedTextRequest,
+    type UnifiedTextResult,
+    type TextStyleLevel,
+    type GradientDefinition,
+    type ShadowDefinition,
+    type GlowDefinition,
+    type StrokeDefinition,
+} from './unified-text-pipeline.js';
+
+// Text Region Manager - Prevents FLUX text artifacts
+export {
+    TextRegionManager,
+    TextFreePipeline,
+    getTextRegionManager,
+    getTextFreePipeline,
+    type TextRegion,
+    type PromptModification,
+    type CleanupAnalysis,
+    type TextRegionManagerConfig,
+} from './text-region-manager.js';
+

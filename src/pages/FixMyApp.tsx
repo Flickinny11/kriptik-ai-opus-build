@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { SpeedDialSelector } from '@/components/builder/SpeedDialSelector';
 import { BuildPhaseIndicator } from '@/components/builder/BuildPhaseIndicator';
 import { VerificationSwarmStatus } from '@/components/builder/VerificationSwarmStatus';
+import { ExtensionStatusCard } from '@/components/fix-my-app';
 import '../styles/realistic-glass.css';
 
 // =============================================================================
@@ -664,18 +665,19 @@ export default function FixMyApp() {
     const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
     const [extensionCheckComplete, setExtensionCheckComplete] = useState(false);
 
-    // Chrome Web Store URL for the extension - configured in environment or defaults to extension docs
-    const EXTENSION_STORE_URL = import.meta.env.VITE_EXTENSION_STORE_URL || '/docs/extension';
-
     // Check if extension is installed
     useEffect(() => {
         const checkExtension = () => {
+            // Track if we got a response (using local var to avoid stale closure)
+            let gotResponse = false;
+
             // Send message to check if extension is installed
             window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
 
             // Listen for response
             const handleMessage = (event: MessageEvent) => {
                 if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
+                    gotResponse = true;
                     setExtensionInstalled(true);
                     setExtensionCheckComplete(true);
                     window.removeEventListener('message', handleMessage);
@@ -686,7 +688,8 @@ export default function FixMyApp() {
 
             // Timeout - if no response after 1 second, extension is not installed
             setTimeout(() => {
-                if (!extensionInstalled) {
+                // Use local var instead of state to avoid stale closure bug
+                if (!gotResponse) {
                     setExtensionInstalled(false);
                     setExtensionCheckComplete(true);
                 }
@@ -1312,119 +1315,21 @@ export default function FixMyApp() {
                                     Granting access allows KripTik AI to understand your INTENT, not just your broken code.
                                 </p>
 
-                                {/* Extension Required Notice - Show for AI builders that need context capture */}
-                                {requiresBrowserLogin() && extensionCheckComplete && !extensionInstalled && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="mb-8 p-6 rounded-xl bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/30"
-                                    >
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 flex items-center justify-center flex-shrink-0">
-                                                <DownloadIcon size={24} className="text-amber-400" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h3 className="text-lg font-semibold text-white mb-2">Browser Extension Required</h3>
-                                                <p className="text-slate-400 text-sm mb-4">
-                                                    To automatically capture your chat history, build logs, and errors from {sourceOptions.find(s => s.id === source)?.name},
-                                                    you need the KripTik AI browser extension. This ensures we capture <strong className="text-amber-400">100% of your context</strong> for the best fix results.
-                                                </p>
-                                                <div className="flex flex-wrap gap-3">
-                                                    <button
-                                                        onClick={() => window.open(EXTENSION_STORE_URL, '_blank')}
-                                                        style={{...primaryButtonStyles, padding: '12px 20px'}}
-                                                        className="hover:translate-y-[2px] active:translate-y-[4px]"
-                                                    >
-                                                        <span className="flex items-center gap-2">
-                                                            <DownloadIcon size={16} />
-                                                            Install Extension
-                                                        </span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            // Track if we got a response (local var to avoid stale closure)
-                                                            let gotResponse = false;
-
-                                                            // Set up listener for response BEFORE showing toast
-                                                            const handlePong = (event: MessageEvent) => {
-                                                                if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
-                                                                    gotResponse = true;
-                                                                    setExtensionInstalled(true);
-                                                                    setExtensionCheckComplete(true);
-                                                                    window.removeEventListener('message', handlePong);
-                                                                    toast({
-                                                                        title: 'Extension Connected!',
-                                                                        description: 'KripTik AI extension is ready. You can now continue.',
-                                                                    });
-                                                                }
-                                                            };
-                                                            window.addEventListener('message', handlePong);
-
-                                                            // Send ping
-                                                            window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
-
-                                                            // Timeout - if no response after 1.5s, show error
-                                                            setTimeout(() => {
-                                                                window.removeEventListener('message', handlePong);
-                                                                if (!gotResponse) {
-                                                                    toast({
-                                                                        title: 'Extension not detected',
-                                                                        description: 'Please refresh the page after installing, or check that the extension is enabled.',
-                                                                        variant: 'destructive',
-                                                                    });
-                                                                }
-                                                            }, 1500);
-                                                        }}
-                                                        style={{...secondaryButtonStyles, padding: '12px 20px'}}
-                                                        className="hover:bg-slate-600/60"
-                                                    >
-                                                        Installed - Verify Connection
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {/* Extension Installed Badge */}
-                                {extensionInstalled && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3"
-                                    >
-                                        <CheckCircle2Icon size={20} className="text-emerald-400" />
-                                        <span className="text-emerald-400 font-medium">KripTik Extension Installed - Ready for automatic context capture</span>
-                                    </motion.div>
-                                )}
-
-                                {/* Project URL Input - For AI Builders */}
+                                {/* Extension Status - Show for AI builders that need context capture */}
                                 {requiresBrowserLogin() && (
-                                    <div className="mb-8 p-6 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                                        <label className="block text-sm font-medium text-white mb-2">
-                                            Your Project URL in {sourceOptions.find(s => s.id === source)?.name}
-                                        </label>
-                                        <p className="text-sm text-slate-400 mb-4">
-                                            Paste the URL of your project. This is the page where you can see your chat history and code.
-                                        </p>
-                                        <input
-                                            type="url"
-                                            value={projectUrl}
-                                            onChange={(e) => setProjectUrl(e.target.value)}
-                                            placeholder={
-                                                source === 'bolt' ? 'https://bolt.new/~/your-project-id' :
-                                                source === 'lovable' ? 'https://lovable.dev/projects/your-project-id' :
-                                                source === 'v0' ? 'https://v0.dev/chat/your-chat-id' :
-                                                'https://...'
-                                            }
-                                            className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 outline-none transition-all"
-                                        />
-                                        {projectUrl && !projectUrl.includes(source || '') && (
-                                            <p className="mt-2 text-sm text-amber-400">
-                                                Make sure this URL is from {sourceOptions.find(s => s.id === source)?.name}
-                                            </p>
-                                        )}
-                                    </div>
+                                    <ExtensionStatusCard
+                                        extensionInstalled={extensionInstalled}
+                                        extensionCheckComplete={extensionCheckComplete}
+                                        onExtensionDetected={() => {
+                                            setExtensionInstalled(true);
+                                            setExtensionCheckComplete(true);
+                                        }}
+                                        onExtensionNotDetected={() => {
+                                            setExtensionInstalled(false);
+                                            setExtensionCheckComplete(true);
+                                        }}
+                                        platformName={sourceOptions.find(s => s.id === source)?.name}
+                                    />
                                 )}
 
                                 <div className="space-y-4 mb-8">

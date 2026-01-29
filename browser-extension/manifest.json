@@ -185,7 +185,15 @@
         "https://*.kriptik.app/*",
         "http://localhost:*/*",
         "http://127.0.0.1:*/*",
-        "https://*.vercel.app/*"
+        "http://0.0.0.0:*/*",
+        "http://192.168.*.*:*/*",
+        "http://10.*.*.*:*/*",
+        "https://*.vercel.app/*",
+        "https://*.netlify.app/*",
+        "https://*.pages.dev/*",
+        "https://*.railway.app/*",
+        "https://*.ngrok.io/*",
+        "https://*.ngrok-free.app/*"
       ],
       "js": [
         "src/content/kriptik-bridge.js"
