@@ -527,3 +527,114 @@
     bottom: -25px;
     opacity: 0.6;
 }
+
+/* =============================================================================
+   Building State - Pulsing Glow & Streaming Text
+   ============================================================================= */
+
+.project-card-container.is-building {
+    z-index: 2;
+}
+
+.project-card-container.is-building .project-card {
+    animation: building-pulse-shadow 2s ease-in-out infinite;
+}
+
+/* Pulsing glow animation */
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(245,158,11,0.4);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.02);
+        box-shadow: 0 0 40px rgba(245,158,11,0.6), 0 0 60px rgba(251,146,60,0.3);
+    }
+}
+
+@keyframes building-pulse-shadow {
+    0%, 100% {
+        box-shadow:
+            0 0 40px rgba(245, 158, 11, 0.2),
+            0 25px 50px rgba(0, 0, 0, 0.4),
+            0 12px 25px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    50% {
+        box-shadow:
+            0 0 60px rgba(245, 158, 11, 0.35),
+            0 25px 50px rgba(0, 0, 0, 0.4),
+            0 12px 25px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+}
+
+/* Streaming text overlay */
+.building-text-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(10,10,15,0.92) 0%, rgba(10,10,15,0.85) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 10px;
+    overflow: hidden;
+    z-index: 10;
+    border-radius: 8px;
+}
+
+.building-stream-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(245, 158, 11, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: stream-in 0.3s ease-out;
+    opacity: 0.5;
+}
+
+.building-stream-line:last-child {
+    opacity: 1;
+    color: #f59e0b;
+}
+
+@keyframes stream-in {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 0.5;
+        transform: translateY(0);
+    }
+}
+
+/* Progress bar for building */
+.building-progress-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.building-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f97316, #f59e0b);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+/* Building phase label */
+.building-phase-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    margin-top: 6px;
+}

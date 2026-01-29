@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import './ProjectCard3D.css';
 
 interface ProjectCard3DProps {
@@ -7,17 +7,21 @@ interface ProjectCard3DProps {
     projectName: string;
     framework?: string;
     lastModified?: string;
-    status?: 'active' | 'completed' | 'fixed' | null;
+    status?: 'active' | 'completed' | 'fixed' | 'building' | null;
     description?: string;
     linesOfCode?: number;
     components?: number;
+    /** Building progress 0-100 when status is 'building' */
+    buildProgress?: number;
+    /** Current build phase description */
+    buildPhase?: string;
 }
 
 // Animated code snippets for the back face
 const CODE_SNIPPETS = [
     { file: 'App.tsx', lines: ['export default function App() {', '  return <Router>...</Router>', '}'] },
     { file: 'index.css', lines: ['@tailwind base;', '@tailwind components;', '@tailwind utilities;'] },
-    { file: 'api.ts', lines: ['export async function fetch() {', '  return await api.get()', '}'] },
+    { file: 'api.ts', lines: ['export async function getData() {', '  return await api.get()', '}'] },
 ];
 
 /**
@@ -39,10 +43,44 @@ export function ProjectCard3D({
     description,
     linesOfCode = 0,
     components = 0,
+    buildProgress = 0,
+    buildPhase = 'Building...',
 }: ProjectCard3DProps) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [glowPosition, setGlowPosition] = useState({ x: 50, y: 50 });
+    const [streamingText, setStreamingText] = useState<string[]>([]);
     const cardRef = useRef<HTMLDivElement>(null);
+
+    // Streaming build log effect when building
+    useEffect(() => {
+        if (status !== 'building') {
+            setStreamingText([]);
+            return;
+        }
+
+        const BUILD_MESSAGES = [
+            'Analyzing project structure...',
+            'Locking intent requirements...',
+            'Initializing build agents...',
+            'Generating component tree...',
+            'Implementing features...',
+            'Running verification swarm...',
+            'Testing functionality...',
+            'Validating production readiness...',
+        ];
+
+        let messageIndex = 0;
+        const interval = setInterval(() => {
+            setStreamingText(prev => {
+                const newMessages = [...prev, BUILD_MESSAGES[messageIndex % BUILD_MESSAGES.length]];
+                // Keep only last 6 messages
+                return newMessages.slice(-6);
+            });
+            messageIndex++;
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [status]);
 
     // NO auto-flip for regular project cards - only flip on hover
     // This prevents unnecessary re-renders and dashboard refresh
@@ -69,25 +107,44 @@ export function ProjectCard3D({
     };
 
     const getStatusBadge = () => {
-        if (status === 'completed' || status === 'fixed') {
-            return { label: status === 'fixed' ? 'FIXED' : 'COMPLETE', color: '#22c55e' };
+        if (status === 'building') {
+            return { label: `BUILDING ${buildProgress}%`, color: '#f59e0b', isBuilding: true };
         }
-        return { label: 'ACTIVE', color: '#f97316' };
+        if (status === 'completed' || status === 'fixed') {
+            return { label: status === 'fixed' ? 'FIXED' : 'COMPLETE', color: '#22c55e', isBuilding: false };
+        }
+        return { label: 'ACTIVE', color: '#f97316', isBuilding: false };
     };
 
     const badge = getStatusBadge();
+    const isBuilding = status === 'building';
 
     return (
         <div
             ref={cardRef}
-            className="project-card-container"
+            className={`project-card-container ${isBuilding ? 'is-building' : ''}`}
             onClick={onClick}
             onMouseEnter={() => setIsFlipped(true)}
             onMouseLeave={() => setIsFlipped(false)}
             onMouseMove={handleMouseMove}
         >
+            {/* Pulsing glow effect when building */}
+            {isBuilding && (
+                <div
+                    className="building-glow-pulse"
+                    style={{
+                        position: 'absolute',
+                        inset: -4,
+                        borderRadius: 20,
+                        background: 'linear-gradient(45deg, rgba(245,158,11,0.3), rgba(251,146,60,0.3))',
+                        animation: 'pulse-glow 2s ease-in-out infinite',
+                        zIndex: -1,
+                    }}
+                />
+            )}
+
             {/* 3D Card with flip transform */}
-            <div className={`project-card ${isFlipped ? 'flipped' : ''}`}>
+            <div className={`project-card ${isFlipped ? 'flipped' : ''} ${isBuilding ? 'building' : ''}`}>
 
                 {/* ========== FRONT FACE ========== */}
                 <div className="project-card-face project-card-front">
@@ -162,6 +219,24 @@ export function ProjectCard3D({
                                                 />
                                             ))}
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Building state overlay with streaming text */}
+                                {isBuilding && (
+                                    <div className="building-text-overlay">
+                                        {streamingText.map((text, idx) => (
+                                            <div key={idx} className="building-stream-line">
+                                                {text}
+                                            </div>
+                                        ))}
+                                        <div className="building-progress-bar">
+                                            <div
+                                                className="building-progress-fill"
+                                                style={{ width: `${buildProgress}%` }}
+                                            />
+                                        </div>
+                                        <div className="building-phase-label">{buildPhase}</div>
                                     </div>
                                 )}
                             </div>

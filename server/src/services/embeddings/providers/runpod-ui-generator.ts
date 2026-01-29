@@ -29,9 +29,14 @@ const RUNPOD_UI_GENERATOR_URL = process.env.RUNPOD_UI_GENERATOR_URL ||
 // Types
 // ============================================================================
 
+/** Available LoRA model types */
+export type LoRAType = 'ui' | 'asset' | 'sliderrev';
+
 export interface UIGenerationRequest {
   /** UI description prompt (auto-prepends trigger word if missing) */
   prompt: string;
+  /** Which LoRA model to use (default: 'ui') */
+  loraType?: LoRAType;
   /** Platform determines default dimensions */
   platform?: 'web' | 'mobile' | 'tablet';
   /** Custom width (overrides platform default) */
@@ -116,7 +121,25 @@ const DEFAULT_PARAMS = {
   negativePrompt: 'blurry, low quality, distorted text, broken layout, watermark, signature, amateur, ugly, deformed',
 };
 
-const TRIGGER_WORD = 'kriptik_ui';
+/**
+ * Trigger words for each LoRA model type
+ * These activate the specific style during generation
+ */
+const TRIGGER_WORDS: Record<LoRAType, string> = {
+  ui: 'kriptik_ui',           // UI mockups - Awwwards-tier interfaces
+  asset: 'kriptik_asset',     // Photorealistic assets - hero images, backgrounds
+  sliderrev: 'sliderrev_slider', // SliderRevolution - premium slider/carousel designs
+};
+
+/**
+ * Default LoRA strengths by type
+ * Asset LoRA uses higher strength for more dramatic effect
+ */
+const LORA_STRENGTHS: Record<LoRAType, number> = {
+  ui: 0.85,
+  asset: 0.90,
+  sliderrev: 0.88,
+};
 
 // ============================================================================
 // UI Generator Provider Implementation
@@ -146,10 +169,15 @@ export class RunPodUIGeneratorProvider {
       throw new Error('UI Generator RunPod endpoint not configured. Set RUNPOD_API_KEY and RUNPOD_UI_GENERATOR_ENDPOINT.');
     }
 
+    // Determine LoRA type and trigger word
+    const loraType: LoRAType = request.loraType || 'ui';
+    const triggerWord = TRIGGER_WORDS[loraType];
+    const defaultLoraStrength = LORA_STRENGTHS[loraType];
+
     // Ensure prompt has trigger word
     let prompt = request.prompt;
-    if (!prompt.toLowerCase().startsWith(TRIGGER_WORD)) {
-      prompt = `${TRIGGER_WORD}, ${prompt}`;
+    if (!prompt.toLowerCase().includes(triggerWord)) {
+      prompt = `${triggerWord}, ${prompt}`;
     }
 
     // Add style description if provided
@@ -172,7 +200,8 @@ export class RunPodUIGeneratorProvider {
         height,
         steps: request.steps || DEFAULT_PARAMS.steps,
         cfg_scale: request.cfgScale || DEFAULT_PARAMS.cfgScale,
-        lora_strength: request.loraStrength || DEFAULT_PARAMS.loraStrength,
+        lora_strength: request.loraStrength || defaultLoraStrength,
+        lora_type: loraType,  // Tell endpoint which LoRA to use
         seed: request.seed ?? DEFAULT_PARAMS.seed,
         batch_size: request.batchSize || DEFAULT_PARAMS.batchSize,
       },
