@@ -16,11 +16,13 @@ import { getUnifiedClient, ANTHROPIC_MODELS } from './unified-client.js';
 import type { SemanticElement } from './ui-mockup-generator.js';
 import * as parser from '@babel/parser';
 import type { NodePath, Visitor } from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-// Dynamic import for babel traverse due to ESM/CJS interop
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const traverse = require('@babel/traverse').default as (
+// Handle ESM/CJS interop - @babel/traverse has complex exports
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const traverseDefault = (traverseModule as any).default ?? traverseModule;
+const traverse = traverseDefault as (
   ast: t.Node,
   visitor: Visitor
 ) => void;
