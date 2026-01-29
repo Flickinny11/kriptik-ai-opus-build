@@ -14,16 +14,29 @@
 import { getVisualUnderstandingService } from '../embeddings/visual-understanding-service.js';
 import { getUnifiedClient, ANTHROPIC_MODELS } from './unified-client.js';
 import type { SemanticElement } from './ui-mockup-generator.js';
-import * as parser from '@babel/parser';
 import type { NodePath, Visitor } from '@babel/traverse';
 import * as t from '@babel/types';
 
-// Dynamic import for babel traverse due to ESM/CJS interop
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const traverse = require('@babel/traverse').default as (
-  ast: t.Node,
-  visitor: Visitor
-) => void;
+// Lazy-loaded Babel modules for ESM compatibility in Vercel serverless
+let babelParser: typeof import('@babel/parser') | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let babelTraverse: any = null;
+
+async function getBabelParser() {
+  if (!babelParser) {
+    babelParser = await import('@babel/parser');
+  }
+  return babelParser;
+}
+
+async function getBabelTraverse(): Promise<(ast: t.Node, visitor: Visitor) => void> {
+  if (!babelTraverse) {
+    const traverseModule = await import('@babel/traverse');
+    // Handle both ESM default export and CJS interop
+    babelTraverse = traverseModule.default?.default || traverseModule.default || traverseModule;
+  }
+  return babelTraverse;
+}
 
 // ============================================================================
 // Types
@@ -169,7 +182,7 @@ export class SemanticPageAnalyzer {
     const componentName = this.extractComponentName(filePath);
 
     // Parse code for functions, API calls, state, imports
-    const { functions, apiCalls, stateUsage, imports, jsxStructure } = this.parseCode(code);
+    const { functions, apiCalls, stateUsage, imports, jsxStructure } = await this.parseCode(code);
 
     // Analyze visual elements if screenshot provided
     let elements: SemanticElement[] = [];
@@ -374,19 +387,22 @@ export class SemanticPageAnalyzer {
   /**
    * Parse code to extract functions, API calls, state, imports
    */
-  private parseCode(code: string): {
+  private async parseCode(code: string): Promise<{
     functions: FunctionBinding[];
     apiCalls: APICall[];
     stateUsage: StateUsage[];
     imports: ImportDependency[];
     jsxStructure?: string;
-  } {
+  }> {
     const functions: FunctionBinding[] = [];
     const apiCalls: APICall[] = [];
     const stateUsage: StateUsage[] = [];
     const imports: ImportDependency[] = [];
 
     try {
+      const parser = await getBabelParser();
+      const traverse = await getBabelTraverse();
+
       const ast = parser.parse(code, {
         sourceType: 'module',
         plugins: ['jsx', 'typescript'],
