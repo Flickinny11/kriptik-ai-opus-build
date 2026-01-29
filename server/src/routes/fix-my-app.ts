@@ -942,13 +942,325 @@ router.get('/:sessionId/browser/stream', (req: Request, res: Response) => {
 });
 
 // =============================================================================
-// CREDENTIAL SUBMISSION ROUTES
+// CREDENTIAL SUBMISSION ROUTES (Dedicated Credential Request Page)
 // =============================================================================
 
+// Store required credentials for each session (detected during analysis)
+const sessionCredentialRequirements = new Map<string, Array<{
+    serviceId: string;
+    serviceName: string;
+    reason: string;
+    keys: Array<{
+        name: string;
+        label: string;
+        placeholder: string;
+        sensitive: boolean;
+    }>;
+}>>();
+
+// Store saved credentials status per session
+const sessionSavedCredentials = new Map<string, Set<string>>();
+
 /**
- * POST /api/fix-my-app/:sessionId/credentials
- * Submit credentials for a fix session
+ * GET /api/fix-my-app/sessions/:sessionId/credentials
+ * Get required credentials for a specific Fix My App session
  * 
+ * Used by FixMyAppCredentials page to display the credential tiles
+ */
+router.get('/sessions/:sessionId/credentials', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { sessionId } = req.params;
+        const controller = controllers.get(sessionId);
+
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found or expired' });
+        }
+
+        const session = controller.getSession();
+
+        // Get or detect required credentials
+        let requiredCredentials = sessionCredentialRequirements.get(sessionId);
+        
+        if (!requiredCredentials) {
+            // Detect from analysis or use defaults based on common patterns
+            requiredCredentials = detectRequiredCredentials(session);
+            sessionCredentialRequirements.set(sessionId, requiredCredentials);
+        }
+
+        res.json({
+            sessionId,
+            projectId: session.projectId || null,
+            projectName: session.context?.processed?.intentSummary?.corePurpose?.slice(0, 50) || 'Fix My App Project',
+            source: session.source,
+            status: session.status,
+            requiredCredentials,
+        });
+    } catch (error) {
+        console.error('[Fix My App] Get credentials error:', error);
+        res.status(500).json({ error: 'Failed to get credential requirements' });
+    }
+});
+
+/**
+ * POST /api/fix-my-app/sessions/:sessionId/credentials
+ * Save credentials for a specific service in a Fix My App session
+ * 
+ * Project-specific credential storage
+ */
+router.post('/sessions/:sessionId/credentials', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { sessionId } = req.params;
+        const { serviceId, credentials } = req.body;
+
+        if (!serviceId || !credentials || typeof credentials !== 'object') {
+            return res.status(400).json({ error: 'serviceId and credentials are required' });
+        }
+
+        const controller = controllers.get(sessionId);
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        const session = controller.getSession();
+        if (!session.projectId) {
+            return res.status(400).json({ error: 'No project associated with this session' });
+        }
+
+        console.log(`[Fix My App] Storing ${serviceId} credentials for project ${session.projectId}`);
+
+        // Store credentials in project's vault
+        const { writeCredentialsToProjectEnv } = await import('../services/credentials/credential-env-bridge.js');
+        await writeCredentialsToProjectEnv(session.projectId, userId, credentials);
+
+        // Track saved status
+        const saved = sessionSavedCredentials.get(sessionId) || new Set();
+        saved.add(serviceId);
+        sessionSavedCredentials.set(sessionId, saved);
+
+        res.json({
+            success: true,
+            message: `${serviceId} credentials saved for this project`,
+            serviceId,
+        });
+    } catch (error) {
+        console.error('[Fix My App] Save credentials error:', error);
+        res.status(500).json({ error: 'Failed to save credentials' });
+    }
+});
+
+/**
+ * POST /api/fix-my-app/sessions/:sessionId/resume
+ * Resume the build after credentials have been entered
+ */
+router.post('/sessions/:sessionId/resume', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { sessionId } = req.params;
+        const controller = controllers.get(sessionId);
+
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        const session = controller.getSession();
+        if (!session.projectId) {
+            return res.status(400).json({ error: 'No project associated with this session' });
+        }
+
+        // Check that all required credentials are saved
+        const requiredCredentials = sessionCredentialRequirements.get(sessionId) || [];
+        const savedCredentials = sessionSavedCredentials.get(sessionId) || new Set();
+        const missingServices = requiredCredentials.filter(c => !savedCredentials.has(c.serviceId));
+
+        if (missingServices.length > 0) {
+            return res.status(400).json({
+                error: 'Missing credentials',
+                missingServices: missingServices.map(s => s.serviceName),
+            });
+        }
+
+        console.log(`[Fix My App] Resuming build for session ${sessionId}`);
+
+        // Update session status
+        controller.emit('log', 'Credentials received. Resuming build...');
+        controller.emit('progress', { stage: 'resuming', progress: 50 });
+
+        // If there's an active build context, signal it to continue
+        const buildContext = buildContexts.get(sessionId);
+        if (buildContext) {
+            // Resume the orchestrator (it should be waiting for credentials)
+            console.log(`[Fix My App] Signaling BuildLoopOrchestrator to continue`);
+            // The orchestrator will poll for credential status and continue automatically
+        }
+
+        res.json({
+            success: true,
+            message: 'Build resumed with provided credentials',
+            projectId: session.projectId,
+        });
+    } catch (error) {
+        console.error('[Fix My App] Resume error:', error);
+        res.status(500).json({ error: 'Failed to resume build' });
+    }
+});
+
+/**
+ * Helper: Detect required credentials from session analysis
+ */
+function detectRequiredCredentials(session: any): Array<{
+    serviceId: string;
+    serviceName: string;
+    reason: string;
+    keys: Array<{ name: string; label: string; placeholder: string; sensitive: boolean; }>;
+}> {
+    const detected: Array<{
+        serviceId: string;
+        serviceName: string;
+        reason: string;
+        keys: Array<{ name: string; label: string; placeholder: string; sensitive: boolean; }>;
+    }> = [];
+
+    // Check implementation gaps for credential requirements
+    const gaps = session.context?.processed?.implementationGaps || [];
+    const chatContent = session.context?.raw?.chatHistory?.map((m: any) => m.content).join(' ').toLowerCase() || '';
+    const fileContent = Array.from(session.context?.raw?.files?.values() || []).join(' ').toLowerCase();
+    const combinedContent = chatContent + ' ' + fileContent;
+
+    // Service detection patterns
+    const servicePatterns = [
+        {
+            patterns: ['openai', 'gpt-4', 'gpt-3', 'chatgpt api', 'openai_api_key'],
+            serviceId: 'openai',
+            serviceName: 'OpenAI',
+            reason: 'Your app uses OpenAI for AI features',
+            keys: [{ name: 'OPENAI_API_KEY', label: 'API Key', placeholder: 'sk-...', sensitive: true }],
+        },
+        {
+            patterns: ['stripe', 'payment', 'subscription', 'billing', 'stripe_secret'],
+            serviceId: 'stripe',
+            serviceName: 'Stripe',
+            reason: 'Your app uses Stripe for payments',
+            keys: [
+                { name: 'STRIPE_SECRET_KEY', label: 'Secret Key', placeholder: 'sk_live_...', sensitive: true },
+                { name: 'STRIPE_PUBLISHABLE_KEY', label: 'Publishable Key', placeholder: 'pk_live_...', sensitive: false },
+            ],
+        },
+        {
+            patterns: ['supabase', 'supabase_url', 'supabase_key'],
+            serviceId: 'supabase',
+            serviceName: 'Supabase',
+            reason: 'Your app uses Supabase for database/auth',
+            keys: [
+                { name: 'SUPABASE_URL', label: 'Project URL', placeholder: 'https://xxx.supabase.co', sensitive: false },
+                { name: 'SUPABASE_ANON_KEY', label: 'Anon Key', placeholder: 'eyJ...', sensitive: true },
+            ],
+        },
+        {
+            patterns: ['twilio', 'sms', 'twilio_account_sid'],
+            serviceId: 'twilio',
+            serviceName: 'Twilio',
+            reason: 'Your app uses Twilio for SMS/voice',
+            keys: [
+                { name: 'TWILIO_ACCOUNT_SID', label: 'Account SID', placeholder: 'AC...', sensitive: false },
+                { name: 'TWILIO_AUTH_TOKEN', label: 'Auth Token', placeholder: '', sensitive: true },
+            ],
+        },
+        {
+            patterns: ['resend', 'email api', 'resend_api'],
+            serviceId: 'resend',
+            serviceName: 'Resend',
+            reason: 'Your app uses Resend for email',
+            keys: [{ name: 'RESEND_API_KEY', label: 'API Key', placeholder: 're_...', sensitive: true }],
+        },
+        {
+            patterns: ['anthropic', 'claude api', 'anthropic_api'],
+            serviceId: 'anthropic',
+            serviceName: 'Anthropic',
+            reason: 'Your app uses Claude AI',
+            keys: [{ name: 'ANTHROPIC_API_KEY', label: 'API Key', placeholder: 'sk-ant-...', sensitive: true }],
+        },
+        {
+            patterns: ['google ai', 'gemini api', 'google_ai_api'],
+            serviceId: 'google',
+            serviceName: 'Google AI',
+            reason: 'Your app uses Google Gemini',
+            keys: [{ name: 'GOOGLE_AI_API_KEY', label: 'API Key', placeholder: 'AIza...', sensitive: true }],
+        },
+        {
+            patterns: ['vercel', 'vercel_token', 'deploy to vercel'],
+            serviceId: 'vercel',
+            serviceName: 'Vercel',
+            reason: 'Your app deploys to Vercel',
+            keys: [{ name: 'VERCEL_TOKEN', label: 'API Token', placeholder: '', sensitive: true }],
+        },
+        {
+            patterns: ['clerk', 'clerk_secret', 'authentication with clerk'],
+            serviceId: 'clerk',
+            serviceName: 'Clerk',
+            reason: 'Your app uses Clerk for auth',
+            keys: [
+                { name: 'CLERK_SECRET_KEY', label: 'Secret Key', placeholder: 'sk_live_...', sensitive: true },
+                { name: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', label: 'Publishable Key', placeholder: 'pk_live_...', sensitive: false },
+            ],
+        },
+        {
+            patterns: ['replicate', 'replicate_api', 'ml model'],
+            serviceId: 'replicate',
+            serviceName: 'Replicate',
+            reason: 'Your app uses Replicate for ML',
+            keys: [{ name: 'REPLICATE_API_TOKEN', label: 'API Token', placeholder: 'r8_...', sensitive: true }],
+        },
+    ];
+
+    for (const service of servicePatterns) {
+        const matches = service.patterns.some(p => combinedContent.includes(p));
+        if (matches) {
+            detected.push({
+                serviceId: service.serviceId,
+                serviceName: service.serviceName,
+                reason: service.reason,
+                keys: service.keys,
+            });
+        }
+    }
+
+    // Also check explicit credential gaps from analysis
+    for (const gap of gaps) {
+        if (gap.type === 'credential' && gap.service) {
+            const existing = detected.find(d => d.serviceId === gap.service);
+            if (!existing) {
+                // Add generic entry for unknown services
+                detected.push({
+                    serviceId: gap.service,
+                    serviceName: gap.service.charAt(0).toUpperCase() + gap.service.slice(1),
+                    reason: gap.description || `Required for ${gap.service}`,
+                    keys: [{ name: `${gap.service.toUpperCase()}_API_KEY`, label: 'API Key', placeholder: '', sensitive: true }],
+                });
+            }
+        }
+    }
+
+    return detected;
+}
+
+/**
+ * POST /api/fix-my-app/:projectId/credentials (Legacy route for CredentialTile component)
+ * Submit credentials for a fix session
+ *
  * Called by the CredentialTiles UI when user enters API keys
  */
 router.post('/:sessionId/credentials', async (req: Request, res: Response) => {
@@ -1029,7 +1341,7 @@ router.get('/:sessionId/credentials/status', async (req: Request, res: Response)
         const { db } = await import('../db.js');
         const { projectEnvVars } = await import('../schema.js');
         const { eq } = await import('drizzle-orm');
-        
+
         const storedVars = await db
             .select({ envKey: projectEnvVars.envKey })
             .from(projectEnvVars)

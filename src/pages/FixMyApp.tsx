@@ -805,11 +805,11 @@ export default function FixMyApp() {
         if (!source) return;
 
         console.log('[FixMyApp] initSession called with source:', source);
-        
+
         // Check if this source has context available (needs consent + extension)
         const sourceConfig = sourceOptions.find(s => s.id === source);
         const needsConsent = sourceConfig?.contextAvailable ?? false;
-        
+
         console.log('[FixMyApp] Source config:', sourceConfig);
         console.log('[FixMyApp] needsConsent (contextAvailable):', needsConsent);
         console.log('[FixMyApp] requiresBrowserLogin:', requiresBrowserLogin());
@@ -851,7 +851,7 @@ export default function FixMyApp() {
             setStep('upload');
         } catch (error: any) {
             console.error('[FixMyApp] initSession API error:', error);
-            
+
             // Check if it's an auth error
             if (error?.response?.status === 401) {
                 toast({
@@ -876,17 +876,17 @@ export default function FixMyApp() {
     // Submit consent - call API to initialize session, then open URL and proceed
     const submitConsent = async () => {
         console.log('[FixMyApp] submitConsent called');
-        
+
         // First, call the API to initialize the session (requires auth)
         // This will fail if user is not logged in, but show a helpful message
         await callInitSessionApi();
-        
+
         // If we get here, the API call succeeded
         // The callInitSessionApi function will:
         // 1. Set the session
         // 2. Navigate to upload step
         // 3. Show error if auth fails
-        
+
         // Note: Opening the URL is now handled in the button onClick
         // because we want to do it only if extension is installed
     };

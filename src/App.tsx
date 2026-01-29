@@ -35,6 +35,9 @@ const EndpointsPage = lazy(() => import('./pages/EndpointsPage'));
 // Flagship Training Page (Phase 7)
 const TrainingPage = lazy(() => import('./pages/TrainingPage'));
 
+// Fix My App Credentials Page (project-specific credential entry)
+const FixMyAppCredentials = lazy(() => import('./pages/FixMyAppCredentials'));
+
 // Loading fallback
 const PageLoader = () => (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
@@ -140,6 +143,13 @@ function App() {
                     <Route path="/fix-my-app" element={
                         <PageErrorBoundary>
                             <FixMyApp />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/fix-my-app/credentials/:sessionId" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <FixMyAppCredentials />
+                            </Suspense>
                         </PageErrorBoundary>
                     } />
                     <Route path="/auth/github/callback" element={
