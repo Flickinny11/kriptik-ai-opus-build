@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProjectStore } from '../store/useProjectStore';
 import { useUserStore } from '../store/useUserStore';
 import { useTemplateStore } from '../store/useTemplateStore';
@@ -15,6 +15,8 @@ import NewProjectModal from '../components/dashboard/NewProjectModal';
 import NotificationsSection from '../components/dashboard/NotificationsSection';
 import ImportProjectModal, { type ImportType } from '../components/dashboard/ImportProjectModal';
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
+import { NotificationPreferencesModal } from '../components/fix-my-app/NotificationPreferencesModal';
+import { useToast } from '@/components/ui/use-toast';
 import { ImageToCodeResult } from '@/lib/api-client';
 import {
     SettingsIcon,
@@ -496,6 +498,12 @@ export default function Dashboard() {
     // Fix My App intro state
     const [showFixMyAppIntro, setShowFixMyAppIntro] = useState(false);
 
+    // Fix My App post-capture notification modal state
+    const [showNotificationModal, setShowNotificationModal] = useState(false);
+    const [fixSessionId, setFixSessionId] = useState<string | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { toast } = useToast();
+
     // Import Project modal state
     const [showImportModal, setShowImportModal] = useState(false);
     const [importType, setImportType] = useState<ImportType>('zip');
@@ -559,6 +567,34 @@ export default function Dashboard() {
             setTimeout(() => setWelcomeModalOpen(true), 500);
         }
     }, [hasCompletedOnboarding, setWelcomeModalOpen]);
+
+    // Handle return from extension capture (Fix My App flow)
+    // When user is redirected back with ?fixSession=<sessionId>, show notification modal
+    useEffect(() => {
+        const fixSession = searchParams.get('fixSession');
+        if (fixSession && isAuthenticated) {
+            console.log('[Dashboard] Fix My App capture complete, session:', fixSession);
+            
+            // Store session ID for the modal
+            setFixSessionId(fixSession);
+            
+            // Show notification preferences modal
+            setShowNotificationModal(true);
+            
+            // Clear the query param so refresh doesn't re-trigger
+            searchParams.delete('fixSession');
+            setSearchParams(searchParams, { replace: true });
+            
+            // Show success toast
+            toast({
+                title: 'Capture Complete!',
+                description: 'KripTik AI is analyzing your project and will start building automatically.',
+            });
+            
+            // Refresh projects to show the new Fix My App project
+            fetchProjects();
+        }
+    }, [searchParams, isAuthenticated, setSearchParams, fetchProjects, toast]);
 
     const handleGenerate = () => {
         if (!prompt.trim()) return;
@@ -1038,6 +1074,20 @@ export default function Dashboard() {
                         navigate('/fix-my-app');
                     }} />
                 )}
+
+                {/* Fix My App Notification Preferences Modal - shows after capture return */}
+                <NotificationPreferencesModal
+                    isOpen={showNotificationModal}
+                    onClose={() => setShowNotificationModal(false)}
+                    onSave={(prefs) => {
+                        setShowNotificationModal(false);
+                        toast({
+                            title: 'Notifications Enabled',
+                            description: 'You\'ll be notified when credentials are needed or your app is ready.',
+                        });
+                    }}
+                    projectId={fixSessionId || undefined}
+                />
             </main>
         </div>
     );
