@@ -448,7 +448,14 @@ const ProjectThumbnail = memo(function ProjectThumbnail({ project }: { project: 
 
     // Regular project card (premium 3D flip card with dark monitor styling)
     // All info is displayed on the card itself now
-    const cardStatus = project.fixingStatus === 'completed' ? 'fixed' : 'active';
+    
+    // Determine if this project is actively being built by Fix My App
+    const isBuilding = project.fixingStatus && 
+        ['analyzing', 'creating_intent', 'building', 'verifying', 'pending'].includes(project.fixingStatus);
+    
+    // Map fixingStatus to card status
+    const cardStatus = project.fixingStatus === 'completed' ? 'fixed' :
+                       isBuilding ? 'building' : 'active';
 
     return (
         <div className="group" style={{ marginBottom: '24px' }}>
@@ -463,6 +470,9 @@ const ProjectThumbnail = memo(function ProjectThumbnail({ project }: { project: 
                 description={project.description}
                 linesOfCode={project.linesOfCode}
                 components={project.components}
+                // Pass build progress props for Fix My App projects in building state
+                buildProgress={isBuilding ? (project.fixingProgress || 0) : 0}
+                buildPhase={isBuilding ? (project.currentPhase || project.fixingStatus || 'Building...') : 'Building...'}
             />
         </div>
     );
