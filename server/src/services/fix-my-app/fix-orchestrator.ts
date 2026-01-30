@@ -29,6 +29,9 @@ import {
   createBuildLoopOrchestrator,
   type BuildLoopOrchestrator,
 } from '../automation/build-loop.js';
+import {
+  getWebSocketSyncService,
+} from '../agents/websocket-sync.js';
 
 // =============================================================================
 // TYPES
@@ -424,8 +427,42 @@ GOAL: Rebuild this project to match the intent contract, fixing all issues that 
       session.importUrl
     );
 
+    // Emit local events
     this.emit('status_change', { sessionId, status, progress });
     this.emit('progress', { sessionId, progress, message });
+
+    // Emit WebSocket events for real-time dashboard updates
+    try {
+      const wsService = getWebSocketSyncService();
+      
+      // Map FixStatus to build phase
+      const phaseMap: Record<FixStatus, string> = {
+        'pending': 'initializing',
+        'analyzing': 'analysis',
+        'creating_intent': 'intent-lock',
+        'building': 'build',
+        'verifying': 'verification',
+        'completed': 'complete',
+        'failed': 'error',
+      };
+
+      // Send build progress update
+      wsService.sendBuildProgress(session.projectId, {
+        currentPhase: phaseMap[status] || status,
+        currentStage: 'frontend',
+        featuresPending: 0,
+        featuresCompleted: 0,
+        featuresFailed: 0,
+        currentFeature: message,
+        overallProgress: progress,
+      });
+
+      // Send phase change event
+      wsService.sendPhaseChange(session.projectId, phaseMap[status] || status, progress, message);
+    } catch (wsError) {
+      // WebSocket is optional - don't fail the fix process if WS unavailable
+      console.warn('[FixOrchestrator] WebSocket update failed:', wsError);
+    }
   }
 
   /**

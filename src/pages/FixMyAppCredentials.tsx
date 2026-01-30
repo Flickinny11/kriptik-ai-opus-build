@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeftIcon,
@@ -26,7 +26,7 @@ import {
     EyeOffIcon,
     AlertCircleIcon,
     ArrowRightIcon,
-    ShieldCheckIcon,
+    ShieldIcon,
 } from '@/components/ui/icons';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api-client';
@@ -55,7 +55,6 @@ interface FixSession {
 
 export default function FixMyAppCredentials() {
     const { sessionId } = useParams<{ sessionId: string }>();
-    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { toast } = useToast();
 
@@ -271,7 +270,7 @@ export default function FixMyAppCredentials() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-400">
-                        <ShieldCheckIcon size={16} className="text-emerald-500" />
+                        <ShieldIcon size={16} className="text-emerald-500" />
                         <span>Credentials are encrypted</span>
                     </div>
                 </div>
@@ -475,7 +474,7 @@ export default function FixMyAppCredentials() {
 
                 {/* Security note */}
                 <div className="mt-8 text-center text-sm text-slate-500">
-                    <ShieldCheckIcon size={16} className="inline mr-1" />
+                    <ShieldIcon size={16} className="inline mr-1" />
                     Your credentials are encrypted with AES-256-GCM and stored in your project's secure vault.
                     <br />
                     They are never shared with other projects or users.

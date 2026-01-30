@@ -1079,7 +1079,7 @@ export default function Dashboard() {
                 <NotificationPreferencesModal
                     isOpen={showNotificationModal}
                     onClose={() => setShowNotificationModal(false)}
-                    onSave={(prefs) => {
+                    onSave={() => {
                         setShowNotificationModal(false);
                         toast({
                             title: 'Notifications Enabled',

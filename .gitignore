@@ -81,3 +81,11 @@ training/uicoder/code-patterns/
 training/uicoder/paired/
 training/uicoder/paired-data/
 training/uicoder/training-data.jsonl
+__pycache__/
+*.pyc
+# Training data - DO NOT COMMIT
+training/asset-lora/dataset/
+training/sliderrev-lora/
+training/**/dataset/
+training/**/*.pyc
+**/__pycache__/
