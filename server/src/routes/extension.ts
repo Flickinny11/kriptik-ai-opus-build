@@ -1523,4 +1523,526 @@ async function autoImportVisionCapture(
     }
 }
 
+// ============================================================================
+// COMPUTER USE API (High-FPS Gemini-Controlled Browser Automation)
+// ============================================================================
+
+import {
+    getComputerUseService,
+    type CaptureConfig,
+    type CaptureProgress as ComputerUseCaptureProgress,
+    type CaptureResult as ComputerUseCaptureResult,
+} from '../services/vision-capture/computer-use-service.js';
+
+// Store for Computer Use SSE connections
+const computerUseSSEConnections = new Map<string, Response>();
+
+/**
+ * POST /api/extension/computer-use/start
+ * Start a high-FPS computer use capture session
+ *
+ * This endpoint provides superior capture compared to the basic vision-capture:
+ * - Configurable FPS (up to 10fps for real-time visual tracking)
+ * - AI-controlled browser actions (scroll, click, type)
+ * - Progressive message extraction during scroll
+ * - Automatic "Load more" button detection and clicking
+ * - Build/runtime log capture
+ * - Project export automation
+ */
+router.post('/computer-use/start', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    try {
+        // Validate auth
+        const authHeader = req.headers.authorization;
+        let userId: string | undefined;
+
+        const extAuth = await validateExtensionToken(authHeader);
+        if (extAuth) {
+            userId = extAuth.userId;
+        } else if (req.user?.id) {
+            userId = req.user.id;
+        }
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required',
+            });
+        }
+
+        const {
+            url,
+            platform,
+            cookies,
+            fps,
+            maxScrollAttempts,
+            captureTypes,
+            fixSessionId,
+        } = req.body;
+
+        if (!url) {
+            return res.status(400).json({
+                success: false,
+                error: 'URL is required',
+            });
+        }
+
+        // Detect platform from URL if not provided
+        const detectedPlatform = platform || detectPlatformFromUrl(url);
+
+        console.log(`[ComputerUse] Starting capture for ${url}`);
+        console.log(`[ComputerUse] Platform: ${detectedPlatform}, FPS: ${fps || 2}, User: ${userId}`);
+
+        const computerUseService = getComputerUseService();
+
+        // Build capture config
+        const captureConfig: CaptureConfig = {
+            url,
+            platform: detectedPlatform,
+            cookies: cookies || [],
+            fps: Math.min(fps || 2, 10), // Cap at 10 FPS
+            maxScrollAttempts: maxScrollAttempts || 100,
+            captureTypes: captureTypes || ['chat', 'logs', 'files', 'export'],
+            sessionId: fixSessionId,
+            userId,
+        };
+
+        // Start capture (returns immediately with session ID)
+        const captureId = await computerUseService.startCapture(captureConfig);
+
+        // Set up progress listener for SSE
+        computerUseService.on(`progress:${captureId}`, (progress: ComputerUseCaptureProgress) => {
+            const sseConn = computerUseSSEConnections.get(captureId);
+            if (sseConn && !sseConn.writableEnded) {
+                sseConn.write(`data: ${JSON.stringify({
+                    type: progress.type,
+                    phase: progress.phase,
+                    progress: progress.progress,
+                    message: progress.message,
+                    data: progress.data,
+                })}\n\n`);
+
+                // Close SSE on complete or error
+                if (progress.type === 'complete' || progress.type === 'error') {
+                    sseConn.end();
+                    computerUseSSEConnections.delete(captureId);
+                }
+            }
+        });
+
+        return res.json({
+            success: true,
+            captureId,
+            message: 'Computer Use capture started',
+            eventsUrl: `/api/extension/computer-use/events/${captureId}`,
+            statusUrl: `/api/extension/computer-use/status/${captureId}`,
+            config: {
+                platform: detectedPlatform,
+                fps: captureConfig.fps,
+                captureTypes: captureConfig.captureTypes,
+            },
+        });
+
+    } catch (error) {
+        console.error('[ComputerUse] Start error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to start computer use capture',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/extension/computer-use/events/:captureId
+ * SSE stream for computer use capture progress
+ */
+router.get('/computer-use/events/:captureId', async (req: Request, res: Response) => {
+    const { captureId } = req.params;
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Store connection
+    computerUseSSEConnections.set(captureId, res);
+
+    // Send initial heartbeat
+    res.write(`data: ${JSON.stringify({ type: 'connected', captureId })}\n\n`);
+
+    // Check if capture exists and get current status
+    const computerUseService = getComputerUseService();
+    const result = computerUseService.getResult(captureId);
+    if (result) {
+        res.write(`data: ${JSON.stringify({
+            type: 'status',
+            sessionId: result.sessionId,
+            success: result.success,
+            messagesFound: result.stats.messagesFound,
+        })}\n\n`);
+    }
+
+    // Keep connection alive
+    const heartbeat = setInterval(() => {
+        if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+        } else {
+            clearInterval(heartbeat);
+        }
+    }, 30000);
+
+    // Clean up on disconnect
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        computerUseSSEConnections.delete(captureId);
+    });
+});
+
+/**
+ * GET /api/extension/computer-use/status/:captureId
+ * Get computer use capture session status
+ */
+router.get('/computer-use/status/:captureId', async (req: Request, res: Response) => {
+    const { captureId } = req.params;
+
+    const computerUseService = getComputerUseService();
+    const result = computerUseService.getResult(captureId);
+
+    if (!result) {
+        // Check if capture is still active
+        if (computerUseService.isActive(captureId)) {
+            return res.json({
+                success: true,
+                status: 'in_progress',
+                captureId,
+            });
+        }
+        return res.status(404).json({
+            success: false,
+            error: 'Capture session not found',
+        });
+    }
+
+    return res.json({
+        success: true,
+        captureId: result.sessionId,
+        status: result.success ? 'completed' : (result.error ? 'failed' : 'in_progress'),
+        error: result.error,
+        stats: result.stats,
+        summary: {
+            messagesFound: result.chatMessages.length,
+            buildLogsCount: result.buildLogs.length,
+            runtimeLogsCount: result.runtimeLogs.length,
+            filesFound: result.files.length,
+            hasExport: !!result.exportZip,
+            screenshotsCount: result.screenshots.length,
+        },
+    });
+});
+
+/**
+ * GET /api/extension/computer-use/result/:captureId
+ * Get full capture results
+ */
+router.get('/computer-use/result/:captureId', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    const { captureId } = req.params;
+
+    const computerUseService = getComputerUseService();
+    const result = computerUseService.getResult(captureId);
+
+    if (!result) {
+        return res.status(404).json({
+            success: false,
+            error: 'Capture session not found',
+        });
+    }
+
+    if (!result.success && !result.chatMessages.length) {
+        return res.status(400).json({
+            success: false,
+            error: result.error || 'Capture not complete',
+        });
+    }
+
+    // Format results for Fix My App consumption
+    return res.json({
+        success: true,
+        captureId: result.sessionId,
+        chatHistory: {
+            messageCount: result.chatMessages.length,
+            messages: result.chatMessages.map(msg => ({
+                id: `msg-${msg.index}`,
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp,
+                codeBlocks: msg.codeBlocks,
+            })),
+        },
+        logs: {
+            build: result.buildLogs,
+            runtime: result.runtimeLogs,
+        },
+        files: {
+            count: result.files.length,
+            entries: result.files,
+        },
+        export: result.exportZip ? {
+            available: true,
+            sizeBytes: result.exportZip.length,
+        } : {
+            available: false,
+        },
+        stats: result.stats,
+    });
+});
+
+/**
+ * POST /api/extension/computer-use/abort/:captureId
+ * Abort a computer use capture session
+ */
+router.post('/computer-use/abort/:captureId', async (req: Request, res: Response) => {
+    const { captureId } = req.params;
+
+    const computerUseService = getComputerUseService();
+    await computerUseService.abortCapture(captureId);
+
+    // Clean up SSE connection
+    const sseConn = computerUseSSEConnections.get(captureId);
+    if (sseConn && !sseConn.writableEnded) {
+        sseConn.write(`data: ${JSON.stringify({ type: 'aborted' })}\n\n`);
+        sseConn.end();
+    }
+    computerUseSSEConnections.delete(captureId);
+
+    return res.json({
+        success: true,
+        message: 'Capture aborted',
+    });
+});
+
+/**
+ * POST /api/extension/computer-use/import/:captureId
+ * Import capture results into Fix My App flow
+ */
+router.post('/computer-use/import/:captureId', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    try {
+        // Validate auth
+        const authHeader = req.headers.authorization;
+        let userId: string | undefined;
+
+        const extAuth = await validateExtensionToken(authHeader);
+        if (extAuth) {
+            userId = extAuth.userId;
+        } else if (req.user?.id) {
+            userId = req.user.id;
+        }
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required',
+            });
+        }
+
+        const { captureId } = req.params;
+        const { projectName, fixSessionId } = req.body;
+
+        const computerUseService = getComputerUseService();
+        const result = computerUseService.getResult(captureId);
+
+        if (!result) {
+            return res.status(404).json({
+                success: false,
+                error: 'Capture session not found',
+            });
+        }
+
+        if (!result.success && !result.chatMessages.length) {
+            return res.status(400).json({
+                success: false,
+                error: result.error || 'No capture results available',
+            });
+        }
+
+        console.log(`[ComputerUse] Importing capture ${captureId} for user ${userId}`);
+
+        // Create project
+        const projectId = uuidv4();
+        const name = projectName || `Fix My App Capture - ${new Date().toISOString().split('T')[0]}`;
+
+        await db.insert(projects).values({
+            id: projectId,
+            name,
+            description: `Imported from AI builder via Computer Use capture. ${result.chatMessages.length} messages captured.`,
+            ownerId: userId,
+            framework: 'react', // Will be detected during analysis
+            isPublic: false,
+            fixingStatus: 'analyzing',
+            fixingProgress: 5,
+            fixingSessionId: fixSessionId || captureId,
+            fixingStartedAt: new Date().toISOString(),
+            importSource: 'computer-use',
+        });
+
+        // Store context
+        const contextDir = path.join(process.cwd(), 'uploads', 'projects', projectId, 'context');
+        if (!fs.existsSync(contextDir)) {
+            fs.mkdirSync(contextDir, { recursive: true });
+        }
+
+        // Store chat history
+        if (result.chatMessages.length > 0) {
+            fs.writeFileSync(
+                path.join(contextDir, 'chat-history.json'),
+                JSON.stringify({
+                    messageCount: result.chatMessages.length,
+                    messages: result.chatMessages,
+                }, null, 2)
+            );
+        }
+
+        // Store logs
+        if (result.buildLogs.length > 0 || result.runtimeLogs.length > 0) {
+            fs.writeFileSync(
+                path.join(contextDir, 'logs.json'),
+                JSON.stringify({
+                    build: result.buildLogs,
+                    runtime: result.runtimeLogs,
+                }, null, 2)
+            );
+        }
+
+        // Store export ZIP if available
+        if (result.exportZip) {
+            fs.writeFileSync(
+                path.join(contextDir, 'export.zip'),
+                result.exportZip
+            );
+        }
+
+        // Store capture stats
+        fs.writeFileSync(
+            path.join(contextDir, 'capture-stats.json'),
+            JSON.stringify({
+                captureId,
+                stats: result.stats,
+                capturedAt: new Date().toISOString(),
+            }, null, 2)
+        );
+
+        // Create notification
+        await db.insert(notifications).values({
+            id: uuidv4(),
+            userId,
+            type: 'project_imported',
+            title: `Project Captured: ${name}`,
+            message: `Captured ${result.chatMessages.length} messages. KripTik AI is analyzing your project...`,
+            metadata: JSON.stringify({
+                projectId,
+                captureId,
+                messagesCount: result.chatMessages.length,
+                stats: result.stats,
+            }),
+            read: false,
+        });
+
+        // Start Fix My App analysis
+        if (result.chatMessages.length > 0) {
+            console.log(`[ComputerUse] Starting Fix My App analysis for ${projectId}`);
+
+            const chatMessages: FixChatMessage[] = result.chatMessages.map((msg, index) => ({
+                id: `msg-${index}`,
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp,
+                codeBlocks: msg.codeBlocks,
+            }));
+
+            const capturedErrors: CapturedError[] = [];
+
+            // Extract errors from logs
+            for (const log of [...result.buildLogs, ...result.runtimeLogs]) {
+                if (log.toLowerCase().includes('error') || log.toLowerCase().includes('failed')) {
+                    capturedErrors.push({
+                        type: 'error',
+                        message: log,
+                        timestamp: new Date().toISOString(),
+                        source: 'logs',
+                    });
+                }
+            }
+
+            // Start fix orchestration
+            const fixOrchestrator = getFixOrchestrator();
+            fixOrchestrator.startFix(
+                projectId,
+                userId,
+                chatMessages,
+                capturedErrors,
+                'computer-use',
+                ''
+            ).then(fixSession => {
+                console.log(`[ComputerUse] Fix session started: ${fixSession.id}`);
+            }).catch(error => {
+                console.error(`[ComputerUse] Fix session error:`, error);
+            });
+        }
+
+        const frontendUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
+
+        return res.json({
+            success: true,
+            projectId,
+            projectName: name,
+            dashboardUrl: `${frontendUrl}/dashboard`,
+            builderUrl: `${frontendUrl}/builder/${projectId}`,
+            stats: {
+                messagesImported: result.chatMessages.length,
+                logsImported: result.buildLogs.length + result.runtimeLogs.length,
+                hasExport: !!result.exportZip,
+            },
+        });
+
+    } catch (error) {
+        console.error('[ComputerUse] Import error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to import capture results',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * Helper: Detect platform from URL
+ */
+function detectPlatformFromUrl(url: string): CaptureConfig['platform'] {
+    const urlLower = url.toLowerCase();
+
+    if (urlLower.includes('lovable.dev') || urlLower.includes('lovable.ai')) {
+        return 'lovable';
+    }
+    if (urlLower.includes('bolt.new') || urlLower.includes('stackblitz')) {
+        return 'bolt';
+    }
+    if (urlLower.includes('v0.dev') || urlLower.includes('v0.app')) {
+        return 'v0';
+    }
+    if (urlLower.includes('create.xyz') || urlLower.includes('create.app')) {
+        return 'create';
+    }
+    if (urlLower.includes('tempo')) {
+        return 'tempo';
+    }
+    if (urlLower.includes('replit.com')) {
+        return 'replit';
+    }
+    if (urlLower.includes('cursor.')) {
+        return 'cursor';
+    }
+
+    return 'unknown';
+}
+
 export { router as extensionRouter };

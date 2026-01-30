@@ -969,7 +969,7 @@ const sessionSavedCredentials = new Map<string, Set<string>>();
 /**
  * GET /api/fix-my-app/sessions/:sessionId/credentials
  * Get required credentials for a specific Fix My App session
- * 
+ *
  * Uses AI-powered detection based on user's conversation intent.
  * Used by FixMyAppCredentials page to display the credential tiles.
  */
@@ -991,7 +991,7 @@ router.get('/sessions/:sessionId/credentials', async (req: Request, res: Respons
 
         // Get or detect required credentials
         let requiredCredentials = sessionCredentialRequirements.get(sessionId);
-        
+
         if (!requiredCredentials) {
             // Use AI-powered detection based on user's conversation intent
             console.log(`[Fix My App] Detecting credentials for session ${sessionId} using AI analysis...`);
@@ -1022,7 +1022,7 @@ router.get('/sessions/:sessionId/credentials', async (req: Request, res: Respons
 /**
  * POST /api/fix-my-app/sessions/:sessionId/credentials
  * Save credentials for a specific service in a Fix My App session
- * 
+ *
  * Project-specific credential storage
  */
 router.post('/sessions/:sessionId/credentials', async (req: Request, res: Response) => {

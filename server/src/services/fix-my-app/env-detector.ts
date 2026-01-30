@@ -12,7 +12,7 @@
  * credentials/services they'll need.
  */
 
-import { createGeminiClient } from '../ai/gemini-client.js';
+import { getOpenRouterClient, OPENROUTER_MODELS } from '../ai/openrouter-client.js';
 
 export interface EnvVarRequirement {
   name: string;
@@ -62,7 +62,8 @@ export async function detectEnvVarsFromIntent(
   intentSummary?: IntentSummary,
   projectFiles?: ProjectFile[]
 ): Promise<EnvVarRequirement[]> {
-  const gemini = createGeminiClient();
+  const openRouterClient = getOpenRouterClient();
+  const anthropicClient = openRouterClient.getClient();
 
   // Build context from chat history
   const chatContext = chatHistory
@@ -117,7 +118,7 @@ Return a JSON array of required credentials. For EACH service, include:
 - docsUrl: URL where user can get this credential (if known)
 - reason: Why the user needs this based on their conversation
 
-IMPORTANT: 
+IMPORTANT:
 - Return ONLY valid JSON array, no markdown or explanation
 - Include ALL variables for each service (e.g., Stripe needs both secret and publishable keys)
 - Be specific about why each is needed based on the user's actual requirements
@@ -138,13 +139,27 @@ Example output format:
 ]`;
 
   try {
-    const response = await gemini.generateText(prompt, {
+    // Use Gemini 3 Flash via OpenRouter for env var detection
+    const completion = await anthropicClient.messages.create({
+      model: OPENROUTER_MODELS.GEMINI_3_FLASH,
+      max_tokens: 4096,
       temperature: 0.3,
-      maxOutputTokens: 4096,
-    });
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        }
+      ],
+    } as any);
+
+    // Extract text from response
+    const responseText = completion.content
+      .filter((block: any) => block.type === 'text')
+      .map((block: any) => block.text)
+      .join('');
 
     // Parse the JSON response
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       console.error('[EnvDetector] Failed to parse AI response as JSON');
       return codeEnvVars;

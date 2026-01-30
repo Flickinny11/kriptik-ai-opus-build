@@ -468,6 +468,252 @@ const messageHandlers = {
       console.error('[Service Worker] Get result error:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // -------------------------------------------------------------------------
+  // Computer Use API (High-FPS AI-Controlled Browser Automation)
+  // -------------------------------------------------------------------------
+
+  START_COMPUTER_USE_CAPTURE: async (message) => {
+    const { url, platform, fps, captureTypes, maxScrollAttempts, fixSessionId } = message;
+
+    // Get API config from storage
+    const config = await chrome.storage.sync.get(['apiEndpoint', 'apiToken']);
+    const session = await chrome.storage.local.get(['fixMyAppSession']);
+
+    const apiEndpoint = config.apiEndpoint || session.fixMyAppSession?.apiEndpoint;
+    const token = config.apiToken || session.fixMyAppSession?.token;
+
+    if (!apiEndpoint) {
+      return { success: false, error: 'API endpoint not configured' };
+    }
+
+    console.log(`[Service Worker] Starting Computer Use capture for: ${url} at ${fps || 2} FPS`);
+
+    try {
+      // Get cookies for the target URL to pass to the server
+      const cookies = await chrome.cookies.getAll({ url });
+      const formattedCookies = cookies.map(c => ({
+        name: c.name,
+        value: c.value,
+        domain: c.domain,
+        path: c.path,
+        expires: c.expirationDate,
+        httpOnly: c.httpOnly,
+        secure: c.secure,
+        sameSite: c.sameSite === 'strict' ? 'Strict' : c.sameSite === 'lax' ? 'Lax' : 'None'
+      }));
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token && token.startsWith('kriptik_ext_')) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiEndpoint}/api/extension/computer-use/start`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          url,
+          platform,
+          cookies: formattedCookies,
+          fps: fps || 2,
+          captureTypes: captureTypes || ['chat', 'logs', 'files', 'export'],
+          maxScrollAttempts: maxScrollAttempts || 100,
+          fixSessionId
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { success: false, error: error.error || `HTTP ${response.status}` };
+      }
+
+      const result = await response.json();
+      console.log('[Service Worker] Computer Use capture started:', result);
+
+      return {
+        success: true,
+        captureId: result.captureId,
+        eventsUrl: `${apiEndpoint}${result.eventsUrl}`,
+        config: result.config
+      };
+    } catch (error) {
+      console.error('[Service Worker] Computer Use start error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  GET_COMPUTER_USE_STATUS: async (message) => {
+    const { captureId } = message;
+
+    const config = await chrome.storage.sync.get(['apiEndpoint', 'apiToken']);
+    const session = await chrome.storage.local.get(['fixMyAppSession']);
+
+    const apiEndpoint = config.apiEndpoint || session.fixMyAppSession?.apiEndpoint;
+    const token = config.apiToken || session.fixMyAppSession?.token;
+
+    if (!apiEndpoint || !captureId) {
+      return { success: false, error: 'Missing endpoint or capture ID' };
+    }
+
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token && token.startsWith('kriptik_ext_')) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiEndpoint}/api/extension/computer-use/status/${captureId}`, {
+        method: 'GET',
+        headers,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { success: false, error: error.error || `HTTP ${response.status}` };
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('[Service Worker] Computer Use status error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  GET_COMPUTER_USE_RESULT: async (message) => {
+    const { captureId } = message;
+
+    const config = await chrome.storage.sync.get(['apiEndpoint', 'apiToken']);
+    const session = await chrome.storage.local.get(['fixMyAppSession']);
+
+    const apiEndpoint = config.apiEndpoint || session.fixMyAppSession?.apiEndpoint;
+    const token = config.apiToken || session.fixMyAppSession?.token;
+
+    if (!apiEndpoint || !captureId) {
+      return { success: false, error: 'Missing endpoint or capture ID' };
+    }
+
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token && token.startsWith('kriptik_ext_')) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiEndpoint}/api/extension/computer-use/result/${captureId}`, {
+        method: 'GET',
+        headers,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { success: false, error: error.error || `HTTP ${response.status}` };
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('[Service Worker] Computer Use result error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  ABORT_COMPUTER_USE_CAPTURE: async (message) => {
+    const { captureId } = message;
+
+    const config = await chrome.storage.sync.get(['apiEndpoint', 'apiToken']);
+    const session = await chrome.storage.local.get(['fixMyAppSession']);
+
+    const apiEndpoint = config.apiEndpoint || session.fixMyAppSession?.apiEndpoint;
+    const token = config.apiToken || session.fixMyAppSession?.token;
+
+    if (!apiEndpoint || !captureId) {
+      return { success: false, error: 'Missing endpoint or capture ID' };
+    }
+
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token && token.startsWith('kriptik_ext_')) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiEndpoint}/api/extension/computer-use/abort/${captureId}`, {
+        method: 'POST',
+        headers,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { success: false, error: error.error || `HTTP ${response.status}` };
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('[Service Worker] Computer Use abort error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  IMPORT_COMPUTER_USE_CAPTURE: async (message) => {
+    const { captureId, projectName, fixSessionId } = message;
+
+    const config = await chrome.storage.sync.get(['apiEndpoint', 'apiToken']);
+    const session = await chrome.storage.local.get(['fixMyAppSession']);
+
+    const apiEndpoint = config.apiEndpoint || session.fixMyAppSession?.apiEndpoint;
+    const token = config.apiToken || session.fixMyAppSession?.token;
+
+    if (!apiEndpoint || !captureId) {
+      return { success: false, error: 'Missing endpoint or capture ID' };
+    }
+
+    console.log(`[Service Worker] Importing Computer Use capture ${captureId}`);
+
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token && token.startsWith('kriptik_ext_')) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiEndpoint}/api/extension/computer-use/import/${captureId}`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          projectName,
+          fixSessionId
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { success: false, error: error.error || `HTTP ${response.status}` };
+      }
+
+      const result = await response.json();
+      console.log('[Service Worker] Computer Use import complete:', result);
+
+      return result;
+    } catch (error) {
+      console.error('[Service Worker] Computer Use import error:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
 
@@ -503,8 +749,8 @@ chrome.downloads.onChanged.addListener(async (delta) => {
       const download = downloads[0];
       if (!download.filename) return;
 
-      // Fetch the downloaded file
-      const response = await fetch(`file://${download.filename}`);
+      // Fetch the downloaded file (credentials required by lint, though not used for file://)
+      const response = await fetch(`file://${download.filename}`, { credentials: 'include' });
       if (!response.ok) {
         // Can't read local files directly in service worker
         // Instead, we'll create a new ZIP with the metadata

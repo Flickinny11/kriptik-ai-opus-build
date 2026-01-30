@@ -448,11 +448,11 @@ const ProjectThumbnail = memo(function ProjectThumbnail({ project }: { project: 
 
     // Regular project card (premium 3D flip card with dark monitor styling)
     // All info is displayed on the card itself now
-    
+
     // Determine if this project is actively being built by Fix My App
-    const isBuilding = project.fixingStatus && 
+    const isBuilding = project.fixingStatus &&
         ['analyzing', 'creating_intent', 'building', 'verifying', 'pending'].includes(project.fixingStatus);
-    
+
     // Map fixingStatus to card status
     const cardStatus = project.fixingStatus === 'completed' ? 'fixed' :
                        isBuilding ? 'building' : 'active';
@@ -543,8 +543,8 @@ export default function Dashboard() {
 
     // Check if any projects are in active fixing workflow
     useEffect(() => {
-        const activelyFixing = projects.some(p => 
-            p.fixingStatus && 
+        const activelyFixing = projects.some(p =>
+            p.fixingStatus &&
             ['analyzing', 'creating_intent', 'building', 'verifying'].includes(p.fixingStatus)
         );
         setHasFixingProjects(activelyFixing);
@@ -560,7 +560,7 @@ export default function Dashboard() {
         }
 
         console.log('[Dashboard] Starting Fix My App polling (5s interval)...');
-        
+
         const pollInterval = setInterval(() => {
             console.log('[Dashboard] Polling for Fix My App progress...');
             fetchProjects();
@@ -584,23 +584,23 @@ export default function Dashboard() {
         const fixSession = searchParams.get('fixSession');
         if (fixSession && isAuthenticated) {
             console.log('[Dashboard] Fix My App capture complete, session:', fixSession);
-            
+
             // Store session ID for the modal
             setFixSessionId(fixSession);
-            
+
             // Show notification preferences modal
             setShowNotificationModal(true);
-            
+
             // Clear the query param so refresh doesn't re-trigger
             searchParams.delete('fixSession');
             setSearchParams(searchParams, { replace: true });
-            
+
             // Show success toast
             toast({
                 title: 'Capture Complete!',
                 description: 'KripTik AI is analyzing your project and will start building automatically.',
             });
-            
+
             // Refresh projects to show the new Fix My App project
             fetchProjects();
         }
