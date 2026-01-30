@@ -27,3 +27,16 @@ export {
     type VisualIntentExtraction,
 } from './conversation-analyzer.js';
 
+// Environment Variable Detection (AI-powered)
+export {
+    detectRequiredEnvVars,
+    detectEnvVarsFromIntent,
+    detectEnvVarsComprehensive,
+    getDocsUrlForService,
+    groupEnvVarsByService,
+    validateEnvVars,
+    ENV_VAR_MAPPINGS,
+    type EnvVarRequirement,
+    type ProjectFile,
+    type EnvDetectionResult,
+} from './env-detector.js';

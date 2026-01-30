@@ -18,6 +18,11 @@ import {
     createBrowserExtractor,
     createContextStore,
     BrowserExtractorService,
+    detectEnvVarsComprehensive,
+    groupEnvVarsByService,
+    getDocsUrlForService,
+    type EnvVarRequirement,
+    type ProjectFile,
 } from '../services/fix-my-app/index.js';
 import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
 import { createExecutionContext, type ExecutionContext } from '../services/core/index.js';
@@ -965,7 +970,8 @@ const sessionSavedCredentials = new Map<string, Set<string>>();
  * GET /api/fix-my-app/sessions/:sessionId/credentials
  * Get required credentials for a specific Fix My App session
  * 
- * Used by FixMyAppCredentials page to display the credential tiles
+ * Uses AI-powered detection based on user's conversation intent.
+ * Used by FixMyAppCredentials page to display the credential tiles.
  */
 router.get('/sessions/:sessionId/credentials', async (req: Request, res: Response) => {
     try {
@@ -987,8 +993,15 @@ router.get('/sessions/:sessionId/credentials', async (req: Request, res: Respons
         let requiredCredentials = sessionCredentialRequirements.get(sessionId);
         
         if (!requiredCredentials) {
-            // Detect from analysis or use defaults based on common patterns
-            requiredCredentials = detectRequiredCredentials(session);
+            // Use AI-powered detection based on user's conversation intent
+            console.log(`[Fix My App] Detecting credentials for session ${sessionId} using AI analysis...`);
+            try {
+                requiredCredentials = await detectRequiredCredentialsAI(session);
+                console.log(`[Fix My App] AI detected ${requiredCredentials.length} services requiring credentials`);
+            } catch (aiError) {
+                console.warn('[Fix My App] AI detection failed, using legacy detection:', aiError);
+                requiredCredentials = detectRequiredCredentials(session);
+            }
             sessionCredentialRequirements.set(sessionId, requiredCredentials);
         }
 
@@ -1120,8 +1133,77 @@ router.post('/sessions/:sessionId/resume', async (req: Request, res: Response) =
 
 /**
  * Helper: Detect required credentials from session analysis
+ * Uses AI-powered detection based on user's intent from their conversation
  */
-function detectRequiredCredentials(session: any): Array<{
+async function detectRequiredCredentialsAI(session: any): Promise<Array<{
+    serviceId: string;
+    serviceName: string;
+    reason: string;
+    docsUrl?: string;
+    keys: Array<{ name: string; label: string; placeholder: string; sensitive: boolean; }>;
+}>> {
+    const detected: Array<{
+        serviceId: string;
+        serviceName: string;
+        reason: string;
+        docsUrl?: string;
+        keys: Array<{ name: string; label: string; placeholder: string; sensitive: boolean; }>;
+    }> = [];
+
+    try {
+        // Get chat history and intent from session
+        const chatHistory = session.context?.raw?.chatHistory || [];
+        const intentSummary = session.context?.processed?.intentSummary;
+
+        // Get project files if available
+        const projectFiles: ProjectFile[] = [];
+        if (session.context?.raw?.files) {
+            for (const [path, content] of session.context.raw.files) {
+                projectFiles.push({ path, content: content as string });
+            }
+        }
+
+        // Use AI-powered comprehensive detection
+        const detectionResult = await detectEnvVarsComprehensive(
+            projectFiles,
+            chatHistory,
+            intentSummary
+        );
+
+        // Group by service for the UI format
+        const grouped = groupEnvVarsByService(detectionResult.missing);
+
+        for (const [service, vars] of grouped) {
+            const firstVar = vars[0];
+            detected.push({
+                serviceId: service.toLowerCase().replace(/\s+/g, '-'),
+                serviceName: firstVar.serviceName || service.charAt(0).toUpperCase() + service.slice(1),
+                reason: firstVar.reason || `Required for ${service} integration`,
+                docsUrl: getDocsUrlForService(service) || firstVar.docsUrl,
+                keys: vars.map(v => ({
+                    name: v.name,
+                    label: v.description || v.name.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
+                    placeholder: v.placeholder || '',
+                    sensitive: v.name.toLowerCase().includes('secret') ||
+                               v.name.toLowerCase().includes('key') ||
+                               v.name.toLowerCase().includes('token') ||
+                               v.name.toLowerCase().includes('password'),
+                })),
+            });
+        }
+    } catch (error) {
+        console.error('[Fix My App] AI credential detection failed:', error);
+        // Fall back to legacy pattern-based detection
+        return detectRequiredCredentialsLegacy(session);
+    }
+
+    return detected;
+}
+
+/**
+ * Legacy fallback: Pattern-based credential detection
+ */
+function detectRequiredCredentialsLegacy(session: any): Array<{
     serviceId: string;
     serviceName: string;
     reason: string;
@@ -1134,23 +1216,22 @@ function detectRequiredCredentials(session: any): Array<{
         keys: Array<{ name: string; label: string; placeholder: string; sensitive: boolean; }>;
     }> = [];
 
-    // Check implementation gaps for credential requirements
     const gaps = session.context?.processed?.implementationGaps || [];
     const chatContent = session.context?.raw?.chatHistory?.map((m: any) => m.content).join(' ').toLowerCase() || '';
     const fileContent = Array.from(session.context?.raw?.files?.values() || []).join(' ').toLowerCase();
     const combinedContent = chatContent + ' ' + fileContent;
 
-    // Service detection patterns
+    // Common service patterns as fallback
     const servicePatterns = [
         {
-            patterns: ['openai', 'gpt-4', 'gpt-3', 'chatgpt api', 'openai_api_key'],
+            patterns: ['openai', 'gpt-4', 'gpt-3', 'chatgpt', 'dalle', 'whisper'],
             serviceId: 'openai',
             serviceName: 'OpenAI',
             reason: 'Your app uses OpenAI for AI features',
             keys: [{ name: 'OPENAI_API_KEY', label: 'API Key', placeholder: 'sk-...', sensitive: true }],
         },
         {
-            patterns: ['stripe', 'payment', 'subscription', 'billing', 'stripe_secret'],
+            patterns: ['stripe', 'payment', 'subscription', 'billing', 'checkout'],
             serviceId: 'stripe',
             serviceName: 'Stripe',
             reason: 'Your app uses Stripe for payments',
@@ -1160,7 +1241,7 @@ function detectRequiredCredentials(session: any): Array<{
             ],
         },
         {
-            patterns: ['supabase', 'supabase_url', 'supabase_key'],
+            patterns: ['supabase', 'realtime database', 'postgres auth'],
             serviceId: 'supabase',
             serviceName: 'Supabase',
             reason: 'Your app uses Supabase for database/auth',
@@ -1170,7 +1251,7 @@ function detectRequiredCredentials(session: any): Array<{
             ],
         },
         {
-            patterns: ['twilio', 'sms', 'twilio_account_sid'],
+            patterns: ['twilio', 'sms', 'voice call', 'phone verification'],
             serviceId: 'twilio',
             serviceName: 'Twilio',
             reason: 'Your app uses Twilio for SMS/voice',
@@ -1180,49 +1261,25 @@ function detectRequiredCredentials(session: any): Array<{
             ],
         },
         {
-            patterns: ['resend', 'email api', 'resend_api'],
+            patterns: ['resend', 'transactional email'],
             serviceId: 'resend',
             serviceName: 'Resend',
             reason: 'Your app uses Resend for email',
             keys: [{ name: 'RESEND_API_KEY', label: 'API Key', placeholder: 're_...', sensitive: true }],
         },
         {
-            patterns: ['anthropic', 'claude api', 'anthropic_api'],
+            patterns: ['anthropic', 'claude', 'claude api'],
             serviceId: 'anthropic',
             serviceName: 'Anthropic',
             reason: 'Your app uses Claude AI',
             keys: [{ name: 'ANTHROPIC_API_KEY', label: 'API Key', placeholder: 'sk-ant-...', sensitive: true }],
         },
         {
-            patterns: ['google ai', 'gemini api', 'google_ai_api'],
+            patterns: ['gemini', 'google ai', 'bard'],
             serviceId: 'google',
             serviceName: 'Google AI',
             reason: 'Your app uses Google Gemini',
             keys: [{ name: 'GOOGLE_AI_API_KEY', label: 'API Key', placeholder: 'AIza...', sensitive: true }],
-        },
-        {
-            patterns: ['vercel', 'vercel_token', 'deploy to vercel'],
-            serviceId: 'vercel',
-            serviceName: 'Vercel',
-            reason: 'Your app deploys to Vercel',
-            keys: [{ name: 'VERCEL_TOKEN', label: 'API Token', placeholder: '', sensitive: true }],
-        },
-        {
-            patterns: ['clerk', 'clerk_secret', 'authentication with clerk'],
-            serviceId: 'clerk',
-            serviceName: 'Clerk',
-            reason: 'Your app uses Clerk for auth',
-            keys: [
-                { name: 'CLERK_SECRET_KEY', label: 'Secret Key', placeholder: 'sk_live_...', sensitive: true },
-                { name: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', label: 'Publishable Key', placeholder: 'pk_live_...', sensitive: false },
-            ],
-        },
-        {
-            patterns: ['replicate', 'replicate_api', 'ml model'],
-            serviceId: 'replicate',
-            serviceName: 'Replicate',
-            reason: 'Your app uses Replicate for ML',
-            keys: [{ name: 'REPLICATE_API_TOKEN', label: 'API Token', placeholder: 'r8_...', sensitive: true }],
         },
     ];
 
@@ -1238,12 +1295,11 @@ function detectRequiredCredentials(session: any): Array<{
         }
     }
 
-    // Also check explicit credential gaps from analysis
+    // Check explicit gaps
     for (const gap of gaps) {
         if (gap.type === 'credential' && gap.service) {
             const existing = detected.find(d => d.serviceId === gap.service);
             if (!existing) {
-                // Add generic entry for unknown services
                 detected.push({
                     serviceId: gap.service,
                     serviceName: gap.service.charAt(0).toUpperCase() + gap.service.slice(1),
@@ -1255,6 +1311,21 @@ function detectRequiredCredentials(session: any): Array<{
     }
 
     return detected;
+}
+
+/**
+ * Main entry point for credential detection - uses AI with legacy fallback
+ */
+function detectRequiredCredentials(session: any): Array<{
+    serviceId: string;
+    serviceName: string;
+    reason: string;
+    docsUrl?: string;
+    keys: Array<{ name: string; label: string; placeholder: string; sensitive: boolean; }>;
+}> {
+    // For synchronous contexts, use legacy detection
+    // The async AI version is called directly in the route handler
+    return detectRequiredCredentialsLegacy(session);
 }
 
 /**
