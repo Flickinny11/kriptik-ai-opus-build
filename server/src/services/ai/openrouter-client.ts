@@ -149,6 +149,12 @@ export const OPENROUTER_MODELS = {
     // Llama 3.3 - Open source alternative
     LLAMA_3_3_70B: 'meta-llama/llama-3.3-70b-instruct',
 
+    // UI-TARS 1.5-7B (ByteDance) - SOTA GUI automation agent (Jan 2026)
+    // Best-in-class for UI navigation, clicking, scrolling, form filling
+    // Outperforms Claude and GPT-4o on OSWorld, WebVoyager, AndroidWorld
+    // $0.10/M input, $0.20/M output - extremely cost-effective
+    UI_TARS: 'bytedance/ui-tars-1.5-7b',
+
     // Grok 2 - Fast
     GROK_2: 'x-ai/grok-2-1212',
 
@@ -824,6 +830,16 @@ export class OpenRouterClient {
                 supports1MContext: true,
                 costPer1MInput: 0.075,   // $0.075/M input - cheapest
                 costPer1MOutput: 0.3,    // $0.30/M output - supports vision & video
+            },
+            // UI-TARS 1.5-7B - SOTA GUI automation (Jan 2026)
+            [OPENROUTER_MODELS.UI_TARS]: {
+                contextWindow: 128000,
+                maxOutput: 8192,
+                supportsThinking: false,
+                supportsEffort: false,
+                supports1MContext: false,
+                costPer1MInput: 0.10,    // $0.10/M input - very cheap
+                costPer1MOutput: 0.20,   // $0.20/M output - SOTA for GUI
             },
         };
 

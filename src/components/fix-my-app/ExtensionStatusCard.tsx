@@ -1,15 +1,15 @@
 /**
  * ExtensionStatusCard - Browser Extension Detection & Installation UI
- * 
+ *
  * Shows the status of the KripTik browser extension and provides
  * installation instructions when not detected.
  */
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CheckCircle2Icon, 
-  DownloadIcon, 
+import {
+  CheckCircle2Icon,
+  DownloadIcon,
   RefreshCwIcon,
   Loader2Icon,
   ExternalLinkIcon,
@@ -26,7 +26,7 @@ interface ExtensionStatusCardProps {
 }
 
 // Chrome Web Store URL - configured via environment variable
-const EXTENSION_STORE_URL = import.meta.env.VITE_EXTENSION_STORE_URL || 
+const EXTENSION_STORE_URL = import.meta.env.VITE_EXTENSION_STORE_URL ||
   'https://chromewebstore.google.com/detail/kriptik-ai';
 
 // Button styles matching the app's design system

@@ -1239,6 +1239,229 @@ Return only NEW content in JSON:
 });
 
 // ============================================================================
+// AGENTIC DECIDE API (UI-TARS for GUI Automation - January 2026)
+// ============================================================================
+
+/**
+ * POST /api/extension/agentic-decide
+ * Get AI decision on what action to take next
+ *
+ * Uses UI-TARS 1.5-7B (bytedance/ui-tars-1.5-7b) via OpenRouter
+ * This model is state-of-the-art for GUI automation:
+ * - Outperforms Claude and GPT-4o on OSWorld (24.6 vs 22.0)
+ * - Outperforms GPT-4o on WebVoyager, AndroidWorld
+ * - Cost: $0.10/M input, $0.20/M output (very affordable)
+ *
+ * Takes: screenshot, accessibility snapshot, context
+ * Returns: action to perform (click, scroll, wait, etc.) + extracted data
+ */
+router.post('/agentic-decide', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    try {
+        const {
+            screenshot,
+            accessibilitySnapshot,
+            visibleText,
+            scrollInfo,
+            platform,
+            task,
+            actionHistory,
+            messagesFoundSoFar,
+            model,
+        } = req.body;
+
+        if (!screenshot) {
+            return res.status(400).json({
+                success: false,
+                error: 'Screenshot is required',
+            });
+        }
+
+        const openRouterKey = process.env.OPENROUTER_API_KEY;
+        if (!openRouterKey) {
+            console.error('[AgenticDecide] OPENROUTER_API_KEY not configured');
+            return res.status(500).json({
+                success: false,
+                error: 'AI service not configured',
+            });
+        }
+
+        // Use UI-TARS as primary model, Gemini 3 Flash as fallback
+        const primaryModel = model || 'bytedance/ui-tars-1.5-7b';
+        const fallbackModel = 'google/gemini-3-flash-preview';
+
+        // Build the prompt for the AI agent
+        const systemPrompt = `You are a GUI automation agent. Your task is to navigate a ${platform || 'web application'} to ${task || 'capture all chat messages'}.
+
+CURRENT STATE:
+- Messages found so far: ${messagesFoundSoFar || 0}
+- Scroll position: ${scrollInfo?.percentScrolled || 0}% (${scrollInfo?.canScrollUp ? 'can scroll up' : 'at top'}, ${scrollInfo?.canScrollDown ? 'can scroll down' : 'at bottom'})
+- Recent actions: ${actionHistory?.slice(-3).map((a: any) => a.action).join(', ') || 'none'}
+
+AVAILABLE ACTIONS:
+1. click - Click an element (provide ref like @e5, or text to find, or x,y coordinates)
+2. scroll_up - Scroll up to see older messages
+3. scroll_down - Scroll down to see newer messages  
+4. scroll_to_top - Go to the very beginning
+5. scroll_to_bottom - Go to the very end
+6. wait - Wait for content to load
+7. hover - Hover over an element
+
+ACCESSIBILITY SNAPSHOT (elements with refs):
+${JSON.stringify(accessibilitySnapshot?.elements?.slice(0, 50) || [], null, 2)}
+
+TASK PRIORITIES:
+1. If task is 'capture_chat' or 'capture_all': Scroll to the TOP of the chat to find the first message
+2. Extract ALL visible chat messages (user and AI responses)
+3. Find export/download buttons if present
+4. Complete when you've seen ALL messages from beginning to end
+
+Analyze the screenshot and accessibility snapshot. Return a JSON response with:
+{
+  "action": { "type": "scroll_up|scroll_down|click|wait|...", "ref": "@e5", "text": "button text", "amount": 300 },
+  "extractedData": { 
+    "messages": [{ "role": "user|assistant", "content": "...", "codeBlocks": [...] }],
+    "errors": [...],
+    "files": [...],
+    "uiElements": [{ "type": "export_button", "ref": "@e10" }]
+  },
+  "reasoning": "Brief explanation of why this action",
+  "isTaskComplete": false
+}
+
+IMPORTANT:
+- Extract ANY visible messages you see in this frame
+- If you see "load more" or similar, click it
+- If at 0% scroll and can scroll up, scroll up to find older messages
+- Task is complete when you've captured all messages from start to end
+- Use refs (@e1, @e2, etc.) for clicking - they're more reliable than coordinates`;
+
+        console.log(`[AgenticDecide] Calling ${primaryModel} for ${platform}`);
+
+        // Call UI-TARS via OpenRouter
+        let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${openRouterKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://kriptik.app',
+                'X-Title': 'KripTik AI Agentic Capture',
+            },
+            body: JSON.stringify({
+                model: primaryModel,
+                max_tokens: 4096,
+                temperature: 0.1,  // Low temperature for precise actions
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: `data:image/png;base64,${screenshot}`,
+                                },
+                            },
+                            {
+                                type: 'text',
+                                text: systemPrompt,
+                            },
+                        ],
+                    },
+                ],
+            }),
+        });
+
+        // If primary model fails, try fallback
+        if (!response.ok && primaryModel !== fallbackModel) {
+            console.log(`[AgenticDecide] Primary model failed, trying fallback: ${fallbackModel}`);
+            response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${openRouterKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://kriptik.app',
+                    'X-Title': 'KripTik AI Agentic Capture',
+                },
+                body: JSON.stringify({
+                    model: fallbackModel,
+                    max_tokens: 8192,
+                    temperature: 0.1,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: `data:image/png;base64,${screenshot}`,
+                                    },
+                                },
+                                {
+                                    type: 'text',
+                                    text: systemPrompt,
+                                },
+                            ],
+                        },
+                    ],
+                }),
+            });
+        }
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[AgenticDecide] OpenRouter error:', response.status, errorText);
+            
+            // Return a safe default action
+            return res.json({
+                success: true,
+                action: { type: 'scroll_up', amount: 300 },
+                extractedData: null,
+                reasoning: 'API error - defaulting to scroll up to find content',
+                isTaskComplete: false,
+            });
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '';
+
+        // Parse JSON from response
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            try {
+                const parsed = JSON.parse(jsonMatch[0]);
+
+                console.log(`[AgenticDecide] Action: ${parsed.action?.type || 'unknown'}, Reasoning: ${parsed.reasoning?.substring(0, 50)}...`);
+
+                return res.json({
+                    success: true,
+                    action: parsed.action || { type: 'wait', duration: 500 },
+                    extractedData: parsed.extractedData || null,
+                    reasoning: parsed.reasoning || '',
+                    isTaskComplete: parsed.isTaskComplete || false,
+                });
+            } catch (parseError) {
+                console.error('[AgenticDecide] JSON parse error:', parseError);
+            }
+        }
+
+        // Default response if parsing fails
+        return res.json({
+            success: true,
+            action: { type: 'scroll_up', amount: 300 },
+            extractedData: null,
+            reasoning: 'Could not parse AI response - scrolling up to gather more context',
+            isTaskComplete: false,
+        });
+
+    } catch (error) {
+        console.error('[AgenticDecide] Error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+// ============================================================================
 // VISION CAPTURE API (Gemini 3 Flash + Playwright Browser Automation)
 // ============================================================================
 

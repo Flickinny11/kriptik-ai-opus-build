@@ -20,14 +20,14 @@ const ClientCapture = {
   activeSession: null,
   isCapturing: false,
   aborted: false,
-  
+
   // Capture results
   allMessages: [],
   allErrors: [],
   allFiles: [],
   uiElementsFound: [],
   screenshots: [],
-  
+
   // Configuration
   config: {
     captureIntervalMs: 500, // 2fps
@@ -37,7 +37,7 @@ const ClientCapture = {
     apiEndpoint: null,
     sessionToken: null,
   },
-  
+
   // Callbacks
   onProgress: null,
   onComplete: null,
@@ -50,10 +50,10 @@ const ClientCapture = {
   init(options = {}) {
     // Get session data from storage or window
     const session = window.__kriptikSession || {};
-    
+
     this.config.apiEndpoint = options.apiEndpoint || session.apiEndpoint || 'https://kriptik.app';
     this.config.sessionToken = options.sessionToken || session.token || '';
-    
+
     console.log('[ClientCapture] Initialized with endpoint:', this.config.apiEndpoint);
   },
 
@@ -236,7 +236,7 @@ const ClientCapture = {
 
     } catch (error) {
       console.error('[ClientCapture] Error:', error);
-      
+
       if (this.onError) {
         this.onError({ message: error.message });
       }
@@ -416,7 +416,7 @@ Return only NEW content in JSON format:
    */
   async scrollDown() {
     const scrollBefore = window.scrollY;
-    
+
     // Try chat container first
     const chatSelectors = [
       '[class*="chat"]',

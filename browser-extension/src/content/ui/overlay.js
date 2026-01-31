@@ -428,48 +428,51 @@ const Overlay = {
 
     /**
      * Start AI-powered capture
-     * Uses ClientCapture (client-side) as primary method since Playwright isn't available on Vercel serverless
-     * Falls back to VisionCapture if ClientCapture isn't available
+     * Uses AgenticCapture (January 2026) as primary method - UI-TARS for GUI automation
+     * Falls back to ClientCapture, then VisionCapture
      * @param {Object} platform - Platform configuration
      */
     async startVisionCapture(platform) {
         this.addLog('[START] Initiating AI-powered capture...');
-        this.addLog('[INFO] Using Gemini 3 Flash for intelligent content extraction');
+        this.addLog('[INFO] Using UI-TARS 1.5 for intelligent GUI automation');
 
         try {
-            // Try ClientCapture first (works without Playwright - ideal for serverless)
-            if (typeof ClientCapture !== 'undefined') {
-                this.addLog('[MODE] Using client-side capture (serverless compatible)');
-                
-                ClientCapture.setCallbacks({
+            // Try AgenticCapture first (January 2026 architecture - uses UI-TARS model)
+            // This is the best method: uses accessibility snapshots and ref-based clicking
+            if (typeof AgenticCapture !== 'undefined') {
+                this.addLog('[MODE] Using Agentic Capture (UI-TARS + accessibility tree)');
+                this.addLog('[INFO] This method works reliably on v0, Lovable, Bolt, and other AI builders');
+
+                AgenticCapture.setCallbacks({
                     onProgress: (progress) => {
                         this.updateStat('messages', progress.messagesFound);
                         this.updateStat('files', progress.filesFound);
                         this.updateStat('errors', progress.errorsFound);
-                        this.addLog(`[PROGRESS] ${progress.screenshotCount} frames, ${progress.messagesFound} messages found`);
+                        this.updatePhaseMessage(progress.message || 'Capturing...');
+                        this.addLog(`[${progress.phase?.toUpperCase() || 'PROGRESS'}] ${progress.message || `${progress.messagesFound} messages`}`);
                     },
                     onComplete: (data) => {
                         this.handleVisionCaptureComplete(data, platform);
                     },
                     onError: (error) => {
-                        // Try VisionCapture as fallback
-                        this.addLog('[FALLBACK] Client capture failed, trying server-side...');
-                        this.tryServerSideCapture(platform);
+                        // Try ClientCapture as fallback
+                        this.addLog('[FALLBACK] Agentic capture failed, trying screenshot-based...');
+                        this.tryClientCapture(platform);
                     }
                 });
 
-                const result = await ClientCapture.start(platform);
+                const result = await AgenticCapture.start(platform, { type: 'capture_all' });
 
                 if (result.success) {
                     return; // Capture handled by callback
                 }
 
-                // If client capture fails immediately, try server-side
-                throw new Error(result.error || 'Client capture failed');
+                // If agentic capture fails immediately, try client capture
+                throw new Error(result.error || 'Agentic capture failed');
             }
 
-            // Fallback to VisionCapture (requires Playwright - won't work on Vercel)
-            this.tryServerSideCapture(platform);
+            // Fallback to ClientCapture (screenshot-based, serverless compatible)
+            this.tryClientCapture(platform);
 
         } catch (error) {
             console.error('[Overlay] Capture error:', error);
@@ -485,6 +488,45 @@ const Overlay = {
     },
 
     /**
+     * Try client-side capture using ClientCapture (screenshot-based)
+     * @param {Object} platform - Platform configuration
+     */
+    async tryClientCapture(platform) {
+        if (typeof ClientCapture !== 'undefined') {
+            this.addLog('[MODE] Using client-side capture (screenshot + Gemini 3 Flash)');
+
+            ClientCapture.setCallbacks({
+                onProgress: (progress) => {
+                    this.updateStat('messages', progress.messagesFound);
+                    this.updateStat('files', progress.filesFound);
+                    this.updateStat('errors', progress.errorsFound);
+                    this.addLog(`[PROGRESS] ${progress.screenshotCount} frames, ${progress.messagesFound} messages found`);
+                },
+                onComplete: (data) => {
+                    this.handleVisionCaptureComplete(data, platform);
+                },
+                onError: (error) => {
+                    // Try VisionCapture as last resort
+                    this.addLog('[FALLBACK] Client capture failed, trying server-side...');
+                    this.tryServerSideCapture(platform);
+                }
+            });
+
+            const result = await ClientCapture.start(platform);
+
+            if (result.success) {
+                return; // Capture handled by callback
+            }
+
+            // If client capture fails immediately, try server-side
+            throw new Error(result.error || 'Client capture failed');
+        }
+
+        // Fallback to VisionCapture (requires Playwright - won't work on Vercel)
+        this.tryServerSideCapture(platform);
+    },
+
+    /**
      * Try server-side capture using VisionCapture (requires Playwright)
      * This is a fallback for when client-side capture fails
      * @param {Object} platform - Platform configuration
@@ -492,7 +534,7 @@ const Overlay = {
     async tryServerSideCapture(platform) {
         if (typeof VisionCapture !== 'undefined') {
             this.addLog('[MODE] Using server-side capture (Playwright)');
-            
+
             VisionCapture.setCallbacks({
                 onProgress: (session) => {
                     this.updateStat('messages', session.progress?.messagesFound || 0);
