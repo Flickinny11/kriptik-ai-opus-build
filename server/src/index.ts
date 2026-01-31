@@ -737,6 +737,7 @@ import visualUnderstandingRouter from './routes/visual-understanding.js';
 import hyperThinkingRouter from './routes/hyper-thinking.js';
 import visualSemanticRouter from './routes/visual-semantic.js';
 import designModeRouter from './routes/design-mode.js';
+import verificationRouter from './routes/verification.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -875,6 +876,10 @@ app.use("/api/migration", migrationRouter);
 
 // Code Quality
 app.use("/api/quality", qualityRouter);
+
+// Verification Swarm - 6-agent verification system with V-JEPA 2 predictions
+// SSE streaming for real-time verification feedback (no credit cost for monitoring)
+app.use("/api/verification", verificationRouter);
 
 // Configuration
 app.use("/api/config", configRouter);
