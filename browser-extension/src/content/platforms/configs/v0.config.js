@@ -6,8 +6,8 @@
         name: 'v0',
         provider: 'Vercel',
         tier: 1,
-        hostPatterns: ['v0.dev'],
-        projectUrlPattern: /v0\.dev\/([a-zA-Z0-9-]+)/,
+        hostPatterns: ['v0.dev', 'v0.app'], // Both domains are used by v0
+        projectUrlPattern: /v0\.(?:dev|app)\/(?:chat\/)?([a-zA-Z0-9-]+)/,
         exportMechanism: 'copy-code',
 
         features: {
