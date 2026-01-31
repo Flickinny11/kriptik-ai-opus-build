@@ -246,8 +246,7 @@ const sourceOptions: SourceConfig[] = [
         description: 'Vercel\'s component builder',
         category: 'ai_builder',
         contextAvailable: true,
-        requiresUrl: true,
-        urlPlaceholder: 'https://v0.dev/chat/...',
+        requiresUrl: false, // URL input is on consent page for AI builders
         chatInstructions: [
             'Open your v0 conversation',
             'Copy the shareable link',
@@ -261,8 +260,7 @@ const sourceOptions: SourceConfig[] = [
         description: 'AI-powered app creation',
         category: 'ai_builder',
         contextAvailable: true,
-        requiresUrl: true,
-        urlPlaceholder: 'https://create.xyz/project/...',
+        requiresUrl: false, // URL input is on consent page for AI builders
         chatInstructions: [
             'Open your Create.xyz project',
             'Copy the project URL',
@@ -276,8 +274,7 @@ const sourceOptions: SourceConfig[] = [
         description: 'AI development platform',
         category: 'ai_builder',
         contextAvailable: true,
-        requiresUrl: true,
-        urlPlaceholder: 'https://tempo.new/...',
+        requiresUrl: false, // URL input is on consent page for AI builders
         chatInstructions: [
             'Open your Tempo project',
             'Copy the project URL',
@@ -291,8 +288,7 @@ const sourceOptions: SourceConfig[] = [
         description: 'gptengineer.app',
         category: 'ai_builder',
         contextAvailable: true,
-        requiresUrl: true,
-        urlPlaceholder: 'https://gptengineer.app/projects/...',
+        requiresUrl: false, // URL input is on consent page for AI builders
         chatInstructions: [
             'Open your GPT Engineer project',
             'Copy the project URL',
@@ -306,8 +302,7 @@ const sourceOptions: SourceConfig[] = [
         description: 'AI data app builder',
         category: 'ai_builder',
         contextAvailable: true,
-        requiresUrl: true,
-        urlPlaceholder: 'https://databutton.com/app/...',
+        requiresUrl: false, // URL input is on consent page for AI builders
         chatInstructions: [
             'Open your Databutton project',
             'Copy the app URL',
@@ -1403,7 +1398,7 @@ export default function FixMyApp() {
 
                                 {/* Single consent checkbox - all or nothing */}
                                 <div className="mb-8">
-                                    <div 
+                                    <div
                                         className={cn(
                                             "p-6 rounded-xl border-2 cursor-pointer transition-all",
                                             consent.chatHistory && consent.buildLogs && consent.errorLogs && consent.versionHistory
