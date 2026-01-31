@@ -1,0 +1,476 @@
+/**
+ * Streaming Plan Mode Styles
+ *
+ * Phase 5: Plan Mode UI Overhaul
+ * Cursor-style streaming plan mode with premium liquid glass styling
+ */
+
+/* =============================================================================
+   CSS VARIABLES
+   ============================================================================= */
+
+.streaming-plan-mode {
+    --plan-primary: #F5A86C;
+    --plan-primary-glow: rgba(245, 168, 108, 0.4);
+    --plan-bg: rgba(20, 20, 28, 0.98);
+    --plan-card: rgba(35, 35, 48, 0.8);
+    --plan-border: rgba(255, 255, 255, 0.08);
+    --plan-text: rgba(255, 255, 255, 0.95);
+    --plan-text-muted: rgba(255, 255, 255, 0.6);
+    --plan-success: #4ade80;
+    --plan-warning: #facc15;
+    --phase-pending: rgba(255, 255, 255, 0.4);
+    --phase-planning: var(--plan-primary);
+    --phase-complete: var(--plan-success);
+
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: 32px;
+    background: var(--plan-bg);
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* =============================================================================
+   HEADER
+   ============================================================================= */
+
+.streaming-plan-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.streaming-logo-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.streaming-logo-glow {
+    position: absolute;
+    inset: -20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--plan-primary-glow) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.streaming-plan-title h2 {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 28px;
+    color: var(--plan-text);
+    margin: 0 0 4px 0;
+}
+
+.streaming-plan-stage {
+    font-size: 14px;
+    color: var(--plan-text-muted);
+    margin: 0;
+}
+
+/* =============================================================================
+   STREAMING TOKENS
+   ============================================================================= */
+
+.streaming-tokens-section {
+    margin-bottom: 32px;
+    padding: 24px;
+    border-radius: 16px;
+    background: var(--plan-card);
+    border: 1px solid var(--plan-border);
+    backdrop-filter: blur(10px);
+}
+
+.streaming-tokens-container {
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--plan-text-muted);
+}
+
+.streaming-tokens-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.streaming-tokens-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.streaming-tokens-container::-webkit-scrollbar-thumb {
+    background: var(--plan-border);
+    border-radius: 3px;
+}
+
+.streaming-token {
+    display: inline;
+    white-space: pre-wrap;
+}
+
+.streaming-token--thinking {
+    color: var(--plan-text-muted);
+}
+
+.streaming-token--plan {
+    color: var(--plan-primary);
+    font-weight: 500;
+}
+
+.streaming-token--code {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.streaming-token--explanation {
+    color: var(--plan-text);
+    font-style: italic;
+}
+
+.streaming-cursor {
+    display: inline;
+    color: var(--plan-primary);
+    font-weight: bold;
+}
+
+/* =============================================================================
+   PHASES SECTION
+   ============================================================================= */
+
+.streaming-plan-phases {
+    flex: 1;
+    margin-bottom: 24px;
+}
+
+.phases-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.phases-header h3 {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 18px;
+    color: var(--plan-text);
+    margin: 0;
+}
+
+.phases-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.stat-value {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 18px;
+    color: var(--plan-text);
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--plan-text-muted);
+}
+
+.phases-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* =============================================================================
+   PHASE CARD
+   ============================================================================= */
+
+.phase-card {
+    border-radius: 14px;
+    background: var(--plan-card);
+    border: 1px solid var(--plan-border);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.phase-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.phase-card--expanded {
+    border-color: var(--plan-primary);
+    box-shadow: 0 0 30px rgba(245, 168, 108, 0.1);
+}
+
+.phase-card--complete {
+    border-left: 3px solid var(--plan-success);
+}
+
+.phase-card--planning {
+    border-left: 3px solid var(--plan-primary);
+}
+
+.phase-card__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 18px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.phase-card__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+}
+
+.phase-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.phase-card__title {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 16px;
+    color: var(--plan-text);
+    margin: 0 0 4px 0;
+}
+
+.phase-card__description {
+    font-size: 13px;
+    color: var(--plan-text-muted);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.phase-card__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.phase-card__cost {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 14px;
+    color: var(--plan-primary);
+}
+
+.phase-card__steps {
+    font-size: 12px;
+    color: var(--plan-text-muted);
+}
+
+.phase-card__chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: var(--plan-text-muted);
+}
+
+/* =============================================================================
+   PHASE STEPS
+   ============================================================================= */
+
+.phase-card__steps {
+    border-top: 1px solid var(--plan-border);
+    background: rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.phase-step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--plan-border);
+}
+
+.phase-step:last-child {
+    border-bottom: none;
+}
+
+.phase-step__checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: transparent;
+    border: 2px solid var(--plan-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    color: var(--plan-success);
+}
+
+.phase-step__checkbox:hover {
+    border-color: var(--plan-primary);
+}
+
+.phase-step--complete .phase-step__checkbox {
+    background: var(--plan-success);
+    border-color: var(--plan-success);
+}
+
+.phase-step__content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.phase-step__title {
+    font-size: 14px;
+    color: var(--plan-text);
+}
+
+.phase-step--complete .phase-step__title {
+    color: var(--plan-text-muted);
+    text-decoration: line-through;
+}
+
+.phase-step__type {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--plan-text-muted);
+    text-transform: uppercase;
+}
+
+.phase-step__tokens {
+    font-size: 12px;
+    color: var(--plan-text-muted);
+    white-space: nowrap;
+}
+
+/* =============================================================================
+   ACTIONS
+   ============================================================================= */
+
+.streaming-plan-actions {
+    display: flex;
+    gap: 16px;
+    padding-top: 20px;
+    border-top: 1px solid var(--plan-border);
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn--cancel {
+    flex: 0;
+    background: transparent;
+    border: 1px solid var(--plan-border);
+    color: var(--plan-text-muted);
+}
+
+.action-btn--cancel:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--plan-text);
+}
+
+.action-btn--approve {
+    flex: 1;
+    background: linear-gradient(135deg, var(--plan-primary), #e09555);
+    border: none;
+    color: #1a1a1a;
+    box-shadow: 0 4px 20px var(--plan-primary-glow);
+}
+
+.action-btn--approve:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px var(--plan-primary-glow);
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+@keyframes thinking-pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .streaming-plan-mode {
+        padding: 20px;
+    }
+
+    .streaming-plan-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .phases-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .phases-stats {
+        gap: 16px;
+    }
+
+    .phase-card__header {
+        flex-wrap: wrap;
+    }
+
+    .phase-card__meta {
+        order: 10;
+        flex-direction: row;
+        gap: 12px;
+        margin-left: 60px;
+        margin-top: 8px;
+    }
+
+    .streaming-plan-actions {
+        flex-direction: column;
+    }
+
+    .action-btn--cancel {
+        order: 2;
+    }
+}
