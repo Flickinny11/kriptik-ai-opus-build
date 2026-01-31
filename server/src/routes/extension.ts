@@ -1051,6 +1051,194 @@ async function startFixMyAppAnalysis(
 }
 
 // ============================================================================
+// VISION ANALYZE API (Client-Side Capture Support)
+// ============================================================================
+
+/**
+ * POST /api/extension/vision-analyze
+ * Analyze a screenshot for chat messages, errors, files, and UI elements
+ *
+ * This endpoint is used by the client-side capture module (ClientCapture)
+ * which captures screenshots directly from the browser and sends them
+ * for analysis. Works without Playwright - ideal for serverless deployments.
+ *
+ * Uses: google/gemini-3-flash-preview via OpenRouter for vision analysis
+ */
+router.post('/vision-analyze', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    try {
+        const { screenshot, prompt, context } = req.body;
+
+        if (!screenshot) {
+            return res.status(400).json({
+                success: false,
+                error: 'Screenshot is required',
+            });
+        }
+
+        // Get OpenRouter API key
+        const openRouterKey = process.env.OPENROUTER_API_KEY;
+        if (!openRouterKey) {
+            console.error('[VisionAnalyze] OPENROUTER_API_KEY not configured');
+            return res.status(500).json({
+                success: false,
+                error: 'Vision analysis not configured',
+            });
+        }
+
+        const platformName = context?.platform || 'AI code builder';
+        const messagesFound = context?.messagesFound || 0;
+        const isFirst = context?.isFirstFrame ?? true;
+
+        // Build analysis prompt
+        const analysisPrompt = prompt || (isFirst
+            ? `You are analyzing a screenshot of ${platformName}, an AI code builder platform.
+Your goal is to COMPLETELY capture all content. We will scroll through the entire page.
+
+Extract ALL visible content:
+
+1. CHAT MESSAGES - Every visible message
+   - User and AI responses
+   - Include ALL code blocks with language
+   - Full text content, don't truncate
+
+2. ERRORS - Any error messages, warnings, build failures
+
+3. FILE TREE - List all visible files/folders
+
+4. UI ELEMENTS - Find export, download, build log buttons
+
+5. COMPLETION CHECK - If you see the START of the conversation, set chatComplete: true
+
+Return JSON:
+{
+  "messages": [{"role": "user"|"assistant", "content": "...", "codeBlocks": [{"language": "...", "code": "..."}]}],
+  "errors": [{"type": "...", "severity": "error"|"warning", "message": "..."}],
+  "files": [{"path": "...", "type": "file"|"folder"}],
+  "uiElements": [{"type": "export_button"|"download_button", "location": "..."}],
+  "chatComplete": false
+}`
+            : `Continue analyzing ${platformName}. ${messagesFound} messages found so far.
+
+Look for NEW content not previously captured. If you see the FIRST message, set chatComplete: true.
+
+Return only NEW content in JSON:
+{
+  "messages": [...],
+  "errors": [...],
+  "files": [...],
+  "uiElements": [...],
+  "chatComplete": false
+}`);
+
+        console.log(`[VisionAnalyze] Analyzing screenshot for ${platformName} (messages: ${messagesFound})`);
+
+        // Call OpenRouter with Gemini 3 Flash
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${openRouterKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://kriptik.app',
+                'X-Title': 'KripTik AI Vision Analyze',
+            },
+            body: JSON.stringify({
+                model: 'google/gemini-3-flash-preview',
+                max_tokens: 32768,
+                temperature: 0.2,
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: `data:image/png;base64,${screenshot}`,
+                                },
+                            },
+                            {
+                                type: 'text',
+                                text: analysisPrompt,
+                            },
+                        ],
+                    },
+                ],
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[VisionAnalyze] OpenRouter error:', response.status, errorText);
+            return res.status(500).json({
+                success: false,
+                error: 'Vision analysis failed',
+            });
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '';
+
+        // Parse JSON from response
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            try {
+                const parsed = JSON.parse(jsonMatch[0]);
+
+                // Format the response
+                const analysis = {
+                    messages: (parsed.messages || []).map((m: any, i: number) => ({
+                        id: `msg-${Date.now()}-${i}`,
+                        role: m.role === 'user' ? 'user' : 'assistant',
+                        content: m.content || '',
+                        codeBlocks: m.codeBlocks || [],
+                        timestamp: new Date().toISOString(),
+                    })),
+                    errors: (parsed.errors || []).map((e: any) => ({
+                        type: e.type || 'runtime',
+                        severity: e.severity || 'error',
+                        message: e.message || '',
+                        timestamp: new Date().toISOString(),
+                    })),
+                    files: (parsed.files || []).map((f: any) => ({
+                        path: f.path || '',
+                        type: f.type || 'file',
+                    })),
+                    uiElements: parsed.uiElements || [],
+                    chatComplete: parsed.chatComplete || false,
+                };
+
+                console.log(`[VisionAnalyze] Found: ${analysis.messages.length} messages, ${analysis.errors.length} errors, ${analysis.files.length} files`);
+
+                return res.json({
+                    success: true,
+                    analysis,
+                });
+            } catch (parseError) {
+                console.error('[VisionAnalyze] JSON parse error:', parseError);
+            }
+        }
+
+        // Return empty analysis if parsing failed
+        return res.json({
+            success: true,
+            analysis: {
+                messages: [],
+                errors: [],
+                files: [],
+                uiElements: [],
+                chatComplete: false,
+            },
+        });
+
+    } catch (error) {
+        console.error('[VisionAnalyze] Error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+// ============================================================================
 // VISION CAPTURE API (Gemini 3 Flash + Playwright Browser Automation)
 // ============================================================================
 

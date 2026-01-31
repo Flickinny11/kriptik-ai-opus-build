@@ -141,6 +141,7 @@
         "src/content/scrapers/terminal-scraper.js",
         "src/content/vision-capture.js",
         "src/content/computer-use.js",
+        "src/content/client-capture.js",
         "src/content/ui/phases.js",
         "src/content/ui/platform-logos.js",
         "src/content/ui/progress-animation.js",

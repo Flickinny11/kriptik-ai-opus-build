@@ -427,49 +427,49 @@ const Overlay = {
     },
 
     /**
-     * Start AI-powered capture using server-side Gemini Vision + Playwright
-     * This is the ONLY capture method - uses vision AI for best results across all platforms
+     * Start AI-powered capture
+     * Uses ClientCapture (client-side) as primary method since Playwright isn't available on Vercel serverless
+     * Falls back to VisionCapture if ClientCapture isn't available
      * @param {Object} platform - Platform configuration
      */
     async startVisionCapture(platform) {
         this.addLog('[START] Initiating AI-powered capture...');
-        this.addLog('[INFO] Using Gemini Vision for intelligent content extraction');
+        this.addLog('[INFO] Using Gemini 3 Flash for intelligent content extraction');
 
         try {
-            // Set up callbacks for progress updates
-            if (typeof VisionCapture !== 'undefined') {
-                VisionCapture.setCallbacks({
-                    onProgress: (session) => {
-                        this.updateStat('messages', session.progress.messagesFound);
-                        this.updateStat('files', session.progress.filesFound);
-                        this.updateStat('errors', session.progress.errorsFound);
+            // Try ClientCapture first (works without Playwright - ideal for serverless)
+            if (typeof ClientCapture !== 'undefined') {
+                this.addLog('[MODE] Using client-side capture (serverless compatible)');
+                
+                ClientCapture.setCallbacks({
+                    onProgress: (progress) => {
+                        this.updateStat('messages', progress.messagesFound);
+                        this.updateStat('files', progress.filesFound);
+                        this.updateStat('errors', progress.errorsFound);
+                        this.addLog(`[PROGRESS] ${progress.screenshotCount} frames, ${progress.messagesFound} messages found`);
                     },
                     onComplete: (data) => {
                         this.handleVisionCaptureComplete(data, platform);
                     },
                     onError: (error) => {
-                        this.handleVisionCaptureError(error, platform);
+                        // Try VisionCapture as fallback
+                        this.addLog('[FALLBACK] Client capture failed, trying server-side...');
+                        this.tryServerSideCapture(platform);
                     }
                 });
 
-                // Start vision capture with current page URL
-                const result = await VisionCapture.start(window.location.href, {
-                    captureScreenshots: true,
-                    maxScrollAttempts: 50,
-                    maxApiCalls: 100
-                });
+                const result = await ClientCapture.start(platform);
 
-                if (!result.success) {
-                    throw new Error(result.error || 'Failed to start capture');
+                if (result.success) {
+                    return; // Capture handled by callback
                 }
 
-                this.addLog(`[SESSION] Capture started: ${result.sessionId}`);
-                this.addLog('[CAPTURE] Server is analyzing the page...');
-                this.updatePhaseMessage('AI is capturing content...');
-
-            } else {
-                throw new Error('VisionCapture module not loaded');
+                // If client capture fails immediately, try server-side
+                throw new Error(result.error || 'Client capture failed');
             }
+
+            // Fallback to VisionCapture (requires Playwright - won't work on Vercel)
+            this.tryServerSideCapture(platform);
 
         } catch (error) {
             console.error('[Overlay] Capture error:', error);
@@ -481,6 +481,46 @@ const Overlay = {
             captureBtn.querySelector('.btn-text').textContent = 'RETRY';
 
             this.isCapturing = false;
+        }
+    },
+
+    /**
+     * Try server-side capture using VisionCapture (requires Playwright)
+     * This is a fallback for when client-side capture fails
+     * @param {Object} platform - Platform configuration
+     */
+    async tryServerSideCapture(platform) {
+        if (typeof VisionCapture !== 'undefined') {
+            this.addLog('[MODE] Using server-side capture (Playwright)');
+            
+            VisionCapture.setCallbacks({
+                onProgress: (session) => {
+                    this.updateStat('messages', session.progress?.messagesFound || 0);
+                    this.updateStat('files', session.progress?.filesFound || 0);
+                    this.updateStat('errors', session.progress?.errorsFound || 0);
+                },
+                onComplete: (data) => {
+                    this.handleVisionCaptureComplete(data, platform);
+                },
+                onError: (error) => {
+                    this.handleVisionCaptureError(error, platform);
+                }
+            });
+
+            const result = await VisionCapture.start(window.location.href, {
+                captureScreenshots: true,
+                maxScrollAttempts: 50,
+                maxApiCalls: 100
+            });
+
+            if (!result.success) {
+                throw new Error(result.error || 'Server-side capture failed');
+            }
+
+            this.addLog(`[SESSION] Capture started: ${result.sessionId}`);
+            this.updatePhaseMessage('Server is analyzing the page...');
+        } else {
+            throw new Error('No capture modules available');
         }
     },
 
