@@ -66,12 +66,10 @@
     "https://*.upstash.com/*",
     "https://kriptik.ai/*",
     "https://*.kriptik.ai/*",
-    "http://localhost:*/*",
-    "http://127.0.0.1:*/*"
+    "http://localhost/*"
   ],
   "background": {
-    "service_worker": "src/background/service-worker.js",
-    "type": "module"
+    "service_worker": "src/background/service-worker.js"
   },
   "content_scripts": [
     {
@@ -188,11 +186,7 @@
         "https://*.kriptik.ai/*",
         "https://kriptik.app/*",
         "https://*.kriptik.app/*",
-        "http://localhost:*/*",
-        "http://127.0.0.1:*/*",
-        "http://0.0.0.0:*/*",
-        "http://192.168.*.*:*/*",
-        "http://10.*.*.*:*/*",
+        "http://localhost/*",
         "https://*.vercel.app/*",
         "https://*.netlify.app/*",
         "https://*.pages.dev/*",
