@@ -1,0 +1,968 @@
+/**
+ * Tournament Judge Styles
+ *
+ * Phase 4: AI Lab Judge Integration
+ * Premium styling for AI model battle arena
+ */
+
+/* =============================================================================
+   CSS VARIABLES
+   ============================================================================= */
+
+.tournament-judge {
+    --judge-primary: #F5A86C;
+    --judge-primary-glow: rgba(245, 168, 108, 0.3);
+    --judge-bg: rgba(26, 26, 36, 0.95);
+    --judge-card: rgba(40, 40, 55, 0.8);
+    --judge-border: rgba(255, 255, 255, 0.1);
+    --judge-text: rgba(255, 255, 255, 0.95);
+    --judge-text-muted: rgba(255, 255, 255, 0.6);
+    --judge-success: #4ade80;
+    --judge-warning: #facc15;
+    --judge-error: #f87171;
+    --judge-gold: #ffd700;
+    --judge-silver: #c0c0c0;
+    --judge-bronze: #cd7f32;
+
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--judge-bg);
+    border-radius: 16px;
+    overflow: hidden;
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* =============================================================================
+   HEADER
+   ============================================================================= */
+
+.tournament-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--judge-border);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.judge-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--judge-primary), #e09555);
+    color: #1a1a1a;
+}
+
+.tournament-header h2 {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 20px;
+    color: var(--judge-text);
+    margin: 0;
+}
+
+.tournament-header .subtitle {
+    font-size: 13px;
+    color: var(--judge-text-muted);
+    margin-left: 8px;
+}
+
+.close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--judge-border);
+    color: var(--judge-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--judge-text);
+}
+
+/* =============================================================================
+   TABS
+   ============================================================================= */
+
+.tournament-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--judge-border);
+}
+
+.tournament-tabs .tab-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: var(--judge-text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tournament-tabs .tab-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--judge-text);
+}
+
+.tournament-tabs .tab-btn.active {
+    background: var(--judge-primary);
+    color: #1a1a1a;
+}
+
+.tournament-tabs .tab-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* =============================================================================
+   ERROR BANNER
+   ============================================================================= */
+
+.error-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: rgba(248, 113, 113, 0.15);
+    border-bottom: 1px solid rgba(248, 113, 113, 0.3);
+    color: var(--judge-error);
+    font-size: 14px;
+}
+
+.error-banner button {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid var(--judge-error);
+    color: var(--judge-error);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* =============================================================================
+   CONTENT
+   ============================================================================= */
+
+.tournament-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+/* =============================================================================
+   SETUP VIEW
+   ============================================================================= */
+
+.setup-view {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.setup-section {
+    margin-bottom: 32px;
+}
+
+.setup-section h3 {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 16px;
+    color: var(--judge-text);
+    margin: 0 0 12px 0;
+}
+
+.section-desc {
+    font-size: 13px;
+    color: var(--judge-text-muted);
+    margin: -8px 0 12px 0;
+}
+
+.battle-prompt-input {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--judge-border);
+    color: var(--judge-text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+}
+
+.battle-prompt-input:focus {
+    outline: none;
+    border-color: var(--judge-primary);
+}
+
+.battle-prompt-input::placeholder {
+    color: var(--judge-text-muted);
+}
+
+/* Model Grid */
+.model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.model-card {
+    position: relative;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--judge-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.model-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.model-card.selected {
+    background: rgba(245, 168, 108, 0.1);
+    border-color: var(--judge-primary);
+}
+
+.model-name {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 14px;
+    color: var(--judge-text);
+    margin-bottom: 4px;
+}
+
+.model-provider {
+    font-size: 12px;
+    color: var(--judge-text-muted);
+}
+
+.model-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--judge-primary);
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Judge Selector */
+.judge-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.judge-option {
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--judge-border);
+    color: var(--judge-text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.judge-option:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--judge-text);
+}
+
+.judge-option.selected {
+    background: var(--judge-primary);
+    border-color: var(--judge-primary);
+    color: #1a1a1a;
+}
+
+/* Criteria List */
+.criteria-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.criterion-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--judge-border);
+}
+
+.criterion-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.criterion-name {
+    font-weight: 500;
+    color: var(--judge-text);
+}
+
+.criterion-desc {
+    font-size: 12px;
+    color: var(--judge-text-muted);
+}
+
+.criterion-weight {
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(245, 168, 108, 0.2);
+    color: var(--judge-primary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Start Button */
+.start-tournament-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--judge-primary), #e09555);
+    border: none;
+    color: #1a1a1a;
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px var(--judge-primary-glow);
+}
+
+.start-tournament-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px var(--judge-primary-glow);
+}
+
+.start-tournament-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* =============================================================================
+   BATTLE VIEW
+   ============================================================================= */
+
+.battle-view {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.battle-prompt-display {
+    padding: 16px 20px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--judge-border);
+    margin-bottom: 24px;
+}
+
+.battle-prompt-display .label {
+    display: block;
+    font-size: 12px;
+    color: var(--judge-text-muted);
+    margin-bottom: 6px;
+}
+
+.battle-prompt-display p {
+    color: var(--judge-text);
+    font-size: 14px;
+    margin: 0;
+}
+
+.contestants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.contestant-card {
+    padding: 20px;
+    border-radius: 14px;
+    background: var(--judge-card);
+    border: 1px solid var(--judge-border);
+    transition: all 0.3s ease;
+}
+
+.contestant-card.status-generating {
+    border-color: var(--judge-primary);
+    box-shadow: 0 0 20px var(--judge-primary-glow);
+}
+
+.contestant-card.status-complete {
+    border-color: var(--judge-success);
+}
+
+.contestant-card.status-error {
+    border-color: var(--judge-error);
+}
+
+.contestant-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.contestant-name {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 16px;
+    color: var(--judge-text);
+}
+
+.contestant-provider {
+    font-size: 12px;
+    color: var(--judge-text-muted);
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.contestant-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.status-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--judge-primary-glow);
+    border-top-color: var(--judge-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.status-text {
+    font-size: 13px;
+    color: var(--judge-text-muted);
+}
+
+.status-text.status-complete {
+    color: var(--judge-success);
+}
+
+.status-text.status-error {
+    color: var(--judge-error);
+}
+
+.contestant-response {
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    font-size: 13px;
+    color: var(--judge-text-muted);
+    line-height: 1.5;
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.contestant-metrics {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--judge-text-muted);
+}
+
+.contestant-metrics span {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.judge-evaluating {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    border-radius: 12px;
+    background: rgba(245, 168, 108, 0.1);
+    border: 1px solid var(--judge-primary);
+    color: var(--judge-primary);
+    font-size: 15px;
+}
+
+.judge-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--judge-primary-glow);
+    border-top-color: var(--judge-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* =============================================================================
+   RESULTS VIEW
+   ============================================================================= */
+
+.results-view {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Winner Announcement */
+.winner-announcement {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 32px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 180, 0, 0.1));
+    border: 2px solid var(--judge-gold);
+    margin-bottom: 32px;
+}
+
+.trophy-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--judge-gold), #e6b800);
+    color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.winner-info {
+    flex: 1;
+}
+
+.winner-label {
+    display: block;
+    font-size: 14px;
+    color: var(--judge-gold);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.winner-name {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 28px;
+    color: var(--judge-text);
+    margin: 0 0 8px 0;
+}
+
+.winner-confidence {
+    font-size: 14px;
+    color: var(--judge-text-muted);
+}
+
+/* Rankings */
+.rankings-section {
+    margin-bottom: 32px;
+}
+
+.rankings-section h3 {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 18px;
+    color: var(--judge-text);
+    margin: 0 0 16px 0;
+}
+
+.rankings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    background: var(--judge-card);
+    border: 1px solid var(--judge-border);
+}
+
+.ranking-item.rank-1 {
+    border-color: var(--judge-gold);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), transparent);
+}
+
+.ranking-item.rank-2 {
+    border-color: var(--judge-silver);
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.1), transparent);
+}
+
+.ranking-item.rank-3 {
+    border-color: var(--judge-bronze);
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), transparent);
+}
+
+.rank-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 14px;
+    background: var(--judge-border);
+    color: var(--judge-text);
+    flex-shrink: 0;
+}
+
+.rank-1 .rank-badge {
+    background: var(--judge-gold);
+    color: #1a1a1a;
+}
+
+.rank-2 .rank-badge {
+    background: var(--judge-silver);
+    color: #1a1a1a;
+}
+
+.rank-3 .rank-badge {
+    background: var(--judge-bronze);
+    color: #1a1a1a;
+}
+
+.ranking-info {
+    flex: 1;
+}
+
+.ranking-name {
+    display: block;
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 15px;
+    color: var(--judge-text);
+}
+
+.ranking-provider {
+    font-size: 12px;
+    color: var(--judge-text-muted);
+}
+
+.ranking-score {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 150px;
+}
+
+.score-bar {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.score-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--judge-primary), #e09555);
+}
+
+.score-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--judge-text);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* Judge Reasoning */
+.judge-reasoning-section {
+    margin-bottom: 32px;
+}
+
+.judge-reasoning-section h3 {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 18px;
+    color: var(--judge-text);
+    margin: 0 0 16px 0;
+}
+
+.judge-reasoning-card {
+    padding: 20px;
+    border-radius: 12px;
+    background: var(--judge-card);
+    border: 1px solid var(--judge-border);
+}
+
+.judge-model-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(245, 168, 108, 0.15);
+    color: var(--judge-primary);
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.judge-reasoning-card p {
+    color: var(--judge-text);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Scorecards */
+.scorecards-section {
+    margin-bottom: 32px;
+}
+
+.scorecards-section h3 {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 18px;
+    color: var(--judge-text);
+    margin: 0 0 16px 0;
+}
+
+.scorecards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.scorecard {
+    padding: 20px;
+    border-radius: 14px;
+    background: var(--judge-card);
+    border: 1px solid var(--judge-border);
+}
+
+.scorecard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--judge-border);
+}
+
+.scorecard-name {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 16px;
+    color: var(--judge-text);
+}
+
+.scorecard-rank {
+    font-size: 12px;
+    color: var(--judge-primary);
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(245, 168, 108, 0.15);
+}
+
+.criteria-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.criterion-score .criterion-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.criterion-score .criterion-header span:first-child {
+    color: var(--judge-text-muted);
+}
+
+.criterion-score .criterion-header span:last-child {
+    color: var(--judge-text);
+    font-weight: 500;
+}
+
+.criterion-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.criterion-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--judge-primary);
+}
+
+.scorecard-assessment {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.assessment-label {
+    display: block;
+    font-size: 11px;
+    color: var(--judge-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.scorecard-assessment ul {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 12px;
+    color: var(--judge-text);
+}
+
+.scorecard-assessment li {
+    margin-bottom: 4px;
+}
+
+.strengths ul {
+    color: var(--judge-success);
+}
+
+.weaknesses ul {
+    color: var(--judge-warning);
+}
+
+/* Cost Summary */
+.cost-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    margin-bottom: 24px;
+    font-size: 14px;
+    color: var(--judge-text-muted);
+}
+
+.cost-value {
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 18px;
+    color: var(--judge-text);
+}
+
+/* New Tournament Button */
+.new-tournament-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: transparent;
+    border: 2px solid var(--judge-primary);
+    color: var(--judge-primary);
+    font-family: 'Cal Sans', sans-serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.new-tournament-btn:hover {
+    background: rgba(245, 168, 108, 0.1);
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(26, 26, 26, 0.3);
+    border-top-color: #1a1a1a;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .tournament-header {
+        padding: 16px 20px;
+    }
+
+    .tournament-header h2 {
+        font-size: 18px;
+    }
+
+    .tournament-header .subtitle {
+        display: none;
+    }
+
+    .tournament-content {
+        padding: 16px;
+    }
+
+    .model-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .winner-announcement {
+        flex-direction: column;
+        text-align: center;
+        padding: 24px;
+    }
+
+    .trophy-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .winner-name {
+        font-size: 22px;
+    }
+
+    .scorecards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .scorecard-assessment {
+        grid-template-columns: 1fr;
+    }
+}
