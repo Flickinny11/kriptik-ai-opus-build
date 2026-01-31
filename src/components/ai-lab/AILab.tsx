@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAILabStore, type AILabSession, type OrchestrationState } from '../../store/useAILabStore';
 import { authenticatedFetch, API_URL } from '../../lib/api-config';
+import { TournamentJudge } from './TournamentJudge';
 import './AILab.css';
 
 // ============================================================================
@@ -532,6 +533,12 @@ export const AILab: React.FC = () => {
                     >
                         History ({sessionHistory.length})
                     </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'tournament' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('tournament')}
+                    >
+                        Tournament
+                    </button>
                 </div>
             </div>
 
@@ -645,6 +652,18 @@ export const AILab: React.FC = () => {
                                     ))
                                 )}
                             </div>
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'tournament' && (
+                        <motion.div
+                            key="tournament"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="tournament-view"
+                        >
+                            <TournamentJudge />
                         </motion.div>
                     )}
                 </AnimatePresence>

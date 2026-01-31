@@ -1442,3 +1442,18 @@
     border-radius: 18px;
   }
 }
+
+/* =============================================================================
+   TOURNAMENT VIEW (Phase 7)
+   ============================================================================= */
+
+.tournament-view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 500px;
+}
+
+.tournament-view > * {
+  width: 100%;
+}

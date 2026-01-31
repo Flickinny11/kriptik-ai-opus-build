@@ -2038,4 +2038,178 @@ router.get('/resources/active', authMiddleware, async (req: Request, res: Respon
     }
 });
 
+// =============================================================================
+// COST ESTIMATION ENDPOINTS (Phase 6)
+// =============================================================================
+
+import {
+    MODEL_PRICING,
+    estimateTaskCost,
+    calculateCost,
+    formatCost,
+    getAllModels,
+    getModelsByProvider,
+    getModelsByTier,
+} from '../services/billing/cost-estimation.js';
+
+/**
+ * GET /api/billing/models
+ * Get all available models with pricing
+ */
+router.get('/models', async (_req: Request, res: Response) => {
+    try {
+        const models = getAllModels();
+        res.json({ models });
+    } catch (error) {
+        console.error('Error fetching models:', error);
+        res.status(500).json({ error: 'Failed to fetch models' });
+    }
+});
+
+/**
+ * GET /api/billing/models/:provider
+ * Get models by provider
+ */
+router.get('/models/:provider', async (req: Request, res: Response) => {
+    try {
+        const provider = req.params.provider as 'anthropic' | 'openai' | 'google' | 'deepseek' | 'meta' | 'xai' | 'mistral';
+        const models = getModelsByProvider(provider);
+        res.json({ models });
+    } catch (error) {
+        console.error('Error fetching models by provider:', error);
+        res.status(500).json({ error: 'Failed to fetch models' });
+    }
+});
+
+/**
+ * POST /api/billing/cost-estimate
+ * Estimate cost for a task with multiple model options
+ */
+router.post('/cost-estimate', async (req: Request, res: Response) => {
+    try {
+        const { prompt, taskType, existingCode } = req.body;
+
+        if (!prompt) {
+            res.status(400).json({ error: 'Prompt is required' });
+            return;
+        }
+
+        const estimate = estimateTaskCost(prompt, taskType, existingCode);
+
+        res.json({
+            estimate: {
+                low: {
+                    model: estimate.lowEstimate.model.name,
+                    cost: formatCost(estimate.lowEstimate.totalCost),
+                    costRaw: estimate.lowEstimate.totalCost,
+                    tokens: {
+                        input: estimate.lowEstimate.inputTokens,
+                        output: estimate.lowEstimate.outputTokens,
+                    },
+                },
+                medium: {
+                    model: estimate.mediumEstimate.model.name,
+                    cost: formatCost(estimate.mediumEstimate.totalCost),
+                    costRaw: estimate.mediumEstimate.totalCost,
+                    tokens: {
+                        input: estimate.mediumEstimate.inputTokens,
+                        output: estimate.mediumEstimate.outputTokens,
+                    },
+                },
+                high: {
+                    model: estimate.highEstimate.model.name,
+                    cost: formatCost(estimate.highEstimate.totalCost),
+                    costRaw: estimate.highEstimate.totalCost,
+                    tokens: {
+                        input: estimate.highEstimate.inputTokens,
+                        output: estimate.highEstimate.outputTokens,
+                    },
+                },
+                recommended: {
+                    model: estimate.recommended.model.name,
+                    cost: formatCost(estimate.recommended.totalCost),
+                    costRaw: estimate.recommended.totalCost,
+                    tokens: {
+                        input: estimate.recommended.inputTokens,
+                        output: estimate.recommended.outputTokens,
+                    },
+                },
+                complexity: estimate.taskComplexity,
+            },
+        });
+    } catch (error) {
+        console.error('Error estimating cost:', error);
+        res.status(500).json({ error: 'Failed to estimate cost' });
+    }
+});
+
+/**
+ * POST /api/billing/calculate-cost
+ * Calculate exact cost for specific model and tokens
+ */
+router.post('/calculate-cost', async (req: Request, res: Response) => {
+    try {
+        const { modelId, inputTokens, outputTokens, useBatch, useCache } = req.body;
+
+        const model = MODEL_PRICING[modelId];
+        if (!model) {
+            res.status(404).json({ error: `Model ${modelId} not found` });
+            return;
+        }
+
+        const cost = calculateCost(model, inputTokens || 0, outputTokens || 0, {
+            useBatch,
+            useCache,
+        });
+
+        res.json({
+            cost: {
+                input: formatCost(cost.inputCost),
+                output: formatCost(cost.outputCost),
+                total: formatCost(cost.totalCost),
+                totalRaw: cost.totalCost,
+                withBatch: cost.withBatch ? formatCost(cost.withBatch) : null,
+                withCache: cost.withCache ? formatCost(cost.withCache) : null,
+            },
+            model: {
+                name: model.name,
+                provider: model.provider,
+                tier: model.tier,
+            },
+            tokens: {
+                input: inputTokens,
+                output: outputTokens,
+            },
+        });
+    } catch (error) {
+        console.error('Error calculating cost:', error);
+        res.status(500).json({ error: 'Failed to calculate cost' });
+    }
+});
+
+/**
+ * GET /api/billing/pricing
+ * Get full pricing table
+ */
+router.get('/pricing', async (_req: Request, res: Response) => {
+    try {
+        const byTier = {
+            premium: getModelsByTier('premium'),
+            thinking: getModelsByTier('thinking'),
+            critical: getModelsByTier('critical'),
+            standard: getModelsByTier('standard'),
+            simple: getModelsByTier('simple'),
+        };
+
+        res.json({
+            models: MODEL_PRICING,
+            byTier,
+            lastUpdated: '2026-01-31',
+        });
+    } catch (error) {
+        console.error('Error fetching pricing:', error);
+        res.status(500).json({ error: 'Failed to fetch pricing' });
+    }
+});
+
 export default router;

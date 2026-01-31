@@ -60,6 +60,7 @@ import { useVisualEditorStore } from '../store/useVisualEditorStore';
 import { FloatingDevToolbar } from '../components/developer-bar';
 import { Spline3DDropdown } from '../components/spline';
 import { FloatingVerificationSwarm } from '../components/builder/FloatingVerificationSwarm';
+import { VerificationStreamPanel } from '../components/builder/VerificationStreamPanel';
 import { FloatingSoftInterrupt } from '../components/builder/FloatingSoftInterrupt';
 import { LiveVideoStreamPanel } from '../components/builder/LiveVideoStreamPanel';
 // AutonomousAgentsPanel now accessed via Developer Bar
@@ -716,6 +717,13 @@ export default function Builder() {
                     projectId={projectId || 'new'}
                     isBuilding={activeDevBarFeatures.includes('feature-agent') || showAgentPanel}
                     onOpenReport={() => setShowQualityReport(true)}
+                />
+
+                {/* Verification Stream Panel - V-JEPA 2 predictions and gate status */}
+                <VerificationStreamPanel
+                    projectId={projectId || 'new'}
+                    isBuilding={activeDevBarFeatures.includes('feature-agent') || showAgentPanel}
+                    sessionId={projectId || undefined}
                 />
 
                 {/* Agent Demo Overlay - Shows on first view of completed Fix My App project */}

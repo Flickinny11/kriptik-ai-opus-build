@@ -82,7 +82,7 @@ export interface AILabSession {
 export interface AILabState {
     // UI state
     isOpen: boolean;
-    activeTab: 'research' | 'history' | 'results';
+    activeTab: 'research' | 'history' | 'results' | 'tournament';
 
     // Session state
     currentSession: AILabSession | null;
