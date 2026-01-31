@@ -8,7 +8,7 @@
 import { Router, type Request } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { db } from '../db.js';
-import { projects, files as filesTable } from '../schema.js';
+import { projects, files as filesTable, verificationResults } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 import {
     createVerificationSwarm,
@@ -30,6 +30,12 @@ import {
     getStreamingFeedbackChannel,
     type FeedbackItem,
 } from '../services/feedback/streaming-feedback-channel.js';
+import {
+    createTieredGate,
+    getGateConfiguration,
+    type TieredVerificationGate,
+    type GateCheckResult,
+} from '../services/verification/tiered-gate.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -1018,6 +1024,424 @@ router.get('/status/:projectId', async (req, res) => {
         console.error('Error getting verification status:', error);
         res.status(500).json({
             error: 'Failed to get verification status',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+// ============================================================================
+// TIERED VERIFICATION GATE ENDPOINTS
+// ============================================================================
+
+// In-memory storage for active gates (would be in database in production)
+const activeGates = new Map<string, TieredVerificationGate>();
+
+/**
+ * GET /api/verification/gate/config
+ *
+ * Get the tiered gate configuration (Tier 1 and Tier 2 settings)
+ */
+router.get('/gate/config', async (_req, res) => {
+    try {
+        const config = getGateConfiguration();
+        res.status(200).json(config);
+    } catch (error) {
+        console.error('Error getting gate config:', error);
+        res.status(500).json({
+            error: 'Failed to get gate configuration',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * POST /api/verification/gate/start
+ *
+ * Start continuous Tier 1 verification for a project.
+ * This runs error checker and placeholder eliminator every 5 seconds.
+ */
+router.post('/gate/start', async (req, res) => {
+    const userId = getRequestUserId(req as unknown as Request);
+    const { projectId, orchestrationRunId, projectPath } = req.body;
+
+    if (!projectId) {
+        return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const gateKey = `${userId}:${projectId}`;
+
+        // Check if gate already exists
+        let gate = activeGates.get(gateKey);
+        if (!gate) {
+            gate = createTieredGate(
+                projectId,
+                userId,
+                orchestrationRunId || uuidv4(),
+                projectPath
+            );
+            activeGates.set(gateKey, gate);
+        }
+
+        // Start continuous verification
+        gate.startContinuousVerification();
+
+        res.status(200).json({
+            success: true,
+            message: 'Tiered verification gate started',
+            projectId,
+            gateKey,
+            status: gate.getFormattedStatus(),
+        });
+    } catch (error) {
+        console.error('Error starting gate:', error);
+        res.status(500).json({
+            error: 'Failed to start verification gate',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * POST /api/verification/gate/stop
+ *
+ * Stop continuous Tier 1 verification for a project.
+ */
+router.post('/gate/stop', async (req, res) => {
+    const userId = getRequestUserId(req as unknown as Request);
+    const { projectId } = req.body;
+
+    if (!projectId) {
+        return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const gateKey = `${userId}:${projectId}`;
+        const gate = activeGates.get(gateKey);
+
+        if (gate) {
+            gate.stopContinuousVerification();
+            res.status(200).json({
+                success: true,
+                message: 'Verification gate stopped',
+                projectId,
+            });
+        } else {
+            res.status(404).json({
+                error: 'Gate not found',
+                message: 'No active verification gate for this project',
+            });
+        }
+    } catch (error) {
+        console.error('Error stopping gate:', error);
+        res.status(500).json({
+            error: 'Failed to stop verification gate',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/verification/gate/status/:projectId
+ *
+ * Get current gate status for a project.
+ */
+router.get('/gate/status/:projectId', async (req, res) => {
+    const userId = getRequestUserId(req as unknown as Request);
+    const { projectId } = req.params;
+
+    if (!projectId) {
+        return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const gateKey = `${userId}:${projectId}`;
+        const gate = activeGates.get(gateKey);
+
+        if (gate) {
+            res.status(200).json({
+                projectId,
+                state: gate.getState(),
+                formatted: gate.getFormattedStatus(),
+                blockerDetails: gate.getBlockerDetails(),
+            });
+        } else {
+            res.status(200).json({
+                projectId,
+                state: {
+                    status: 'NOT_STARTED',
+                    tier1: null,
+                    tier2: null,
+                    currentFeatureId: null,
+                    lastGateCheck: null,
+                    blockedSince: null,
+                    consecutiveBlockedCount: 0,
+                    totalGateChecks: 0,
+                    totalBlockedEvents: 0,
+                },
+                formatted: {
+                    status: 'NOT_STARTED',
+                    message: 'Verification gate not started',
+                    tier1Status: 'Pending',
+                    tier2Status: 'Pending',
+                    blockerCount: 0,
+                    isBlocked: false,
+                },
+                blockerDetails: [],
+            });
+        }
+    } catch (error) {
+        console.error('Error getting gate status:', error);
+        res.status(500).json({
+            error: 'Failed to get gate status',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * POST /api/verification/gate/check
+ *
+ * Run a full gate check (both Tier 1 and Tier 2) for a feature.
+ * This is the main gate endpoint - nothing proceeds unless this returns canProceed: true.
+ */
+router.post('/gate/check', async (req, res) => {
+    const userId = getRequestUserId(req as unknown as Request);
+    const { projectId, featureId, featureDescription, intent } = req.body;
+
+    if (!projectId) {
+        return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const gateKey = `${userId}:${projectId}`;
+
+        // Get or create gate
+        let gate = activeGates.get(gateKey);
+        if (!gate) {
+            gate = createTieredGate(projectId, userId, uuidv4());
+            activeGates.set(gateKey, gate);
+        }
+
+        // Set intent if provided
+        if (intent) {
+            gate.setIntent(intent);
+        }
+
+        // Get project files
+        const projectFiles = await db
+            .select()
+            .from(filesTable)
+            .where(eq(filesTable.projectId, projectId));
+
+        const files = new Map<string, string>();
+        for (const file of projectFiles) {
+            files.set(file.path, file.content);
+        }
+
+        // Create feature object
+        const feature = {
+            featureId: featureId || 'current',
+            description: featureDescription || 'Current feature',
+            priority: 1 as const,
+            dependencies: [],
+        };
+
+        // Run full gate check
+        const result: GateCheckResult = await gate.checkGate(feature, files);
+
+        res.status(200).json({
+            projectId,
+            featureId: feature.featureId,
+            ...result,
+            gateState: gate.getState(),
+            formatted: gate.getFormattedStatus(),
+        });
+    } catch (error) {
+        console.error('Error checking gate:', error);
+        res.status(500).json({
+            error: 'Failed to check gate',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/verification/gate/:projectId/stream
+ *
+ * SSE stream of real-time gate status updates.
+ * This enables the Builder UI to show live gate status as verification runs.
+ *
+ * Events:
+ * - gate_status: Current gate status (OPEN, BLOCKED, PENDING)
+ * - tier1_complete: Tier 1 verification completed
+ * - tier2_complete: Tier 2 verification completed
+ * - blocker_added: New blocker detected
+ * - blocker_resolved: Blocker was fixed
+ * - heartbeat: Keep-alive
+ */
+router.get('/gate/:projectId/stream', async (req, res) => {
+    const { projectId } = req.params;
+    const userId = getRequestUserId(req as unknown as Request);
+
+    if (!projectId) {
+        return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const sendEvent = (event: string, data: unknown) => {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    const gateKey = `${userId}:${projectId}`;
+    let gate = activeGates.get(gateKey);
+
+    // Send initial connection event
+    sendEvent('connected', {
+        projectId,
+        timestamp: Date.now(),
+        message: 'Connected to tiered gate stream',
+        gateActive: !!gate,
+    });
+
+    // If gate exists, set up event listeners
+    if (gate) {
+        const onTier1Complete = (result: unknown) => {
+            sendEvent('tier1_complete', result);
+            sendEvent('gate_status', {
+                ...gate!.getFormattedStatus(),
+                timestamp: Date.now(),
+            });
+        };
+
+        const onTier2Complete = (result: unknown) => {
+            sendEvent('tier2_complete', result);
+            sendEvent('gate_status', {
+                ...gate!.getFormattedStatus(),
+                timestamp: Date.now(),
+            });
+        };
+
+        const onGateCheckComplete = (result: unknown) => {
+            sendEvent('gate_check_complete', result);
+        };
+
+        gate.on('tier1_complete', onTier1Complete);
+        gate.on('tier2_complete', onTier2Complete);
+        gate.on('gate_check_complete', onGateCheckComplete);
+
+        // Send current status
+        sendEvent('gate_status', {
+            ...gate.getFormattedStatus(),
+            state: gate.getState(),
+            timestamp: Date.now(),
+        });
+
+        // Cleanup on disconnect
+        req.on('close', () => {
+            if (gate) {
+                gate.off('tier1_complete', onTier1Complete);
+                gate.off('tier2_complete', onTier2Complete);
+                gate.off('gate_check_complete', onGateCheckComplete);
+            }
+        });
+    }
+
+    // Send periodic status updates
+    const statusInterval = setInterval(() => {
+        // Refresh gate reference in case it was created after connection
+        gate = activeGates.get(gateKey);
+
+        if (gate) {
+            sendEvent('gate_status', {
+                ...gate.getFormattedStatus(),
+                blockerDetails: gate.getBlockerDetails(),
+                timestamp: Date.now(),
+            });
+        } else {
+            sendEvent('gate_status', {
+                status: 'NOT_STARTED',
+                message: 'Verification gate not started',
+                tier1Status: 'Pending',
+                tier2Status: 'Pending',
+                blockerCount: 0,
+                isBlocked: false,
+                timestamp: Date.now(),
+            });
+        }
+    }, 5000);
+
+    // Heartbeat
+    const heartbeatInterval = setInterval(() => {
+        res.write(': heartbeat\n\n');
+    }, 30000);
+
+    // Cleanup on disconnect
+    req.on('close', () => {
+        clearInterval(statusInterval);
+        clearInterval(heartbeatInterval);
+    });
+});
+
+/**
+ * DELETE /api/verification/gate/:projectId
+ *
+ * Shutdown and remove a gate for a project.
+ */
+router.delete('/gate/:projectId', async (req, res) => {
+    const userId = getRequestUserId(req as unknown as Request);
+    const { projectId } = req.params;
+
+    if (!projectId) {
+        return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const gateKey = `${userId}:${projectId}`;
+        const gate = activeGates.get(gateKey);
+
+        if (gate) {
+            gate.shutdown();
+            activeGates.delete(gateKey);
+            res.status(200).json({
+                success: true,
+                message: 'Gate removed',
+                projectId,
+            });
+        } else {
+            res.status(404).json({
+                error: 'Gate not found',
+                message: 'No active verification gate for this project',
+            });
+        }
+    } catch (error) {
+        console.error('Error removing gate:', error);
+        res.status(500).json({
+            error: 'Failed to remove gate',
             message: error instanceof Error ? error.message : 'Unknown error',
         });
     }
