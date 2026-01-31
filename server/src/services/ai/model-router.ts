@@ -39,7 +39,7 @@ export interface ModelConfig {
 /**
  * Available models through OpenRouter
  *
- * Pricing and models updated November 2025
+ * Pricing and models updated January 2026
  *
  * STRATEGY:
  * - Premium tier: Claude 4.5 Opus for complex tasks (highest quality, extended thinking)
@@ -69,21 +69,21 @@ export const MODELS: Record<string, ModelConfig> = {
         provider: 'anthropic',
         name: 'Claude 4.5 Opus',
         contextWindow: 200000,
-        inputCostPer1M: 15.00,
-        outputCostPer1M: 75.00,
+        inputCostPer1M: 5.00,  // UPDATED Jan 2026: 67% price reduction from $15
+        outputCostPer1M: 25.00, // UPDATED Jan 2026: 67% price reduction from $75
         supportsVision: true,
         supportsStreaming: true,
         maxOutputTokens: 64000, // FIXED: Opus 4.5 supports 64K output tokens
         tier: 'critical', // Maps to critical for routing, but used for premium mode
     },
 
-    // Fallback to standard Opus 4 if 4.5 unavailable
+    // Fallback to standard Opus 4.1 if 4.5 unavailable
     'claude-opus-4': {
         id: 'anthropic/claude-opus-4-20250514',
         provider: 'anthropic',
-        name: 'Claude Opus 4',
+        name: 'Claude Opus 4.1',
         contextWindow: 200000,
-        inputCostPer1M: 15.00,
+        inputCostPer1M: 15.00, // Legacy pricing for 4.1
         outputCostPer1M: 75.00,
         supportsVision: true,
         supportsStreaming: true,
@@ -328,8 +328,8 @@ export const MODELS: Record<string, ModelConfig> = {
         provider: 'anthropic',
         name: 'Claude Opus 4.5 Thinking',
         contextWindow: 200000,
-        inputCostPer1M: 15.00,
-        outputCostPer1M: 75.00,
+        inputCostPer1M: 5.00,  // UPDATED Jan 2026: 67% price reduction
+        outputCostPer1M: 25.00, // UPDATED Jan 2026: 67% price reduction
         supportsVision: true,
         supportsStreaming: true,
         maxOutputTokens: 128000, // Extended output for thinking
@@ -539,15 +539,15 @@ export const MODELS: Record<string, ModelConfig> = {
     },
 
     // ========================================================================
-    // CLAUDE HAIKU 4.5 - Latest fast model
+    // CLAUDE HAIKU 4.5 - Latest fast model (Jan 2026 pricing)
     // ========================================================================
     'claude-haiku-4.5': {
-        id: 'anthropic/claude-3-5-haiku-20241022',
+        id: 'anthropic/claude-4-5-haiku',
         provider: 'anthropic',
         name: 'Claude Haiku 4.5',
         contextWindow: 200000,
-        inputCostPer1M: 0.80,
-        outputCostPer1M: 4.00,
+        inputCostPer1M: 1.00,  // UPDATED Jan 2026: New Haiku 4.5 pricing
+        outputCostPer1M: 5.00, // UPDATED Jan 2026: New Haiku 4.5 pricing
         supportsVision: true,
         supportsStreaming: true,
         maxOutputTokens: 8192,
