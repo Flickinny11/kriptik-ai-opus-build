@@ -19,7 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+// Switch removed - using single consent checkbox now
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
@@ -1401,26 +1401,66 @@ export default function FixMyApp() {
                                     />
                                 )}
 
-                                <div className="space-y-4 mb-8">
-                                    {[
-                                        { key: 'chatHistory', label: 'Chat/Conversation History', description: 'What you asked for, what the AI responded, where errors first appeared' },
-                                        { key: 'buildLogs', label: 'Build & Error Logs', description: 'Compilation errors, runtime errors, deployment failures' },
-                                        { key: 'errorLogs', label: 'Runtime Error Logs', description: 'Console errors and exceptions during runtime' },
-                                        { key: 'versionHistory', label: 'Version History', description: 'Working snapshots, when things broke' },
-                                    ].map(item => (
-                                        <div key={item.key} className="flex items-start justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                                            <div>
-                                                <div className="font-medium text-white">{item.label}</div>
-                                                <div className="text-sm text-slate-400">{item.description}</div>
+                                {/* Single consent checkbox - all or nothing */}
+                                <div className="mb-8">
+                                    <div 
+                                        className={cn(
+                                            "p-6 rounded-xl border-2 cursor-pointer transition-all",
+                                            consent.chatHistory && consent.buildLogs && consent.errorLogs && consent.versionHistory
+                                                ? "bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/50"
+                                                : "bg-slate-800/50 border-slate-700/50 hover:border-slate-600"
+                                        )}
+                                        onClick={() => {
+                                            const allEnabled = consent.chatHistory && consent.buildLogs && consent.errorLogs && consent.versionHistory;
+                                            const newValue = !allEnabled;
+                                            setConsent({
+                                                chatHistory: newValue,
+                                                buildLogs: newValue,
+                                                errorLogs: newValue,
+                                                versionHistory: newValue,
+                                            });
+                                        }}
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className={cn(
+                                                "w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all",
+                                                consent.chatHistory && consent.buildLogs && consent.errorLogs && consent.versionHistory
+                                                    ? "bg-emerald-500 border-emerald-500"
+                                                    : "border-slate-600"
+                                            )}>
+                                                {consent.chatHistory && consent.buildLogs && consent.errorLogs && consent.versionHistory && (
+                                                    <CheckCircle2Icon size={16} className="text-white" />
+                                                )}
                                             </div>
-                                            <Switch
-                                                checked={consent[item.key as keyof typeof consent]}
-                                                onCheckedChange={(checked: boolean) =>
-                                                    setConsent(prev => ({ ...prev, [item.key]: checked }))
-                                                }
-                                            />
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-white text-lg mb-2">
+                                                    Grant Full Context Access
+                                                </div>
+                                                <p className="text-slate-400 text-sm mb-4">
+                                                    Allow KripTik AI to capture all available data to understand your intent and fix your app:
+                                                </p>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    {[
+                                                        'Chat/conversation history',
+                                                        'Build & error logs',
+                                                        'Runtime error logs',
+                                                        'Version history'
+                                                    ].map((item) => (
+                                                        <div key={item} className="flex items-center gap-2 text-sm text-slate-300">
+                                                            <CheckCircle2Icon size={14} className={cn(
+                                                                "flex-shrink-0",
+                                                                consent.chatHistory ? "text-emerald-400" : "text-slate-600"
+                                                            )} />
+                                                            <span>{item}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
-                                    ))}
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-2 text-center">
+                                        Click to {consent.chatHistory ? 'revoke' : 'grant'} access. Full context enables 95% fix success rate.
+                                    </p>
                                 </div>
 
                                 {/* Project URL Input - Required for AI Builders */}
