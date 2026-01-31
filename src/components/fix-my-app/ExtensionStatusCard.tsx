@@ -139,7 +139,7 @@ export function ExtensionStatusCard({
     );
   }
 
-  // Extension is installed and verified
+  // Extension is installed and verified - still show buttons for re-install/re-verify
   if (extensionInstalled) {
     return (
       <motion.div
@@ -147,23 +147,61 @@ export function ExtensionStatusCard({
         animate={{ opacity: 1, scale: 1 }}
         className="mb-6 p-5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center flex-shrink-0">
-            <ShieldIcon size={24} className="text-emerald-400" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle2Icon size={18} className="text-emerald-400" />
-              <span className="text-emerald-400 font-semibold">KripTik Extension Connected</span>
+        <div className="flex flex-col gap-4">
+          {/* Status header */}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center flex-shrink-0">
+              <ShieldIcon size={24} className="text-emerald-400" />
             </div>
-            <p className="text-sm text-slate-400">
-              Ready for automatic context capture from {platformName}. All chat history, logs, and errors will be captured.
-            </p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2Icon size={18} className="text-emerald-400" />
+                <span className="text-emerald-400 font-semibold">KripTik Extension Connected</span>
+              </div>
+              <p className="text-sm text-slate-400">
+                Ready for automatic context capture from {platformName}. All chat history, logs, and errors will be captured.
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
+                Verified
+              </span>
+            </div>
           </div>
-          <div className="flex-shrink-0">
-            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
-              Verified
-            </span>
+
+          {/* Always show action buttons */}
+          <div className="flex flex-wrap gap-3 pt-2 border-t border-emerald-500/20">
+            <button
+              onClick={handleInstallClick}
+              style={{...secondaryButtonStyles, background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)'}}
+              className="hover:bg-emerald-500/20"
+            >
+              <span className="flex items-center gap-2 text-emerald-400">
+                <DownloadIcon size={16} />
+                Reinstall Extension
+                <ExternalLinkIcon size={14} className="opacity-70" />
+              </span>
+            </button>
+            <button
+              onClick={recheckExtension}
+              disabled={isChecking}
+              style={{...secondaryButtonStyles, background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)'}}
+              className="hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="flex items-center gap-2 text-emerald-400">
+                {isChecking ? (
+                  <>
+                    <Loader2Icon size={16} className="animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCwIcon size={16} />
+                    Re-verify Connection
+                  </>
+                )}
+              </span>
+            </button>
           </div>
         </div>
       </motion.div>
