@@ -55,7 +55,7 @@ const AgenticCapture = {
     this.config.apiEndpoint = options.apiEndpoint || session.apiEndpoint || 'https://kriptik.app';
     this.config.sessionToken = options.sessionToken || session.token || '';
     this.sessionId = `agentic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     console.log('[AgenticCapture] Initialized with UI-TARS model');
     console.log('[AgenticCapture] Endpoint:', this.config.apiEndpoint);
   },
@@ -89,7 +89,7 @@ const AgenticCapture = {
     try {
       // Phase 1: Initial orientation - understand the page
       this.reportProgress('starting', 'Analyzing page layout...');
-      
+
       const initialState = await this.capturePageState();
       if (!initialState.success) {
         throw new Error('Failed to capture initial page state');
@@ -103,7 +103,7 @@ const AgenticCapture = {
         iteration < this.config.maxIterations
       ) {
         iteration++;
-        
+
         // Capture current state
         const pageState = await this.capturePageState();
         if (!pageState.success) {
@@ -284,7 +284,7 @@ const AgenticCapture = {
       // Only include meaningful elements
       if (isInteractive || role || ariaLabel || (text && text.length < 200)) {
         const ref = `@e${refCounter++}`;
-        
+
         // Store ref on the element for later use
         node.dataset.kriptikRef = ref;
 
@@ -537,29 +537,29 @@ const AgenticCapture = {
       switch (action.type) {
         case 'click':
           return await this.executeClick(action);
-        
+
         case 'scroll_up':
           return await this.executeScroll('up', action.amount || 300);
-        
+
         case 'scroll_down':
           return await this.executeScroll('down', action.amount || 300);
-        
+
         case 'scroll_to_top':
           return await this.executeScrollToTop();
-        
+
         case 'scroll_to_bottom':
           return await this.executeScrollToBottom();
-        
+
         case 'type':
           return await this.executeType(action);
-        
+
         case 'wait':
           await this.wait(action.duration || 500);
           return { success: true };
-        
+
         case 'hover':
           return await this.executeHover(action);
-        
+
         default:
           console.warn('[AgenticCapture] Unknown action type:', action.type);
           return { success: false, error: `Unknown action: ${action.type}` };

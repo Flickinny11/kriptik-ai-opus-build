@@ -1300,7 +1300,7 @@ CURRENT STATE:
 AVAILABLE ACTIONS:
 1. click - Click an element (provide ref like @e5, or text to find, or x,y coordinates)
 2. scroll_up - Scroll up to see older messages
-3. scroll_down - Scroll down to see newer messages  
+3. scroll_down - Scroll down to see newer messages
 4. scroll_to_top - Go to the very beginning
 5. scroll_to_bottom - Go to the very end
 6. wait - Wait for content to load
@@ -1318,7 +1318,7 @@ TASK PRIORITIES:
 Analyze the screenshot and accessibility snapshot. Return a JSON response with:
 {
   "action": { "type": "scroll_up|scroll_down|click|wait|...", "ref": "@e5", "text": "button text", "amount": 300 },
-  "extractedData": { 
+  "extractedData": {
     "messages": [{ "role": "user|assistant", "content": "...", "codeBlocks": [...] }],
     "errors": [...],
     "files": [...],
@@ -1409,7 +1409,7 @@ IMPORTANT:
         if (!response.ok) {
             const errorText = await response.text();
             console.error('[AgenticDecide] OpenRouter error:', response.status, errorText);
-            
+
             // Return a safe default action
             return res.json({
                 success: true,
